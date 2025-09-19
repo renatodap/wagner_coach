@@ -1,6 +1,6 @@
 import type { Config } from "tailwindcss";
 
-export default {
+const config: Config = {
   content: [
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -10,13 +10,15 @@ export default {
   theme: {
     extend: {
       colors: {
-        'wagner-black': '#0A0A0B',
-        'wagner-orange': '#FF4500',
-        'wagner-white': '#FFFFFF',
-        'wagner-gray': '#4A4A4A',
-        'wagner-steel': '#2C3E50',
-        'wagner-gold': '#FFD700',
-        'wagner-red': '#DC143C',
+        'wagner': {
+          'black': '#0A0A0B',
+          'orange': '#FF4500',
+          'white': '#FFFFFF',
+          'gray': '#4A4A4A',
+          'steel': '#2C3E50',
+          'gold': '#FFD700',
+          'red': '#DC143C',
+        }
       },
       fontFamily: {
         'heading': ['var(--font-bebas)', 'sans-serif'],
@@ -39,4 +41,6 @@ export default {
     },
   },
   plugins: [],
-} satisfies Config;
+};
+
+export default config;

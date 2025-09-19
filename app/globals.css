@@ -16,6 +16,17 @@
   --foreground: #FFFFFF;
 }
 
+/* Define custom colors for Tailwind v4 */
+@theme {
+  --color-wagner-black: #0A0A0B;
+  --color-wagner-orange: #FF4500;
+  --color-wagner-white: #FFFFFF;
+  --color-wagner-gray: #4A4A4A;
+  --color-wagner-steel: #2C3E50;
+  --color-wagner-gold: #FFD700;
+  --color-wagner-red: #DC143C;
+}
+
 html {
   color-scheme: dark;
 }

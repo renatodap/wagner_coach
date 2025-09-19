@@ -8,8 +8,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Play,
-  Pause,
-  SkipForward,
   Volume2,
   VolumeX,
   CheckCircle,

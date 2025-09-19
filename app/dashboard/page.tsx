@@ -10,7 +10,6 @@ import {
   User,
   Activity,
   Trophy,
-  Calendar,
   TrendingUp,
   Dumbbell,
   Flame,
@@ -121,7 +120,7 @@ export default function Dashboard() {
           className="mb-8"
         >
           <h2 className="font-heading text-3xl text-wagner-white mb-6">
-            TODAY'S MISSION
+            TODAY&apos;S MISSION
           </h2>
           <WorkoutCard
             {...todaysWorkout}

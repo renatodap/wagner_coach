@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { motion } from "framer-motion";
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'brutal' | 'outline' | 'ghost';
@@ -26,9 +25,8 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     };
 
     return (
-      <motion.button
+      <button
         ref={ref}
-        whileTap={{ scale: 0.98 }}
         className={cn(
           "font-heading uppercase tracking-widest transition-all duration-200",
           "focus:outline-none focus:ring-2 focus:ring-wagner-orange focus:ring-offset-2 focus:ring-offset-wagner-black",
@@ -47,7 +45,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           </div>
         )}
         {children}
-      </motion.button>
+      </button>
     );
   }
 );

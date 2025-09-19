@@ -3,10 +3,7 @@
 import { motion } from "framer-motion";
 import { Navbar } from "@/components/layout/Navbar";
 import { Button } from "@/components/ui/Button";
-import { MetricCard } from "@/components/ui/MetricCard";
-import { AchievementBadge } from "@/components/ui/AchievementBadge";
-import { Check, Trophy, Users, Zap, Target, Calendar, ChevronRight } from "lucide-react";
-import Image from "next/image";
+import { Check, Trophy, Zap, Target, Calendar, ChevronRight } from "lucide-react";
 
 export default function Home() {
   return (
@@ -31,7 +28,7 @@ export default function Home() {
               </h1>
 
               <p className="mt-6 text-xl text-wagner-gray max-w-xl">
-                Wagner's brutal training system. No excuses. No shortcuts.
+                Wagner&apos;s brutal training system. No excuses. No shortcuts.
                 Pure discipline that transforms average into elite.
               </p>
 
@@ -222,7 +219,7 @@ export default function Home() {
               {
                 name: "MARCUS R.",
                 achievement: "Lost 30lbs, Gained Muscle",
-                quote: "Wagner's system is brutal but it works. Best shape of my life at 40.",
+                quote: "Wagner&apos;s system is brutal but it works. Best shape of my life at 40.",
                 stats: { before: "210 lbs", after: "180 lbs", time: "12 weeks" }
               },
               {
@@ -256,7 +253,7 @@ export default function Home() {
                 </div>
 
                 <p className="text-wagner-white mb-6 italic">
-                  "{testimonial.quote}"
+                  &quot;{testimonial.quote}&quot;
                 </p>
 
                 <div className="grid grid-cols-3 gap-2 pt-4 border-t border-wagner-gray/30">
@@ -294,7 +291,7 @@ export default function Home() {
             </h2>
 
             <p className="text-wagner-gray text-xl mb-8 max-w-2xl mx-auto">
-              Limited spots available. Application process ensures you're ready for the transformation.
+              Limited spots available. Application process ensures you&apos;re ready for the transformation.
             </p>
 
             <Button variant="brutal" size="xl">
@@ -302,7 +299,7 @@ export default function Home() {
             </Button>
 
             <p className="text-wagner-gray text-sm mt-6">
-              Next cohort starts Monday. Don't wait.
+              Next cohort starts Monday. Don&apos;t wait.
             </p>
           </motion.div>
         </div>
