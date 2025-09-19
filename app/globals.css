@@ -1,0 +1,86 @@
+@import "tailwindcss";
+
+/* Wagner's Iron Discipline - Brutal Design System */
+:root {
+  /* Core Colors - No compromise */
+  --wagner-black: #0A0A0B;
+  --wagner-orange: #FF4500;
+  --wagner-white: #FFFFFF;
+  --wagner-gray: #4A4A4A;
+  --wagner-steel: #2C3E50;
+  --wagner-gold: #FFD700;
+  --wagner-red: #DC143C;
+
+  /* Applied */
+  --background: #0A0A0B;
+  --foreground: #FFFFFF;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  @apply bg-wagner-black text-wagner-white antialiased min-h-screen;
+  font-family: var(--font-inter), sans-serif;
+}
+
+/* Brutal Typography */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-bebas), sans-serif;
+  @apply uppercase tracking-wider;
+}
+
+/* No rounded corners on buttons and cards */
+* {
+  border-radius: 0 !important;
+}
+
+/* Subtle rounded corners only where absolutely needed */
+.rounded-brutal {
+  border-radius: 4px !important;
+}
+
+/* Custom scrollbar - dark and minimal */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-wagner-black;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-wagner-gray;
+  transition: background 0.2s;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-wagner-orange;
+}
+
+/* Selection */
+::selection {
+  @apply bg-wagner-orange text-wagner-white;
+}
+
+/* Focus states - brutal orange */
+*:focus {
+  outline: 2px solid #FF4500;
+  outline-offset: 2px;
+}
+
+/* Disable all transitions for instant, brutal feel */
+.no-transition * {
+  transition: none !important;
+}
+
+/* Brutal hover states */
+.brutal-hover {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.brutal-hover:hover {
+  @apply border-wagner-orange;
+}
