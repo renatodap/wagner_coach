@@ -13,7 +13,8 @@ export default async function WorkoutPage({ params }: { params: { id: string } }
   }
 
   // Get the user workout with all exercise details
-  const { data: userWorkout } = await supabase
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: userWorkout } = await (supabase as any)
     .from('user_workouts')
     .select(`
       *,
@@ -29,13 +30,18 @@ export default async function WorkoutPage({ params }: { params: { id: string } }
     .eq('user_id', user.id)
     .single();
 
-  if (!userWorkout || !userWorkout.workouts) {
+  if (!userWorkout || !userWorkout?.workouts) {
     redirect('/dashboard');
   }
 
   // Sort exercises by order_index
   if (userWorkout.workouts.workout_exercises) {
-    userWorkout.workouts.workout_exercises.sort((a: any, b: any) => a.order_index - b.order_index);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    userWorkout.workouts.workout_exercises.sort((a: any, b: any) => {
+      const orderA = (a as { order_index: number }).order_index;
+      const orderB = (b as { order_index: number }).order_index;
+      return orderA - orderB;
+    });
   }
 
   return <WorkoutTracker userWorkout={userWorkout} />;

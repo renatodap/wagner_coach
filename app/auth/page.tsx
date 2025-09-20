@@ -36,7 +36,8 @@ export default function AuthPage() {
 
         if (data.user) {
           // Update profile with full name
-          await supabase
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          await (supabase as any)
             .from('profiles')
             .update({ full_name: fullName })
             .eq('id', data.user.id);
@@ -53,7 +54,8 @@ export default function AuthPage() {
 
         if (data.user) {
           // Check if user has completed onboarding
-          const { data: profile } = await supabase
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { data: profile } = await (supabase as any)
             .from('profiles')
             .select('onboarding_completed')
             .eq('id', data.user.id)
@@ -66,8 +68,8 @@ export default function AuthPage() {
           }
         }
       }
-    } catch (err: any) {
-      setError(err.message || 'An error occurred');
+    } catch (err) {
+      setError((err as Error).message || 'An error occurred');
     } finally {
       setLoading(false);
     }

@@ -31,7 +31,7 @@ export default function WorkoutTracker({ userWorkout }: WorkoutTrackerProps) {
   const [loading, setLoading] = useState(false);
   const [startTime] = useState(new Date());
 
-  const exercises = userWorkout.workouts.workout_exercises || [];
+  const exercises = userWorkout.workouts?.workout_exercises || [];
   const currentExercise = exercises[currentExerciseIndex];
   const totalExercises = exercises.length;
 
@@ -67,7 +67,8 @@ export default function WorkoutTracker({ userWorkout }: WorkoutTrackerProps) {
       if (!user) return;
 
       // Create workout completion record
-      const { data: completion, error: completionError } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: completion, error: completionError } = await (supabase as any)
         .from('workout_completions')
         .insert({
           user_id: user.id,
@@ -87,7 +88,8 @@ export default function WorkoutTracker({ userWorkout }: WorkoutTrackerProps) {
         const sets = completedSets[key] || [];
 
         if (sets.length > 0) {
-          const { error: exerciseError } = await supabase
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { error: exerciseError } = await (supabase as any)
             .from('exercise_completions')
             .insert({
               completion_id: completion.id,
@@ -102,7 +104,8 @@ export default function WorkoutTracker({ userWorkout }: WorkoutTrackerProps) {
       }
 
       // Mark user workout as completed
-      const { error: updateError } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error: updateError } = await (supabase as any)
         .from('user_workouts')
         .update({ completed: true })
         .eq('id', userWorkout.id);

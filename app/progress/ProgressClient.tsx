@@ -7,14 +7,31 @@ import {
   Calendar,
   Target,
   CheckCircle,
-  Clock,
   Dumbbell,
   Settings,
   Flame
 } from 'lucide-react';
 
+interface ExerciseCompletion {
+  exercises?: {
+    name: string;
+  };
+  sets_completed: number;
+}
+
+interface WorkoutCompletion {
+  id: number;
+  started_at: string;
+  completed_at: string;
+  workouts?: {
+    name: string;
+    difficulty?: string;
+  };
+  exercise_completions?: ExerciseCompletion[];
+}
+
 interface ProgressClientProps {
-  completions: any[];
+  completions: WorkoutCompletion[];
   stats: {
     totalCompleted: number;
     totalScheduled: number;
@@ -144,7 +161,7 @@ export default function ProgressClient({ completions, stats }: ProgressClientPro
             </div>
           ) : (
             <div className="space-y-4">
-              {completions.map((completion: any) => (
+              {completions.map((completion) => (
                 <div
                   key={completion.id}
                   className="border-b border-iron-gray/30 pb-4 last:border-0"
@@ -173,7 +190,7 @@ export default function ProgressClient({ completions, stats }: ProgressClientPro
                   {/* Exercise Summary */}
                   {completion.exercise_completions && completion.exercise_completions.length > 0 && (
                     <div className="mt-3 space-y-1">
-                      {completion.exercise_completions.slice(0, 3).map((exercise: any, index: number) => (
+                      {completion.exercise_completions.slice(0, 3).map((exercise, index) => (
                         <div key={index} className="flex items-center gap-2 text-iron-gray text-sm">
                           <CheckCircle className="w-3 h-3 text-green-500" />
                           <span>{exercise.exercises?.name}</span>

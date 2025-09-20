@@ -19,8 +19,13 @@ import {
 
 type Goal = 'build_muscle' | 'lose_weight' | 'gain_strength';
 
+interface Profile {
+  full_name?: string;
+  goal?: Goal;
+}
+
 interface SettingsClientProps {
-  profile: any;
+  profile: Profile | null;
   userEmail?: string;
 }
 
@@ -66,7 +71,8 @@ export default function SettingsClient({ profile, userEmail }: SettingsClientPro
       if (!user) throw new Error('Not authenticated');
 
       // Update profile
-      const { error: updateError } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error: updateError } = await (supabase as any)
         .from('profiles')
         .update({
           full_name: fullName,
@@ -78,7 +84,8 @@ export default function SettingsClient({ profile, userEmail }: SettingsClientPro
 
       // If goal changed, regenerate workouts for next week
       if (selectedGoal !== profile?.goal) {
-        const { error: workoutError } = await supabase
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { error: workoutError } = await (supabase as any)
           .rpc('generate_week_workouts', {
             p_user_id: user.id,
             p_goal: selectedGoal,
@@ -89,8 +96,8 @@ export default function SettingsClient({ profile, userEmail }: SettingsClientPro
 
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
-    } catch (err: any) {
-      setError(err.message || 'Failed to save settings');
+    } catch (err) {
+      setError((err as Error).message || 'Failed to save settings');
     } finally {
       setSaving(false);
     }

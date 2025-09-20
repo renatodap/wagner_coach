@@ -13,6 +13,9 @@
   --color-iron-orange: #FF4500;
   --color-iron-white: #FFFFFF;
   --color-iron-gray: #4A4A4A;
+
+  --font-family-sans: 'Inter', system-ui, sans-serif;
+  --font-family-heading: 'Bebas Neue', sans-serif;
 }
 
 html {
@@ -31,9 +34,16 @@ body {
   border-radius: 0 !important;
 }
 
+/* Font utilities */
+@utility font-heading {
+  font-family: var(--font-family-heading);
+}
+
 /* Headings */
 h1, h2, h3, h4, h5, h6 {
-  @apply font-heading uppercase tracking-wider;
+  font-family: var(--font-family-heading);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 /* Focus states */

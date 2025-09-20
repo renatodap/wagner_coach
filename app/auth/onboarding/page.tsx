@@ -51,8 +51,9 @@ export default function OnboardingPage() {
       }
 
       // Update profile with goal and mark onboarding as complete
-      const { error: profileError } = await supabase
-        .from('profiles')
+      const { error: profileError } = await (supabase
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .from('profiles') as any)
         .update({
           goal: selectedGoal,
           onboarding_completed: true,
@@ -62,7 +63,8 @@ export default function OnboardingPage() {
       if (profileError) throw profileError;
 
       // Generate first week of workouts
-      const { error: workoutError } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error: workoutError } = await (supabase as any)
         .rpc('generate_week_workouts', {
           p_user_id: user.id,
           p_goal: selectedGoal,
@@ -72,8 +74,8 @@ export default function OnboardingPage() {
 
       // Navigate to dashboard
       router.push('/dashboard');
-    } catch (err: any) {
-      setError(err.message || 'Failed to save goal');
+    } catch (err) {
+      setError((err as Error).message || 'Failed to save goal');
     } finally {
       setLoading(false);
     }
