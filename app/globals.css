@@ -1,30 +1,18 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap');
 
-/* Wagner's Iron Discipline - Brutal Design System */
 :root {
-  /* Core Colors - No compromise */
-  --wagner-black: #0A0A0B;
-  --wagner-orange: #FF4500;
-  --wagner-white: #FFFFFF;
-  --wagner-gray: #4A4A4A;
-  --wagner-steel: #2C3E50;
-  --wagner-gold: #FFD700;
-  --wagner-red: #DC143C;
-
-  /* Applied */
-  --background: #0A0A0B;
-  --foreground: #FFFFFF;
+  --iron-black: #0A0A0B;
+  --iron-orange: #FF4500;
+  --iron-white: #FFFFFF;
+  --iron-gray: #4A4A4A;
 }
 
-/* Define custom colors for Tailwind v4 */
 @theme {
-  --color-wagner-black: #0A0A0B;
-  --color-wagner-orange: #FF4500;
-  --color-wagner-white: #FFFFFF;
-  --color-wagner-gray: #4A4A4A;
-  --color-wagner-steel: #2C3E50;
-  --color-wagner-gold: #FFD700;
-  --color-wagner-red: #DC143C;
+  --color-iron-black: #0A0A0B;
+  --color-iron-orange: #FF4500;
+  --color-iron-white: #FFFFFF;
+  --color-iron-gray: #4A4A4A;
 }
 
 html {
@@ -32,66 +20,63 @@ html {
 }
 
 body {
-  @apply bg-wagner-black text-wagner-white antialiased min-h-screen;
-  font-family: var(--font-inter), sans-serif;
+  @apply bg-iron-black text-iron-white;
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Brutal Typography */
-h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-bebas), sans-serif;
-  @apply uppercase tracking-wider;
-}
-
-/* No rounded corners on buttons and cards */
+/* Remove all rounded corners - brutal design */
 * {
   border-radius: 0 !important;
 }
 
-/* Subtle rounded corners only where absolutely needed */
-.rounded-brutal {
-  border-radius: 4px !important;
+/* Headings */
+h1, h2, h3, h4, h5, h6 {
+  @apply font-heading uppercase tracking-wider;
 }
 
-/* Custom scrollbar - dark and minimal */
+/* Focus states */
+*:focus {
+  outline: 2px solid var(--iron-orange);
+  outline-offset: 2px;
+}
+
+/* Buttons */
+button {
+  @apply transition-transform active:scale-95;
+}
+
+/* Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  @apply bg-wagner-black;
+  @apply bg-iron-black;
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-wagner-gray;
-  transition: background 0.2s;
+  @apply bg-iron-gray;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-wagner-orange;
+  @apply bg-iron-orange;
 }
 
 /* Selection */
 ::selection {
-  @apply bg-wagner-orange text-wagner-white;
+  @apply bg-iron-orange text-iron-white;
 }
 
-/* Focus states - brutal orange */
-*:focus {
-  outline: 2px solid #FF4500;
-  outline-offset: 2px;
+/* Loading spinner */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
-/* Disable all transitions for instant, brutal feel */
-.no-transition * {
-  transition: none !important;
-}
-
-/* Brutal hover states */
-.brutal-hover {
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.brutal-hover:hover {
-  @apply border-wagner-orange;
+.animate-spin {
+  animation: spin 1s linear infinite;
 }
