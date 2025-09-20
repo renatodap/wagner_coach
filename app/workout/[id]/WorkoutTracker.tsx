@@ -12,9 +12,10 @@ import {
   AlertCircle,
   Clock
 } from 'lucide-react';
+import { UserWorkout } from '@/lib/types';
 
 interface WorkoutTrackerProps {
-  userWorkout: any;
+  userWorkout: UserWorkout;
 }
 
 interface SetData {

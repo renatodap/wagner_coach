@@ -14,12 +14,13 @@ import {
   Clock,
   TrendingUp
 } from 'lucide-react';
+import { Profile, UserWorkout, WorkoutCompletion } from '@/lib/types';
 
 interface DashboardClientProps {
-  profile: any;
-  todaysWorkout: any;
-  weekWorkouts: any[];
-  recentCompletions: any[];
+  profile: Profile | null;
+  todaysWorkout: UserWorkout | null;
+  weekWorkouts: UserWorkout[];
+  recentCompletions: WorkoutCompletion[];
 }
 
 export default function DashboardClient({
@@ -195,7 +196,7 @@ export default function DashboardClient({
               RECENT ACTIVITY
             </h3>
             <div className="space-y-3">
-              {recentCompletions.map((completion: any) => (
+              {recentCompletions.map((completion) => (
                 <div key={completion.id} className="flex justify-between items-center py-2 border-b border-iron-gray/30 last:border-0">
                   <div>
                     <p className="text-iron-white">
