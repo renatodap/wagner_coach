@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { Navbar } from "@/components/layout/Navbar";
 import { Button } from "@/components/ui/Button";
 import { Check, Trophy, Zap, Target, Calendar, ChevronRight } from "lucide-react";
+import Image from "next/image";
 
 export default function Home() {
   return (
@@ -33,10 +34,12 @@ export default function Home() {
               </p>
 
               <div className="mt-8 flex flex-col sm:flex-row gap-4">
-                <Button variant="brutal" size="xl">
-                  APPLY NOW
-                </Button>
-                <Button variant="outline" size="xl">
+                <a href="/dashboard-demo">
+                  <Button variant="brutal" size="xl">
+                    START NOW
+                  </Button>
+                </a>
+                <Button variant="outline" size="xl" onClick={() => document.getElementById('results')?.scrollIntoView({ behavior: 'smooth' })}>
                   SEE THE RESULTS
                 </Button>
               </div>
@@ -65,10 +68,15 @@ export default function Home() {
             >
               <div className="relative h-[600px] overflow-hidden border-2 border-wagner-orange">
                 <div className="absolute inset-0 bg-gradient-to-t from-wagner-black via-transparent to-transparent z-10" />
-                {/* Wagner's photo would go here */}
-                <div className="w-full h-full bg-wagner-gray/20 flex items-center justify-center">
-                  <span className="font-heading text-4xl text-wagner-gray">WAGNER</span>
-                </div>
+                <Image
+                  src="/wagner/wagner-hero.png"
+                  alt="Wagner - Elite Fitness Coach"
+                  fill
+                  className="object-cover object-center"
+                  priority
+                  placeholder="blur"
+                  blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
+                />
               </div>
               <div className="absolute -bottom-4 -right-4 bg-wagner-orange p-4">
                 <p className="font-heading text-wagner-black text-xl">NO PAIN NO GAIN</p>
@@ -185,9 +193,11 @@ export default function Home() {
               ))}
             </ul>
 
-            <Button variant="brutal" size="xl" className="w-full max-w-md mx-auto block">
-              START YOUR TRANSFORMATION
-            </Button>
+            <a href="/dashboard-demo" className="block max-w-md mx-auto">
+              <Button variant="brutal" size="xl" className="w-full">
+                START YOUR TRANSFORMATION
+              </Button>
+            </a>
 
             <p className="text-center text-wagner-gray text-sm mt-6">
               Limited spots available. Application required.
@@ -294,9 +304,11 @@ export default function Home() {
               Limited spots available. Application process ensures you&apos;re ready for the transformation.
             </p>
 
-            <Button variant="brutal" size="xl">
-              APPLY NOW <ChevronRight className="inline ml-2" />
-            </Button>
+            <a href="/dashboard-demo">
+              <Button variant="brutal" size="xl">
+                APPLY NOW <ChevronRight className="inline ml-2" />
+              </Button>
+            </a>
 
             <p className="text-wagner-gray text-sm mt-6">
               Next cohort starts Monday. Don&apos;t wait.

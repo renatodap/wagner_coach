@@ -26,6 +26,11 @@ export const metadata: Metadata = {
   description: "Forge your elite physique with Wagner's brutal training system. No excuses. Pure results.",
   keywords: "fitness, elite training, personal coach, Wagner, workout, muscle, strength",
   authors: [{ name: "Wagner" }],
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 1,
+  },
   openGraph: {
     title: "Iron Discipline - Elite Fitness by Wagner",
     description: "Forge your elite physique. No excuses. Pure results.",
