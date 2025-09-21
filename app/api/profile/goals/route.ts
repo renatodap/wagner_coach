@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { UserGoalInsert, GoalType, isValidGoalType } from '@/types/profile';
-import DOMPurify from 'isomorphic-dompurify';
 
 // Validation helpers
 function validateGoalData(data: any): { isValid: boolean; errors: string[] } {
@@ -40,9 +39,9 @@ function validateGoalData(data: any): { isValid: boolean; errors: string[] } {
 function sanitizeGoalData(data: any): UserGoalInsert {
   return {
     goal_type: data.goal_type,
-    description: DOMPurify.sanitize(data.description || ''),
+    description: String(data.description || '').replace(/<[^>]*>/g, '').trim(),
     target_value: data.target_value ? parseFloat(data.target_value) : null,
-    target_unit: data.target_unit ? DOMPurify.sanitize(data.target_unit) : null,
+    target_unit: data.target_unit ? String(data.target_unit).replace(/<[^>]*>/g, '').trim() : null,
     target_date: data.target_date || null,
     priority: data.priority ? parseInt(data.priority) : undefined,
     status: data.status || 'active'
