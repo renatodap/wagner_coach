@@ -3,6 +3,39 @@ import '@testing-library/jest-dom'
 // Polyfill fetch for tests
 global.fetch = jest.fn()
 
+// Provide a minimal Request mock for Next.js server imports
+if (typeof global.Request === 'undefined') {
+  global.Request = class Request {
+    constructor(input, init) {}
+  };
+}
+
+if (typeof global.Headers === 'undefined') {
+    global.Headers = class Headers {
+        constructor(init) { this.headers = init || {}; }
+        set(key, value) { this.headers[key] = value; }
+        get(key) { return this.headers[key]; }
+    };
+}
+
+if (typeof global.Response === 'undefined') {
+  global.Response = class Response {
+    constructor(body, init) {
+      this.body = body;
+      this.status = init?.status || 200;
+      this.headers = new Headers(init?.headers);
+    }
+    async json() {
+      return JSON.parse(this.body);
+    }
+    static json(data, init) {
+      const body = JSON.stringify(data);
+      const headers = new Headers({ 'Content-Type': 'application/json', ...init?.headers });
+      return new Response(body, { ...init, headers });
+    }
+  };
+}
+
 // Mock Next.js router
 jest.mock('next/navigation', () => ({
   useRouter: () => ({
@@ -19,28 +52,6 @@ jest.mock('next/navigation', () => ({
 
 // Mock Supabase client
 jest.mock('@/lib/supabase/client', () => ({
-  createClient: () => ({
-    from: jest.fn(() => ({
-      select: jest.fn().mockReturnThis(),
-      insert: jest.fn().mockReturnThis(),
-      update: jest.fn().mockReturnThis(),
-      delete: jest.fn().mockReturnThis(),
-      eq: jest.fn().mockReturnThis(),
-      single: jest.fn().mockResolvedValue({ data: null, error: null }),
-      order: jest.fn().mockReturnThis(),
-    })),
-    rpc: jest.fn().mockResolvedValue({ data: null, error: null }),
-    auth: {
-      getUser: jest.fn().mockResolvedValue({
-        data: { user: { id: 'test-user-id' } },
-        error: null
-      }),
-    },
-  }),
-}))
-
-// Mock Supabase server
-jest.mock('@/lib/supabase/server', () => ({
   createClient: () => ({
     from: jest.fn(() => ({
       select: jest.fn().mockReturnThis(),

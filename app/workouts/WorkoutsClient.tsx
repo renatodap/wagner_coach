@@ -24,6 +24,7 @@ interface Workout {
   description: string;
   estimated_duration_minutes: number;
   is_favorite: boolean;
+  user_id: string | null;
 }
 
 interface WorkoutsClientProps {
@@ -111,6 +112,27 @@ export default function WorkoutsClient({
       ));
     } catch (error) {
       console.error('Error toggling favorite:', error);
+    }
+  };
+
+  const handleEdit = (e: React.MouseEvent, workoutId: number) => {
+    e.stopPropagation();
+    router.push(`/workouts/edit/${workoutId}`);
+  };
+
+  const handleDelete = async (e: React.MouseEvent, workoutId: number) => {
+    e.stopPropagation();
+    if (window.confirm('Are you sure you want to delete this workout?')) {
+      const response = await fetch(`/api/workouts/${workoutId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        setWorkouts(workouts.filter(w => w.id !== workoutId));
+      } else {
+        console.error('Failed to delete workout');
+        // TODO: Show error to user
+      }
     }
   };
 
@@ -211,6 +233,9 @@ export default function WorkoutsClient({
             <h3 className="font-heading text-2xl text-iron-white">
               WORKOUT LIBRARY
             </h3>
+            <Link href="/workouts/create" className="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700">
+              Create Workout
+            </Link>
           </div>
 
           {/* Search and Filters */}
@@ -263,14 +288,25 @@ export default function WorkoutsClient({
                 className="border border-iron-gray p-4 hover:border-iron-orange transition-colors cursor-pointer relative"
               >
                 {/* Favorite Star */}
-                <button
-                  onClick={(e) => toggleFavorite(workout.id, e)}
-                  className="absolute top-3 right-3 z-10"
-                >
-                  <Star
-                    className={`w-5 h-5 ${workout.is_favorite ? 'text-yellow-500 fill-current' : 'text-iron-gray'} hover:text-yellow-500 transition-colors`}
-                  />
-                </button>
+                <div className="absolute top-3 right-3 z-10 flex gap-2">
+                  {workout.user_id === userId && (
+                    <>
+                      <button onClick={(e) => handleEdit(e, workout.id)} className="text-iron-gray hover:text-iron-orange">
+                        Edit
+                      </button>
+                      <button onClick={(e) => handleDelete(e, workout.id)} className="text-iron-gray hover:text-red-500">
+                        Delete
+                      </button>
+                    </>
+                  )}
+                  <button
+                    onClick={(e) => toggleFavorite(workout.id, e)}
+                  >
+                    <Star
+                      className={`w-5 h-5 ${workout.is_favorite ? 'text-yellow-500 fill-current' : 'text-iron-gray'} hover:text-yellow-500 transition-colors`}
+                    />
+                  </button>
+                </div>
 
                 {/* Workout Info */}
                 <h4 className="font-heading text-lg text-iron-white mb-2 pr-8">

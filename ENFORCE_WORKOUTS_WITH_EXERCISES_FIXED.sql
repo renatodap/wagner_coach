@@ -121,7 +121,8 @@ RETURNS TABLE (
   duration_minutes INTEGER,
   description TEXT,
   is_favorite BOOLEAN,
-  exercise_count BIGINT
+  exercise_count BIGINT,
+  user_id UUID
 ) AS $$
 BEGIN
   RETURN QUERY
@@ -138,11 +139,16 @@ BEGIN
         EXISTS(SELECT 1 FROM favorite_workouts fw WHERE fw.workout_id = w.id AND fw.user_id = p_user_id)
       ELSE FALSE
     END as is_favorite,
-    COUNT(we.id) as exercise_count
-  FROM workouts_with_exercises w
+    COUNT(we.id) as exercise_count,
+    w.user_id
+  FROM workouts w
   LEFT JOIN workout_exercises we ON we.workout_id = w.id
-  GROUP BY w.id, w.name, w.type, w.goal, w.difficulty, w.estimated_duration_minutes, w.duration_minutes, w.description
-  HAVING COUNT(we.id) > 0  -- Double-check exercises exist
+  WHERE
+    -- Public workouts must have exercises
+    (w.user_id IS NULL AND EXISTS(SELECT 1 FROM workout_exercises we2 WHERE we2.workout_id = w.id))
+    -- User's own workouts can be empty
+    OR (w.user_id = p_user_id)
+  GROUP BY w.id, w.name, w.type, w.goal, w.difficulty, w.estimated_duration_minutes, w.duration_minutes, w.description, w.user_id
   ORDER BY w.name;
 END;
 $$ LANGUAGE plpgsql;
