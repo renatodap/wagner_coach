@@ -85,7 +85,7 @@ export default function OnboardingPage() {
             Welcome to Wagner Coach
           </h1>
           <p className="text-lg text-gray-600">
-            Let's personalize your fitness journey (5-7 minutes)
+            Let&apos;s personalize your fitness journey (5-7 minutes)
           </p>
         </div>
 

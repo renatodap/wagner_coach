@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient } from '@/utils/supabase/server';
 import { ProfileUpdate, ProfileValidation, isValidExperienceLevel } from '@/types/profile';
 import { ValidationError } from '@/types/onboarding';
 import DOMPurify from 'isomorphic-dompurify';
