@@ -230,3 +230,213 @@ export interface ProcessedImage {
     height: number;
   };
 }
+
+// ========== ENHANCED AI PHOTO RECOGNITION TYPES ==========
+
+// AI Analysis Result (comprehensive interface for all AI services)
+export interface AIAnalysisResult {
+  foodItems: Array<{
+    name: string;
+    quantity: string;
+    confidence: number;
+    calories: number;
+    protein_g: number;
+    carbs_g: number;
+    fat_g: number;
+    fiber_g: number;
+  }>;
+  totalNutrition: {
+    calories: number;
+    protein_g: number;
+    carbs_g: number;
+    fat_g: number;
+    fiber_g: number;
+  };
+  suggestedMealName: string;
+  confidence: number;
+}
+
+// PhotoCapture Component Props
+export interface PhotoCaptureProps {
+  onPhotoCapture: (imageData: string) => void;
+  onCancel: () => void;
+  isProcessing?: boolean;
+}
+
+// AIAnalysis Component Props
+export interface AIAnalysisProps {
+  imageData: string;
+  onAnalysisComplete: (mealData: AIAnalysisResult) => void;
+  onError: (error: string) => void;
+}
+
+// AIReview Component Props
+export interface AIReviewProps {
+  aiResult: AIAnalysisResult;
+  originalImage: string;
+  onConfirm: (finalMealData: MealInsert) => void;
+  onReanalyze: () => void;
+  onManualEdit: () => void;
+}
+
+// API Request/Response Types for Photo Analysis
+export interface AnalyzePhotoRequest {
+  imageData: string; // Base64 encoded image
+  userId: string;
+  mealCategory?: MealCategory;
+  includePortionHelp?: boolean;
+}
+
+export interface AnalyzePhotoResponse {
+  success: boolean;
+  data?: AIAnalysisResult;
+  error?: string;
+  analysisId: string; // For feedback/correction tracking
+}
+
+// Analysis Feedback Types
+export interface AnalysisFeedback {
+  analysisId: string;
+  corrections: Array<{
+    originalItem: string;
+    correctedItem: string;
+    originalNutrition: NutritionInfo;
+    correctedNutrition: NutritionInfo;
+    correctionType: 'identification' | 'portion' | 'nutrition';
+  }>;
+  userSatisfaction: number; // 1-5 rating
+}
+
+// Database Types for Photo Analysis
+export interface MealPhotoAnalysis {
+  id: string;
+  user_id: string;
+  meal_id?: string;
+  image_url: string;
+  ai_response: AIAnalysisResult;
+  user_corrections?: AnalysisFeedback;
+  confidence_score: number;
+  processing_time_ms: number;
+  ai_service_used: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserAIPreferences {
+  user_id: string;
+  preferred_portion_units: 'imperial' | 'metric';
+  dietary_restrictions: string[];
+  common_foods: string[];
+  correction_count: number;
+  satisfaction_rating?: number;
+  created_at: string;
+  updated_at: string;
+}
+
+// Extended Database Schema
+export interface DatabaseWithAI extends Database {
+  public: {
+    Tables: Database['public']['Tables'] & {
+      meal_photo_analyses: {
+        Row: MealPhotoAnalysis;
+        Insert: Omit<MealPhotoAnalysis, 'id' | 'created_at' | 'updated_at'>;
+        Update: Partial<Omit<MealPhotoAnalysis, 'id' | 'user_id' | 'created_at'>>;
+      };
+      user_ai_preferences: {
+        Row: UserAIPreferences;
+        Insert: Omit<UserAIPreferences, 'created_at' | 'updated_at'>;
+        Update: Partial<Omit<UserAIPreferences, 'user_id' | 'created_at'>>;
+      };
+    };
+  };
+}
+
+// Image Upload Types
+export interface ImageUploadRequest {
+  file: File;
+  userId: string;
+  compressionOptions?: ImageCompressionOptions;
+}
+
+export interface ImageUploadResponse {
+  success: boolean;
+  imageUrl?: string;
+  error?: string;
+  expiresAt: string;
+}
+
+// AI Service Configuration
+export interface AIServiceConfig {
+  provider: 'openai' | 'anthropic' | 'logmeal';
+  apiKey: string;
+  maxRetries: number;
+  timeoutMs: number;
+  fallbackProvider?: 'openai' | 'anthropic' | 'logmeal';
+}
+
+// USDA API Integration Types
+export interface USDAFoodItem {
+  fdcId: number;
+  description: string;
+  foodNutrients: Array<{
+    nutrientId: number;
+    nutrientName: string;
+    value: number;
+    unitName: string;
+  }>;
+}
+
+export interface USDASearchResponse {
+  foods: USDAFoodItem[];
+  totalHits: number;
+  currentPage: number;
+  totalPages: number;
+}
+
+// Error Types
+export interface AIAnalysisError {
+  code: 'AI_SERVICE_ERROR' | 'IMAGE_PROCESSING_ERROR' | 'VALIDATION_ERROR' | 'TIMEOUT_ERROR';
+  message: string;
+  details?: any;
+  retryable: boolean;
+}
+
+// Enhanced MealLogForm Props with AI Integration
+export interface EnhancedMealLogFormProps extends MealLogFormProps {
+  enablePhotoAnalysis?: boolean;
+  initialAIAnalysis?: AIAnalysisResult;
+  onPhotoAnalysisRequest?: () => void;
+}
+
+// Photo Analysis Workflow State
+export interface PhotoAnalysisWorkflowState {
+  step: 'capture' | 'processing' | 'review' | 'editing' | 'complete';
+  imageData?: string;
+  analysisResult?: AIAnalysisResult;
+  userEdits?: Partial<MealInsert>;
+  error?: string;
+  isLoading: boolean;
+}
+
+// Helper Types for Form Integration
+export type FormDataSource = 'manual' | 'ai' | 'mixed';
+
+export interface MealFormDataWithSource extends MealFormData {
+  dataSource: FormDataSource;
+  aiAnalysisId?: string;
+  confidenceScore?: number;
+  userModified: boolean;
+}
+
+// Performance Monitoring Types
+export interface PhotoAnalysisMetrics {
+  analysisId: string;
+  userId: string;
+  imageSize: number;
+  processingTime: number;
+  aiService: string;
+  confidence: number;
+  userSatisfaction?: number;
+  correctionsMade: number;
+  timestamp: string;
+}
