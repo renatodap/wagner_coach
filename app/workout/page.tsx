@@ -156,6 +156,23 @@ export default function WorkoutSelectionPage() {
 
   return (
     <div className="min-h-screen bg-iron-black">
+      {/* Navigation Header */}
+      <header className="border-b border-iron-gray sticky top-0 bg-iron-black z-30">
+        <div className="max-w-6xl mx-auto px-4 py-4">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => router.push('/dashboard')}
+                className="text-iron-gray hover:text-iron-orange transition-colors"
+              >
+                ← Back
+              </button>
+              <h1 className="font-heading text-2xl text-iron-orange">WORKOUT LIBRARY</h1>
+            </div>
+          </div>
+        </div>
+      </header>
+
       <div className="max-w-6xl mx-auto p-4">
         {/* Header */}
         <div className="mb-6">

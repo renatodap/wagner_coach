@@ -83,6 +83,43 @@ export default function DashboardClient({
       </header>
 
       <main className="max-w-4xl mx-auto px-4 py-8 space-y-8">
+        {/* Quick Actions */}
+        <div className="grid grid-cols-2 gap-4">
+          <Link
+            href="/workout"
+            className="border border-iron-gray p-6 hover:border-iron-orange transition-colors group"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-heading text-xl text-iron-white group-hover:text-iron-orange">
+                  BROWSE WORKOUTS
+                </h3>
+                <p className="text-iron-gray text-sm">
+                  Find your next challenge
+                </p>
+              </div>
+              <ChevronRight className="w-5 h-5 text-iron-gray group-hover:text-iron-orange" />
+            </div>
+          </Link>
+
+          <Link
+            href="/progress"
+            className="border border-iron-gray p-6 hover:border-iron-orange transition-colors group"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-heading text-xl text-iron-white group-hover:text-iron-orange">
+                  VIEW PROGRESS
+                </h3>
+                <p className="text-iron-gray text-sm">
+                  Track your gains
+                </p>
+              </div>
+              <TrendingUp className="w-5 h-5 text-iron-gray group-hover:text-iron-orange" />
+            </div>
+          </Link>
+        </div>
+
         {/* Today's Workout */}
         {todaysWorkout ? (
           <div className="border-2 border-iron-orange p-6">

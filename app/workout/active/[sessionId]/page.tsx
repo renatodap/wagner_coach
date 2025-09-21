@@ -277,23 +277,34 @@ export default function ActiveWorkoutPage() {
     <div className="min-h-screen bg-iron-black">
       {/* Timer Header */}
       <div className="sticky top-0 bg-iron-black border-b border-iron-gray z-40">
-        <div className="max-w-4xl mx-auto p-4 flex justify-between items-center">
-          <div>
-            <h2 className="font-heading text-2xl text-iron-white">
-              {session.workout_name}
-            </h2>
-            <div className="flex items-center gap-2 text-iron-gray">
-              <Clock className="w-4 h-4" />
-              <span className="font-mono text-lg">{formatTime(elapsedTime)}</span>
-              {isPaused && <span className="text-iron-orange">(PAUSED)</span>}
+        <div className="max-w-4xl mx-auto p-4">
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="font-heading text-2xl text-iron-white">
+                {session.workout_name}
+              </h2>
+              <div className="flex items-center gap-2 text-iron-gray">
+                <Clock className="w-4 h-4" />
+                <span className="font-mono text-lg">{formatTime(elapsedTime)}</span>
+                {isPaused && <span className="text-iron-orange">(PAUSED)</span>}
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={togglePause}
+                className={`p-3 border ${isPaused ? 'bg-iron-orange border-iron-orange' : 'border-iron-gray'} hover:border-iron-orange transition-colors`}
+              >
+                {isPaused ? <Play className="w-5 h-5 text-iron-black" /> : <Pause className="w-5 h-5 text-iron-white" />}
+              </button>
+              <button
+                onClick={() => router.push('/workout')}
+                className="p-3 border border-iron-gray text-iron-gray hover:border-red-500 hover:text-red-500 transition-colors"
+                title="Exit workout"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
           </div>
-          <button
-            onClick={togglePause}
-            className={`p-3 border ${isPaused ? 'bg-iron-orange border-iron-orange' : 'border-iron-gray'} hover:border-iron-orange transition-colors`}
-          >
-            {isPaused ? <Play className="w-5 h-5 text-iron-black" /> : <Pause className="w-5 h-5 text-iron-white" />}
-          </button>
         </div>
       </div>
 
@@ -413,18 +424,12 @@ export default function ActiveWorkoutPage() {
 
       {/* Fixed Bottom Actions */}
       <div className="fixed bottom-0 left-0 right-0 bg-iron-black border-t border-iron-gray">
-        <div className="max-w-4xl mx-auto p-4 flex gap-3">
+        <div className="max-w-4xl mx-auto p-4">
           <button
             onClick={() => setShowNotes(true)}
-            className="flex-1 bg-iron-orange text-iron-black font-heading text-xl py-4 hover:bg-iron-white transition-colors"
+            className="w-full bg-iron-orange text-iron-black font-heading text-xl py-4 hover:bg-iron-white transition-colors"
           >
             FINISH WORKOUT
-          </button>
-          <button
-            onClick={() => router.push('/workout')}
-            className="px-6 py-4 border border-iron-gray text-iron-gray hover:border-red-500 hover:text-red-500 transition-colors"
-          >
-            <X className="w-6 h-6" />
           </button>
         </div>
       </div>
