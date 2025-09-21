@@ -35,6 +35,15 @@ export async function getUserContext(userId: string, query: string): Promise<Use
     .order('completed_at', { ascending: false })
     .limit(10);
 
+  // Fetch Strava activities
+  const { data: stravaActivities } = await supabase
+    .from('activities')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('source', 'strava')
+    .order('start_date', { ascending: false })
+    .limit(20);
+
   // Fetch personal records
   const { data: personalRecords } = await supabase
     .from('personal_records')
@@ -107,7 +116,23 @@ export async function getUserContext(userId: string, query: string): Promise<Use
       averageRating: 0
     })) || [],
     stats: workoutStats,
-    patterns: detectWorkoutPatterns(recentWorkouts || [])
+    patterns: detectWorkoutPatterns(recentWorkouts || []),
+    stravaActivities: (stravaActivities as any[])?.map(a => ({
+      id: a.id,
+      name: a.name,
+      activity_type: a.activity_type,
+      sport_type: a.sport_type,
+      start_date: new Date(a.start_date),
+      duration_seconds: a.duration_seconds,
+      distance_meters: a.distance_meters,
+      elevation_gain: a.elevation_gain,
+      average_speed: a.average_speed,
+      max_speed: a.max_speed,
+      average_heartrate: a.average_heartrate,
+      max_heartrate: a.max_heartrate,
+      calories: a.calories,
+      description: a.description
+    })) || []
   };
 
   // Build progress context

@@ -94,6 +94,24 @@ export interface WorkoutContext {
   favorites: FavoriteWorkout[];
   stats: WorkoutStats;
   patterns: WorkoutPattern[];
+  stravaActivities?: StravaActivity[];
+}
+
+export interface StravaActivity {
+  id: string;
+  name: string;
+  activity_type: string;
+  sport_type?: string;
+  start_date: Date;
+  duration_seconds?: number;
+  distance_meters?: number;
+  elevation_gain?: number;
+  average_speed?: number;
+  max_speed?: number;
+  average_heartrate?: number;
+  max_heartrate?: number;
+  calories?: number;
+  description?: string;
 }
 
 export interface RecentWorkout {
