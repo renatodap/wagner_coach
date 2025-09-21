@@ -59,17 +59,21 @@ export async function middleware(request: NextRequest) {
   // Protected routes
   if (!session && (
     request.nextUrl.pathname.startsWith('/dashboard') ||
-    request.nextUrl.pathname.startsWith('/settings')
+    request.nextUrl.pathname.startsWith('/workouts') ||
+    request.nextUrl.pathname.startsWith('/activities') ||
+    request.nextUrl.pathname.startsWith('/settings') ||
+    request.nextUrl.pathname.startsWith('/workout') ||
+    request.nextUrl.pathname.startsWith('/analytics')
   )) {
     return NextResponse.redirect(new URL('/auth', request.url))
   }
 
-  // Redirect to dashboard if logged in and trying to access auth pages
+  // Redirect to workouts if logged in and trying to access auth pages or home
   if (session && (
     request.nextUrl.pathname === '/auth' ||
     request.nextUrl.pathname === '/'
   )) {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
+    return NextResponse.redirect(new URL('/workouts', request.url))
   }
 
   return response

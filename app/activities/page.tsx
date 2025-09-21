@@ -1,9 +1,9 @@
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import ActivitiesClient from './ActivitiesClient';
 
 export default async function ActivitiesPage() {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   // Check authentication
   const { data: { user }, error } = await supabase.auth.getUser();

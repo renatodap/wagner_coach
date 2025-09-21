@@ -12,11 +12,10 @@ import {
   LogOut,
   Check,
   Dumbbell,
-  TrendingDown,
-  Calendar,
-  Settings
+  TrendingDown
 } from 'lucide-react';
 import StravaConnection from '@/components/StravaConnection';
+import BottomNavigation from '@/app/components/BottomNavigation';
 
 type Goal = 'build_muscle' | 'lose_weight' | 'gain_strength';
 
@@ -117,7 +116,7 @@ export default function SettingsClient({ profile, userEmail }: SettingsClientPro
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center gap-4">
             <Link
-              href="/dashboard"
+              href="/workouts"
               className="flex items-center gap-2 text-iron-gray hover:text-iron-orange transition-colors"
             >
               <ArrowLeft className="w-5 h-5" />
@@ -261,33 +260,7 @@ export default function SettingsClient({ profile, userEmail }: SettingsClientPro
       </main>
 
       {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-iron-black border-t border-iron-gray">
-        <div className="max-w-4xl mx-auto px-4">
-          <div className="grid grid-cols-3 py-2">
-            <Link
-              href="/dashboard"
-              className="flex flex-col items-center gap-1 py-2 text-iron-gray hover:text-iron-orange transition-colors"
-            >
-              <Dumbbell className="w-5 h-5" />
-              <span className="text-[10px] uppercase">Workout</span>
-            </Link>
-            <Link
-              href="/progress"
-              className="flex flex-col items-center gap-1 py-2 text-iron-gray hover:text-iron-orange transition-colors"
-            >
-              <Calendar className="w-5 h-5" />
-              <span className="text-[10px] uppercase">Progress</span>
-            </Link>
-            <Link
-              href="/settings"
-              className="flex flex-col items-center gap-1 py-2 text-iron-orange"
-            >
-              <Settings className="w-5 h-5" />
-              <span className="text-[10px] uppercase">Settings</span>
-            </Link>
-          </div>
-        </div>
-      </nav>
+      <BottomNavigation />
     </div>
   );
 }
