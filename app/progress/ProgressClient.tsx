@@ -9,8 +9,13 @@ import {
   CheckCircle,
   Dumbbell,
   Settings,
-  Flame
+  Flame,
+  PlayCircle,
+  PauseCircle
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { createClient } from '@/lib/supabase/client';
 
 interface ExerciseCompletion {
   exercises?: {
@@ -30,6 +35,16 @@ interface WorkoutCompletion {
   exercise_completions?: ExerciseCompletion[];
 }
 
+interface ActiveSession {
+  id: number;
+  workout_name: string;
+  workout_id: number;
+  status: 'active' | 'paused';
+  started_at: string;
+  current_exercise_index: number;
+  current_set_index: number;
+}
+
 interface ProgressClientProps {
   completions: WorkoutCompletion[];
   stats: {
@@ -41,6 +56,39 @@ interface ProgressClientProps {
 }
 
 export default function ProgressClient({ completions, stats }: ProgressClientProps) {
+  const [activeSessions, setActiveSessions] = useState<ActiveSession[]>([]);
+  const [userId, setUserId] = useState<string | null>(null);
+  const router = useRouter();
+  const supabase = createClient();
+
+  useEffect(() => {
+    fetchUserAndSessions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const fetchUserAndSessions = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      setUserId(user.id);
+
+      // Fetch active/paused workout sessions
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: sessions } = await (supabase as any)
+        .from('user_active_sessions')
+        .select('*')
+        .eq('user_id', user.id)
+        .in('status', ['active', 'paused']);
+
+      if (sessions) {
+        setActiveSessions(sessions);
+      }
+    }
+  };
+
+  const resumeWorkout = (sessionId: number) => {
+    router.push(`/workout/active/${sessionId}`);
+  };
+
   const formatDuration = (started: string, completed: string) => {
     const start = new Date(started);
     const end = new Date(completed);
@@ -67,6 +115,13 @@ export default function ProgressClient({ completions, stats }: ProgressClientPro
     }
   };
 
+  const getElapsedTime = (startedAt: string) => {
+    const start = new Date(startedAt).getTime();
+    const now = Date.now();
+    const elapsed = Math.floor((now - start) / 60000);
+    return `${elapsed} min elapsed`;
+  };
+
   return (
     <div className="min-h-screen bg-iron-black text-iron-white">
       {/* Header */}
@@ -88,6 +143,45 @@ export default function ProgressClient({ completions, stats }: ProgressClientPro
       </header>
 
       <main className="max-w-4xl mx-auto px-4 py-8 pb-24 space-y-8">
+        {/* Active/Paused Workouts */}
+        {activeSessions.length > 0 && (
+          <div className="border-2 border-iron-orange p-4 bg-iron-orange/10">
+            <h2 className="font-heading text-xl text-iron-orange mb-3">
+              WORKOUT IN PROGRESS
+            </h2>
+            <div className="space-y-2">
+              {activeSessions.map((session) => (
+                <div
+                  key={session.id}
+                  className="flex justify-between items-center p-3 bg-iron-black border border-iron-gray"
+                >
+                  <div className="flex items-center gap-3">
+                    {session.status === 'active' ? (
+                      <PlayCircle className="w-6 h-6 text-green-500" />
+                    ) : (
+                      <PauseCircle className="w-6 h-6 text-yellow-500" />
+                    )}
+                    <div>
+                      <p className="text-iron-white font-semibold">
+                        {session.workout_name}
+                      </p>
+                      <p className="text-iron-gray text-sm">
+                        {getElapsedTime(session.started_at)} • Exercise {session.current_exercise_index + 1} • Set {session.current_set_index + 1}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => resumeWorkout(session.id)}
+                    className="px-4 py-2 bg-iron-orange text-iron-black font-heading hover:bg-iron-white transition-colors"
+                  >
+                    {session.status === 'active' ? 'CONTINUE' : 'RESUME'}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Stats Grid */}
         <div className="grid grid-cols-2 gap-4">
           <div className="border border-iron-gray p-4">
