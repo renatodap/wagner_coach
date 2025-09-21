@@ -41,6 +41,7 @@ export default async function WorkoutsPage() {
     description: string;
     is_favorite: boolean;
     exercise_count: number;
+    user_id: string | null;
   }
 
   // Map RPC response to expected format
@@ -52,7 +53,8 @@ export default async function WorkoutsPage() {
     difficulty: workout.difficulty,
     description: workout.description || 'No description available',
     estimated_duration_minutes: workout.duration_minutes || 45,
-    is_favorite: workout.is_favorite || false
+    is_favorite: workout.is_favorite || false,
+    user_id: workout.user_id
   })) || [];
 
   return (
