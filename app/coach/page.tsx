@@ -32,8 +32,8 @@ export default async function CoachPage() {
   return (
     <CoachClient
       userId={user.id}
-      profile={profile}
-      previousConversation={previousConversation}
+      profile={profile || undefined}
+      previousConversation={previousConversation || undefined}
     />
   );
 }
