@@ -19,46 +19,42 @@ export default async function DashboardPage() {
     .eq('id', user.id)
     .single();
 
-  // Get all workouts that have exercises, with favorites
-  const { data: allWorkouts, error: workoutsError } = await supabase
-    .from('workouts')
-    .select(`
-      *,
-      favorite_workouts!left(user_id),
-      workout_exercises!inner(id)
-    `)
-    .order('name');
+  // Get all workouts using the secure RPC function that filters out empty workouts
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: allWorkouts, error: workoutsError } = await (supabase as any)
+    .rpc('get_dashboard_workouts', {
+      p_user_id: user.id
+    });
 
   if (workoutsError) {
     console.error('Error fetching workouts:', workoutsError);
   }
   console.log('Fetched workouts:', allWorkouts);
 
-  // Process workouts to add is_favorite flag
-  interface FavoriteWorkout {
-    user_id: string;
-  }
-  interface WorkoutWithFavorites {
-    id: number;
-    name: string;
-    type: string;
-    goal: string;
+  // Process workouts from RPC function response
+  interface DashboardWorkout {
+    workout_id: number;
+    workout_name: string;
+    workout_type: string;
+    workout_goal: string;
     difficulty: 'beginner' | 'intermediate' | 'advanced';
-    description: string | null;
-    estimated_duration_minutes: number | null;
-    favorite_workouts?: FavoriteWorkout[];
-    workout_exercises?: any[];
+    duration_minutes: number;
+    description: string;
+    is_favorite: boolean;
+    exercise_count: number;
   }
-  const workoutsWithFavorites = (allWorkouts as WorkoutWithFavorites[] | null)?.map(workout => {
-    // Remove workout_exercises from the data passed to client
-    const { workout_exercises, ...workoutData } = workout;
-    return {
-      ...workoutData,
-      is_favorite: workout.favorite_workouts?.some((fav: FavoriteWorkout) => fav.user_id === user.id) || false,
-      description: workout.description || '',
-      estimated_duration_minutes: workout.estimated_duration_minutes || 45
-    };
-  }) || [];
+
+  // Map RPC response to expected format
+  const workoutsWithFavorites = (allWorkouts as DashboardWorkout[] | null)?.map(workout => ({
+    id: workout.workout_id,
+    name: workout.workout_name,
+    type: workout.workout_type,
+    goal: workout.workout_goal,
+    difficulty: workout.difficulty,
+    description: workout.description || 'No description available',
+    estimated_duration_minutes: workout.duration_minutes || 45,
+    is_favorite: workout.is_favorite || false
+  })) || [];
 
   return (
     <DashboardClient
