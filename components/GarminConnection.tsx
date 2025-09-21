@@ -98,6 +98,23 @@ export default function GarminConnection({ className = '' }: GarminConnectionPro
         }
       }
 
+      // Create or update garmin_connections record first
+      const { error: connError } = await supabase
+        .from('garmin_connections')
+        .upsert({
+          user_id: user.id,
+          is_active: true,
+          last_sync: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'user_id'
+        });
+
+      if (connError) {
+        console.error('Failed to update connection status:', connError);
+      }
+
       // Now save the activities to the database
       if (result.activities && result.activities.length > 0) {
         const saveResponse = await fetch('/api/activities/sync', {
@@ -158,8 +175,8 @@ export default function GarminConnection({ className = '' }: GarminConnectionPro
   };
 
   const handleSync = async () => {
-    if (!email) {
-      setError('Please enter your Garmin email first');
+    if (!email && !isConnected) {
+      setError('Please connect your Garmin account first');
       return;
     }
 
@@ -171,30 +188,63 @@ export default function GarminConnection({ className = '' }: GarminConnectionPro
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      const response = await fetch('/api/garmin/activities', {
+      // If already connected, try to sync with stored credentials
+      const response = await fetch('/api/garmin/sync', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          email,
-          password: password || undefined, // Use saved session if no password
-          limit: 50
+          email: email || localStorage.getItem('garmin_email'),
+          password: password,
+          userId: user.id,
+          daysBack: 30
         })
       });
 
       if (!response.ok) {
-        throw new Error('Sync failed - you may need to re-enter your password');
+        const errorText = await response.text();
+        throw new Error(errorText || 'Sync failed');
       }
 
-      const data = await response.json();
-      setSyncResult(`Synced ${data.activities.length} recent activities`);
+      const result = await response.json();
 
-      // Update last sync time
+      if (result.error) {
+        throw new Error(result.error);
+      }
+
+      // Save activities to database
+      if (result.activities && result.activities.length > 0) {
+        const saveResponse = await fetch('/api/activities/sync', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            activities: result.activities,
+            source: 'garmin'
+          })
+        });
+
+        if (saveResponse.ok) {
+          const saveResult = await saveResponse.json();
+          setSyncResult(`Synced ${saveResult.processed || 0} new activities${saveResult.duplicates > 0 ? ` (${saveResult.duplicates} duplicates skipped)` : ''}`);
+        }
+      } else {
+        setSyncResult('No new activities found');
+      }
+
+      // Update connection status
       await supabase
         .from('garmin_connections')
-        .update({ last_sync: new Date().toISOString() })
-        .eq('user_id', user.id);
+        .upsert({
+          user_id: user.id,
+          last_sync: new Date().toISOString(),
+          is_active: true,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'user_id'
+        });
 
       await checkGarminConnection();
 

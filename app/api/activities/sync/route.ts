@@ -195,13 +195,35 @@ export async function POST(request: NextRequest) {
 
     // Update sync status for the source
     if (source === 'garmin') {
-      await supabase
+      // First check if connection exists
+      const { data: existing } = await supabase
         .from('garmin_connections')
-        .upsert({
-          user_id: user.id,
-          last_sync: new Date().toISOString(),
-          is_active: true
-        });
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (existing) {
+        // Update existing connection
+        await supabase
+          .from('garmin_connections')
+          .update({
+            last_sync: new Date().toISOString(),
+            is_active: true,
+            updated_at: new Date().toISOString()
+          })
+          .eq('user_id', user.id);
+      } else {
+        // Create new connection
+        await supabase
+          .from('garmin_connections')
+          .insert({
+            user_id: user.id,
+            last_sync: new Date().toISOString(),
+            is_active: true,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
+      }
     }
 
     return NextResponse.json({
