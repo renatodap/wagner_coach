@@ -161,7 +161,7 @@ async function assembleContext(
     .order('priority', { ascending: true });
 
   // Get workout history for context
-  let historyData = {
+  const historyData = {
     totalWorkouts: 0,
     recentWorkouts: [],
     achievements: [],

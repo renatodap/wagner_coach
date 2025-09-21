@@ -141,7 +141,7 @@ async function generateContextualResponse(
   requestType: string
 ): Promise<EnhancedChatResponse> {
   // Build system prompt with user context
-  let systemPrompt = buildSystemPrompt(context, requestType);
+  const systemPrompt = buildSystemPrompt(context, requestType);
 
   // Initialize context tracking
   const contextUsed = {

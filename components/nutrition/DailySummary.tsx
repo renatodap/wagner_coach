@@ -48,7 +48,7 @@ export function DailySummary({ totals, goals, isLoading = false }: DailySummaryP
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Today's Summary</CardTitle>
+          <CardTitle>Today&apos;s Summary</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="animate-pulse space-y-4">
@@ -65,7 +65,7 @@ export function DailySummary({ totals, goals, isLoading = false }: DailySummaryP
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Today's Summary</CardTitle>
+        <CardTitle>Today&apos;s Summary</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Calories */}

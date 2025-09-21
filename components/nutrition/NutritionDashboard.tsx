@@ -183,7 +183,7 @@ export function NutritionDashboard() {
         <Card>
           <CardHeader>
             <div className="flex justify-between items-center">
-              <CardTitle>Today's Meals</CardTitle>
+              <CardTitle>Today&apos;s Meals</CardTitle>
               <Button onClick={navigateToAddMeal} size="sm">
                 <Plus className="w-4 h-4 mr-2" />
                 Add Meal
