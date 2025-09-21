@@ -122,6 +122,7 @@ export interface WorkoutStats {
   averageDuration: number;
   totalWeightLifted: number;
   favoriteWorkoutType: WorkoutType;
+  longestStreak?: number;
 }
 
 // ============================================================================

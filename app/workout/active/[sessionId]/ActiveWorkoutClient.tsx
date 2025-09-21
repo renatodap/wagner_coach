@@ -110,8 +110,7 @@ export default function ActiveWorkoutClient({
     const reps = currentReps ? parseInt(currentReps) : null;
 
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase as any).rpc('log_set_performance', {
+      await (supabase as unknown as { rpc: (name: string, params: Record<string, unknown>) => Promise<unknown> }).rpc('log_set_performance', {
         p_session_id: sessionId,
         p_exercise_id: currentExercise.exercise_id,
         p_set_number: currentSet,
