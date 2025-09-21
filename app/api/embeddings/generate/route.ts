@@ -58,13 +58,13 @@ export async function POST(request: NextRequest) {
 
     if (update && contentId) {
       // Update existing embedding
-      const { data, error } = await supabase
-        .from('user_context_embeddings')
+      const { data, error } = await (supabase
+        .from('user_context_embeddings') as any)
         .update({
           content,
           embedding,
           metadata: metadata || {},
-        } as any) // Type assertion needed for dynamic table
+        })
         .eq('user_id', userId)
         .eq('id', contentId)
         .select()
@@ -84,14 +84,14 @@ export async function POST(request: NextRequest) {
           .single();
 
         if (existing) {
-          const { data, error } = await supabase
-            .from('user_context_embeddings')
+          const { data, error } = await (supabase
+            .from('user_context_embeddings') as any)
             .update({
               content,
               embedding,
               metadata,
-            } as any) // Type assertion needed for dynamic table
-            .eq('id', existing.id)
+            })
+            .eq('id', (existing as any).id)
             .select()
             .single();
 
@@ -102,9 +102,9 @@ export async function POST(request: NextRequest) {
 
       // If no existing record, insert new
       if (!storedData) {
-        const { data, error } = await supabase
-          .from('user_context_embeddings')
-          .insert(embeddingData as any) // Type assertion needed for dynamic table
+        const { data, error } = await (supabase
+          .from('user_context_embeddings') as any)
+          .insert(embeddingData)
           .select()
           .single();
 
@@ -115,16 +115,16 @@ export async function POST(request: NextRequest) {
 
     // Also store in specific table if it's a workout completion
     if (contentType === 'workout' && metadata?.workoutCompletionId) {
-      await supabase
-        .from('workout_completions')
+      await (supabase
+        .from('workout_completions') as any)
         .update({ embedding })
         .eq('id', metadata.workoutCompletionId);
     }
 
     // Store goal embedding in profile if it's a goal
     if (contentType === 'goal') {
-      await supabase
-        .from('profiles')
+      await (supabase
+        .from('profiles') as any)
         .update({ goals_embedding: embedding })
         .eq('id', userId);
     }

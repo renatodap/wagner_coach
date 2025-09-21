@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     const queryEmbedding = result.embedding.values;
 
     // Perform semantic search using pgvector
-    let searchQuery = supabase.rpc('search_user_context', {
+    let searchQuery = (supabase as any).rpc('search_user_context', {
       query_embedding: queryEmbedding,
       target_user_id: userId,
       match_threshold: threshold,

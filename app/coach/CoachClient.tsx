@@ -176,8 +176,8 @@ What would you like to work on today?`,
     try {
       if (conversationId) {
         // Update existing conversation
-        await supabase
-          .from('ai_conversations')
+        await (supabase
+          .from('ai_conversations') as any)
           .update({
             messages: allMessages,
             updated_at: new Date().toISOString()
@@ -185,8 +185,8 @@ What would you like to work on today?`,
           .eq('id', conversationId);
       } else {
         // Create new conversation
-        const { data } = await supabase
-          .from('ai_conversations')
+        const { data } = await (supabase
+          .from('ai_conversations') as any)
           .insert({
             user_id: userId,
             messages: allMessages
