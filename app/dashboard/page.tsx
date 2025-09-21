@@ -72,9 +72,24 @@ export default async function DashboardPage() {
     .order('name');
 
   // Process workouts to add is_favorite flag
-  const workoutsWithFavorites = allWorkouts?.map(workout => ({
+  interface FavoriteWorkout {
+    user_id: string;
+  }
+  interface WorkoutWithFavorites {
+    id: number;
+    name: string;
+    type: string;
+    goal: string;
+    difficulty: 'beginner' | 'intermediate' | 'advanced';
+    description: string | null;
+    estimated_duration_minutes: number | null;
+    favorite_workouts?: FavoriteWorkout[];
+  }
+  const workoutsWithFavorites = (allWorkouts as WorkoutWithFavorites[] | null)?.map(workout => ({
     ...workout,
-    is_favorite: workout.favorite_workouts?.some((fav: any) => fav.user_id === user.id) || false
+    is_favorite: workout.favorite_workouts?.some((fav: FavoriteWorkout) => fav.user_id === user.id) || false,
+    description: workout.description || '',
+    estimated_duration_minutes: workout.estimated_duration_minutes || 45
   })) || [];
 
   return (

@@ -57,7 +57,6 @@ interface ProgressClientProps {
 
 export default function ProgressClient({ completions, stats }: ProgressClientProps) {
   const [activeSessions, setActiveSessions] = useState<ActiveSession[]>([]);
-  const [userId, setUserId] = useState<string | null>(null);
   const router = useRouter();
   const supabase = createClient();
 
@@ -69,7 +68,7 @@ export default function ProgressClient({ completions, stats }: ProgressClientPro
   const fetchUserAndSessions = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
-      setUserId(user.id);
+      // User is authenticated
 
       // Fetch active/paused workout sessions
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

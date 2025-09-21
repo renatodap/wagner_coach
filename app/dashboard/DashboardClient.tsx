@@ -14,8 +14,7 @@ import {
   Clock,
   TrendingUp,
   Star,
-  Search,
-  Filter
+  Search
 } from 'lucide-react';
 import { Profile, UserWorkout, WorkoutCompletion } from '@/lib/types';
 
@@ -89,6 +88,7 @@ export default function DashboardClient({
     e.stopPropagation();
 
     try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data } = await (supabase as any).rpc('toggle_favorite_workout', {
         p_user_id: userId,
         p_workout_id: workoutId
@@ -105,6 +105,7 @@ export default function DashboardClient({
 
   const startWorkout = async (workoutId: number) => {
     try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: sessionId } = await (supabase as any).rpc('start_workout_session', {
         p_user_id: userId,
         p_workout_id: workoutId
