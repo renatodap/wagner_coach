@@ -28,21 +28,21 @@ CREATE EXTENSION IF NOT EXISTS vector;
 
 ### 1.2 Run Migration Script
 
-Execute the complete migration script located at `./supabase/migrations/20240101000000_add_ai_coach.sql`
+Execute the complete migration script. **Use the corrected version** to avoid SQL errors:
+
+```sql
+-- Copy and paste the entire contents of:
+-- ./supabase/migrations/20240101000001_fix_ai_coach.sql
+```
+
+**Note**: If you encounter an error with the first migration file, use `20240101000001_fix_ai_coach.sql` which has the corrected column name (`window_seconds` instead of `window`).
 
 This will:
 - Add embedding columns to existing tables
 - Create AI conversation tables
-- Set up rate limiting
+- Set up rate limiting with corrected column names
 - Create similarity search functions
 - Enable Row Level Security (RLS)
-
-**Important**: Run this in your Supabase SQL editor:
-
-```sql
--- Copy and paste the entire contents of:
--- ./supabase/migrations/20240101000000_add_ai_coach.sql
-```
 
 ### 1.3 Verify Database Setup
 

@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
           user_id: userId,
           endpoint: 'coach',
           requests: 1,
-          window: 86400, // 24 hours
+          window_seconds: 86400, // 24 hours
           reset_at: new Date(Date.now() + 86400000).toISOString()
         });
     }

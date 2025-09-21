@@ -1,12 +1,19 @@
--- Enable pgvector extension
+-- This is a corrected version that can be run if the first migration partially failed
+
+-- Enable pgvector extension (safe to run multiple times)
 CREATE EXTENSION IF NOT EXISTS vector;
 
--- Add embedding columns to existing tables
+-- Drop tables if they exist (to start fresh)
+DROP TABLE IF EXISTS rate_limits CASCADE;
+DROP TABLE IF EXISTS user_context_embeddings CASCADE;
+DROP TABLE IF EXISTS ai_conversations CASCADE;
+
+-- Add embedding columns to existing tables (safe to run multiple times)
 ALTER TABLE workout_completions ADD COLUMN IF NOT EXISTS embedding vector(768);
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS goals_embedding vector(768);
 
 -- Create table for AI conversations
-CREATE TABLE IF NOT EXISTS ai_conversations (
+CREATE TABLE ai_conversations (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
   messages jsonb NOT NULL DEFAULT '[]'::jsonb,
@@ -16,7 +23,7 @@ CREATE TABLE IF NOT EXISTS ai_conversations (
 );
 
 -- Create table for user context embeddings
-CREATE TABLE IF NOT EXISTS user_context_embeddings (
+CREATE TABLE user_context_embeddings (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
   content_type text NOT NULL CHECK (content_type IN ('workout', 'goal', 'conversation', 'progress', 'exercise', 'achievement')),
@@ -26,8 +33,8 @@ CREATE TABLE IF NOT EXISTS user_context_embeddings (
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- Create rate limits table
-CREATE TABLE IF NOT EXISTS rate_limits (
+-- Create rate limits table (with fixed column name)
+CREATE TABLE rate_limits (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
   endpoint text NOT NULL,
@@ -62,7 +69,7 @@ CREATE POLICY "Users can view their own rate limits"
   FOR ALL
   USING (auth.uid() = user_id);
 
--- Create similarity search function
+-- Create or replace similarity search function
 CREATE OR REPLACE FUNCTION search_user_context(
   query_embedding vector(768),
   target_user_id uuid,
@@ -108,7 +115,7 @@ CREATE INDEX IF NOT EXISTS idx_ai_conversations_user_id
 CREATE INDEX IF NOT EXISTS idx_rate_limits_user_endpoint
   ON rate_limits(user_id, endpoint);
 
--- Create function to automatically update updated_at timestamp
+-- Create or replace function to automatically update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -117,28 +124,16 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Drop existing triggers if they exist
+DROP TRIGGER IF EXISTS update_ai_conversations_updated_at ON ai_conversations;
+DROP TRIGGER IF EXISTS update_rate_limits_updated_at ON rate_limits;
+
 -- Create triggers for updated_at
 CREATE TRIGGER update_ai_conversations_updated_at BEFORE UPDATE ON ai_conversations
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_rate_limits_updated_at BEFORE UPDATE ON rate_limits
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
--- Create function to generate embeddings for new workout completions
-CREATE OR REPLACE FUNCTION generate_workout_embedding()
-RETURNS TRIGGER AS $$
-BEGIN
-  -- This is a placeholder - actual embedding generation happens in the application
-  -- We just ensure the column is ready for the embedding
-  NEW.embedding = NULL; -- Will be populated by the application
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
--- Create trigger for new workout completions
-CREATE TRIGGER generate_workout_embedding_trigger
-  AFTER INSERT ON workout_completions
-  FOR EACH ROW EXECUTE FUNCTION generate_workout_embedding();
 
 -- Grant necessary permissions
 GRANT ALL ON ai_conversations TO authenticated;
