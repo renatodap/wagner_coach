@@ -106,6 +106,8 @@ export async function POST(request: NextRequest) {
     // Store conversation if conversationId provided
     if (conversationId) {
       try {
+        // Temporarily comment out columns that may not exist yet
+        // Remove this workaround after running migration 20240122_fix_ai_conversations_columns.sql
         await supabase
           .from('ai_conversations')
           .insert({
@@ -115,8 +117,8 @@ export async function POST(request: NextRequest) {
               { role: 'user', content: message, timestamp: new Date().toISOString() },
               { role: 'assistant', content: aiResponse.response, timestamp: new Date().toISOString() }
             ],
-            context_used: aiResponse.contextUsed,
-            last_message_at: new Date().toISOString()
+            // context_used: aiResponse.contextUsed,
+            // last_message_at: new Date().toISOString()
           });
       } catch (err) {
         console.error('Failed to store conversation:', err);
