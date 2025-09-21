@@ -71,7 +71,7 @@ export default function ExerciseHistory({
             .filter((w: number) => w > 0);
 
           if (recentMaxWeights.length > 0) {
-            const avgWeight = recentMaxWeights.reduce((a, b) => a + b, 0) / recentMaxWeights.length;
+            const avgWeight = recentMaxWeights.reduce((a: number, b: number) => a + b, 0) / recentMaxWeights.length;
             setSuggestedWeight(Math.round(avgWeight / 2.5) * 2.5 + 2.5); // Round to nearest 2.5kg
           }
         }
