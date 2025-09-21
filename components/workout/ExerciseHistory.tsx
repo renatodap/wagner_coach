@@ -67,8 +67,8 @@ export default function ExerciseHistory({
         if (formattedHistory.length > 0) {
           const recentMaxWeights = formattedHistory
             .slice(0, 3)
-            .map(h => h.maxWeight)
-            .filter(w => w > 0);
+            .map((h: HistoryEntry) => h.maxWeight)
+            .filter((w: number) => w > 0);
 
           if (recentMaxWeights.length > 0) {
             const avgWeight = recentMaxWeights.reduce((a, b) => a + b, 0) / recentMaxWeights.length;
