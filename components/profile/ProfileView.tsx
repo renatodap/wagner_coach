@@ -18,7 +18,9 @@ import {
   TrendingUp,
   Clock,
   Flame,
-  Star
+  Star,
+  LogOut,
+  Link as LinkIcon
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -351,6 +353,67 @@ export function ProfileView({
             )}
           </CardContent>
         </Card>
+      </section>
+
+      {/* Integrations Section */}
+      <section aria-label="Integrations section">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <LinkIcon className="mr-2 h-5 w-5" />
+              Integrations
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="p-4 border rounded-lg">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-orange-500 rounded flex items-center justify-center">
+                    <Activity className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <p className="font-medium">Strava</p>
+                    <p className="text-sm text-muted-foreground">Sync workouts automatically</p>
+                  </div>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => window.location.href = '/settings'}>
+                  Configure
+                </Button>
+              </div>
+            </div>
+
+            <div className="p-4 border rounded-lg">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-blue-500 rounded flex items-center justify-center">
+                    <Activity className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <p className="font-medium">Garmin Connect</p>
+                    <p className="text-sm text-muted-foreground">Import training data</p>
+                  </div>
+                </div>
+                <Badge variant="secondary">Coming Soon</Badge>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
+
+      {/* Account Actions */}
+      <section aria-label="Account actions" className="space-y-4">
+        <Button
+          variant="destructive"
+          className="w-full"
+          onClick={() => {
+            if (window.confirm('Are you sure you want to sign out?')) {
+              window.location.href = '/api/auth/signout';
+            }
+          }}
+        >
+          <LogOut className="mr-2 h-4 w-4" />
+          Sign Out
+        </Button>
       </section>
 
       {/* Status for screen readers */}
