@@ -62,12 +62,29 @@ export default async function DashboardPage() {
     .order('completed_at', { ascending: false })
     .limit(5);
 
+  // Get all workouts with favorites
+  const { data: allWorkouts } = await supabase
+    .from('workouts')
+    .select(`
+      *,
+      favorite_workouts!left(user_id)
+    `)
+    .order('name');
+
+  // Process workouts to add is_favorite flag
+  const workoutsWithFavorites = allWorkouts?.map(workout => ({
+    ...workout,
+    is_favorite: workout.favorite_workouts?.some((fav: any) => fav.user_id === user.id) || false
+  })) || [];
+
   return (
     <DashboardClient
       profile={profile}
       todaysWorkout={todaysWorkout}
       weekWorkouts={weekWorkouts || []}
       recentCompletions={recentCompletions || []}
+      allWorkouts={workoutsWithFavorites}
+      userId={user.id}
     />
   );
 }
