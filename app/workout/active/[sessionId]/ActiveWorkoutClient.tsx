@@ -141,9 +141,13 @@ export default function ActiveWorkoutClient({
       setCurrentReps('');
       setShowWeightInput(false);
 
-      // Start rest timer if not last set
+      // Start rest timer if not last set, otherwise auto-advance
       if (currentSet < currentExercise.sets_planned) {
         setRestTimer(currentExercise.rest_seconds);
+        setCurrentSet(currentSet + 1);
+      } else if (currentExerciseIndex < exercises.length - 1) {
+        // Auto advance to next exercise after completing last set
+        setTimeout(() => nextExercise(), 1000);
       }
     } catch (error) {
       console.error('Error logging set:', error);
@@ -305,17 +309,28 @@ export default function ActiveWorkoutClient({
             {restTimer !== null ? (
               // Rest Timer
               <div className="border border-iron-orange p-8 text-center">
-                <h2 className="font-heading text-3xl text-iron-orange mb-4">REST</h2>
+                <h2 className="font-heading text-3xl text-iron-orange mb-4">REST BETWEEN SETS</h2>
                 <div className="text-6xl font-mono text-iron-white mb-6">
                   {formatTime(restTimer)}
                 </div>
-                <p className="text-iron-gray mb-6">Next: Set {currentSet + 1} of {currentExercise?.sets_planned}</p>
-                <button
-                  onClick={() => setRestTimer(null)}
-                  className="px-6 py-3 bg-iron-orange text-iron-black font-heading hover:bg-iron-white transition-colors"
-                >
-                  SKIP REST
-                </button>
+                <p className="text-iron-gray mb-2">Preparing for:</p>
+                <p className="text-iron-white font-heading text-xl mb-6">
+                  Set {currentSet} of {currentExercise?.sets_planned} - {currentExercise?.exercise_name}
+                </p>
+                <div className="flex gap-3 justify-center">
+                  <button
+                    onClick={() => setRestTimer(null)}
+                    className="px-6 py-3 bg-iron-orange text-iron-black font-heading hover:bg-iron-white transition-colors"
+                  >
+                    START NEXT SET
+                  </button>
+                  <button
+                    onClick={nextExercise}
+                    className="px-6 py-3 border border-iron-gray text-iron-gray hover:border-iron-white hover:text-iron-white transition-colors"
+                  >
+                    SKIP TO NEXT EXERCISE
+                  </button>
+                </div>
               </div>
             ) : currentExercise ? (
               // Active Exercise
