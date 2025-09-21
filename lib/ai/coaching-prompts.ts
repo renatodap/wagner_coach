@@ -73,7 +73,12 @@ export function getQuickResponsePrompt(type: string): string {
   return prompts[type] || "Provide helpful fitness coaching based on the user's question.";
 }
 
-export function formatCoachResponse(content: string, citations?: any[]): string {
+interface Citation {
+  type: string;
+  reference: string;
+}
+
+export function formatCoachResponse(content: string, citations?: Citation[]): string {
   // Add citations if provided
   if (citations && citations.length > 0) {
     content += "\n\n📊 Based on your data:\n";

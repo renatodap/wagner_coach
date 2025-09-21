@@ -5,21 +5,25 @@ import { createClient } from '@/lib/supabase/client';
 import {
   Send,
   Loader2,
-  TrendingUp,
-  Calendar,
-  Target,
   ChevronLeft
 } from 'lucide-react';
 import Link from 'next/link';
 import BottomNavigation from '@/app/components/BottomNavigation';
 import MessageBubble from '@/components/Coach/MessageBubble';
 import QuickActions from '@/components/Coach/QuickActions';
-import { CoachMessage, Conversation } from '@/lib/types/coaching';
+import { CoachMessage } from '@/lib/types/coaching';
 
 interface CoachClientProps {
   userId: string;
-  profile?: any;
-  previousConversation?: any;
+  profile?: {
+    id: string;
+    goal?: string;
+    full_name?: string;
+  };
+  previousConversation?: {
+    id: string;
+    messages: CoachMessage[];
+  };
 }
 
 export default function CoachClient({
@@ -149,7 +153,7 @@ What would you like to work on today?`,
               if (parsed.conversationId) {
                 setConversationId(parsed.conversationId);
               }
-            } catch (e) {
+            } catch {
               // Skip invalid JSON
             }
           }

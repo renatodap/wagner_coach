@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
           content,
           embedding,
           metadata: metadata || {},
-        })
+        } as any) // Type assertion needed for dynamic table
         .eq('user_id', userId)
         .eq('id', contentId)
         .select()
@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
               content,
               embedding,
               metadata,
-            })
+            } as any) // Type assertion needed for dynamic table
             .eq('id', existing.id)
             .select()
             .single();
@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
       if (!storedData) {
         const { data, error } = await supabase
           .from('user_context_embeddings')
-          .insert(embeddingData)
+          .insert(embeddingData as any) // Type assertion needed for dynamic table
           .select()
           .single();
 

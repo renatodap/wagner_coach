@@ -1,5 +1,12 @@
 import { createClient } from '@/lib/supabase/server';
 import { UserContext, WorkoutContext, ProgressContext } from '@/lib/types/coaching';
+import {
+  WorkoutCompletionRecord,
+  PersonalRecordRow,
+  FavoriteWorkoutRow,
+  ConversationRecord,
+  ProfileRecord
+} from '@/lib/types/database';
 
 export async function getUserContext(userId: string, query: string): Promise<UserContext> {
   const supabase = await createClient();
@@ -59,7 +66,7 @@ export async function getUserContext(userId: string, query: string): Promise<Use
   const progressTrends = analyzeProgressTrends(recentWorkouts || [], personalRecords || []);
 
   // Search for relevant context using embeddings if available
-  let relevantContext = [];
+  let relevantContext: unknown[] = [];
   try {
     const searchResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/embeddings/search`, {
       method: 'POST',
@@ -149,7 +156,15 @@ export async function getUserContext(userId: string, query: string): Promise<Use
   };
 }
 
-function calculateWorkoutStats(workouts: any[]): any {
+interface WorkoutStats {
+  totalWorkouts: number;
+  currentStreak: number;
+  weeklyAverage: number;
+  favoriteExercises: string[];
+  strongestLifts: Array<{ exercise: string; oneRepMax: number; lastUpdated: Date }>;
+}
+
+function calculateWorkoutStats(workouts: WorkoutCompletionRecord[]): WorkoutStats {
   const totalWorkouts = workouts.length;
   const now = Date.now();
   const oneWeekAgo = now - 7 * 24 * 60 * 60 * 1000;
@@ -179,7 +194,7 @@ function calculateWorkoutStats(workouts: any[]): any {
   const favoriteExercises: string[] = [];
 
   // Find strongest lifts (would need to query exercise completions)
-  const strongestLifts: any[] = [];
+  const strongestLifts: Array<{ exercise: string; oneRepMax: number; lastUpdated: Date }> = [];
 
   return {
     totalWorkouts,
@@ -190,7 +205,14 @@ function calculateWorkoutStats(workouts: any[]): any {
   };
 }
 
-function analyzeProgressTrends(workouts: any[], personalRecords: any[]): any[] {
+interface ProgressTrendItem {
+  metric: 'strength' | 'volume' | 'consistency' | 'endurance';
+  direction: 'improving' | 'maintaining' | 'declining';
+  rate: number;
+  period: string;
+}
+
+function analyzeProgressTrends(workouts: WorkoutCompletionRecord[], personalRecords: PersonalRecordRow[]): ProgressTrendItem[] {
   const trends = [];
 
   // Analyze workout frequency trend
@@ -208,7 +230,7 @@ function analyzeProgressTrends(workouts: any[], personalRecords: any[]): any[] {
   return trends;
 }
 
-function analyzeFrequencyTrend(workouts: any[]): any {
+function analyzeFrequencyTrend(workouts: WorkoutCompletionRecord[]): ProgressTrendItem | null {
   if (workouts.length < 2) return null;
 
   const now = Date.now();
@@ -234,7 +256,7 @@ function analyzeFrequencyTrend(workouts: any[]): any {
   };
 }
 
-function analyzeStrengthTrend(personalRecords: any[]): any {
+function analyzeStrengthTrend(personalRecords: PersonalRecordRow[]): ProgressTrendItem | null {
   if (personalRecords.length < 2) return null;
 
   const recentPRs = personalRecords.filter(pr => {
@@ -250,7 +272,7 @@ function analyzeStrengthTrend(personalRecords: any[]): any {
   };
 }
 
-function analyzeConsistencyTrend(workouts: any[]): any {
+function analyzeConsistencyTrend(workouts: WorkoutCompletionRecord[]): ProgressTrendItem | null {
   if (workouts.length < 4) return null;
 
   const intervals = [];
@@ -271,11 +293,17 @@ function analyzeConsistencyTrend(workouts: any[]): any {
   };
 }
 
-function detectWorkoutPatterns(workouts: any[]): any[] {
-  const patterns = [];
+interface WorkoutPattern {
+  type: string;
+  pattern: string;
+  confidence: number;
+}
+
+function detectWorkoutPatterns(workouts: WorkoutCompletionRecord[]): WorkoutPattern[] {
+  const patterns: WorkoutPattern[] = [];
 
   // Detect workout split pattern
-  const types = workouts.map(w => w.workouts?.type).filter(Boolean);
+  const types = workouts.map(w => w.workouts?.type).filter(Boolean) as string[];
   const typeFrequency: Record<string, number> = {};
 
   types.forEach(type => {
@@ -320,7 +348,14 @@ function detectWorkoutPatterns(workouts: any[]): any[] {
   return patterns;
 }
 
-function detectMilestones(personalRecords: any[]): any[] {
+interface Milestone {
+  type: string;
+  achievement: string;
+  date: Date;
+  value: number;
+}
+
+function detectMilestones(personalRecords: PersonalRecordRow[]): Milestone[] {
   return personalRecords.slice(0, 5).map(pr => ({
     type: 'personal_record',
     achievement: `${pr.exercises?.name || 'Exercise'}: ${pr.value}`,
@@ -329,18 +364,18 @@ function detectMilestones(personalRecords: any[]): any[] {
   }));
 }
 
-function determineExperience(stats: any, prCount: number): 'beginner' | 'intermediate' | 'advanced' {
+function determineExperience(stats: WorkoutStats, prCount: number): 'beginner' | 'intermediate' | 'advanced' {
   if (stats.totalWorkouts < 20 || prCount < 3) return 'beginner';
   if (stats.totalWorkouts < 100 || prCount < 10) return 'intermediate';
   return 'advanced';
 }
 
-function extractConversationTopics(conversations: any[]): string[] {
+function extractConversationTopics(conversations: ConversationRecord[]): string[] {
   const topics = new Set<string>();
 
   conversations.forEach(conv => {
     if (conv.messages && Array.isArray(conv.messages)) {
-      conv.messages.forEach((msg: any) => {
+      conv.messages.forEach((msg) => {
         if (msg.content) {
           // Extract topics based on keywords
           if (/bench|chest|push/i.test(msg.content)) topics.add('chest_training');
@@ -358,7 +393,7 @@ function extractConversationTopics(conversations: any[]): string[] {
   return Array.from(topics);
 }
 
-function calculateAverageConversationLength(conversations: any[]): number {
+function calculateAverageConversationLength(conversations: ConversationRecord[]): number {
   if (conversations.length === 0) return 0;
 
   const totalMessages = conversations.reduce((sum, conv) => {
