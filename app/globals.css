@@ -1,5 +1,4 @@
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
   --iron-black: #0A0A0B;
@@ -14,8 +13,8 @@
   --color-iron-white: #FFFFFF;
   --color-iron-gray: #4A4A4A;
 
-  --font-family-sans: 'Inter', system-ui, sans-serif;
-  --font-family-heading: 'Bebas Neue', sans-serif;
+  --font-family-sans: var(--font-inter), system-ui, sans-serif;
+  --font-family-heading: var(--font-bebas-neue), sans-serif;
 }
 
 html {
@@ -24,7 +23,7 @@ html {
 
 body {
   @apply bg-iron-black text-iron-white;
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: var(--font-inter), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
