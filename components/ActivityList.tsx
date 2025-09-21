@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import Link from 'next/link';
 import {
   Activity,
   Clock,
@@ -219,10 +220,13 @@ export default function ActivityList({ limit = 10, showHeader = true, compact = 
             RECENT ACTIVITIES
           </h2>
           {activities.length >= limit && (
-            <button className="text-iron-orange hover:text-orange-400 text-sm font-heading uppercase tracking-wider flex items-center gap-1">
+            <Link
+              href="/activities"
+              className="text-iron-orange hover:text-orange-400 text-sm font-heading uppercase tracking-wider flex items-center gap-1 transition-colors"
+            >
               View All
               <ChevronRight className="w-4 h-4" />
-            </button>
+            </Link>
           )}
         </div>
       )}
