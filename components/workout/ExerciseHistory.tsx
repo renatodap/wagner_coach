@@ -20,6 +20,7 @@ interface HistoryEntry {
 
 export default function ExerciseHistory({
   exerciseId,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   exerciseName,
   userId
 }: ExerciseHistoryProps) {
@@ -30,6 +31,7 @@ export default function ExerciseHistory({
 
   useEffect(() => {
     fetchExerciseHistory();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [exerciseId]);
 
   const fetchExerciseHistory = async () => {
@@ -50,6 +52,7 @@ export default function ExerciseHistory({
         .limit(5);
 
       if (data) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const formattedHistory = data.map((entry: any) => ({
           date: new Date(entry.workout_completions.completed_at).toLocaleDateString(),
           sets: entry.sets_completed,

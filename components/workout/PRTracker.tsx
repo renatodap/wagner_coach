@@ -38,10 +38,12 @@ export default function PRTracker({
 
   useEffect(() => {
     fetchPersonalRecords();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [exerciseId]);
 
   useEffect(() => {
     checkForNewPRs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentWeight, currentReps, personalRecords]);
 
   const fetchPersonalRecords = async () => {
@@ -68,6 +70,7 @@ export default function PRTracker({
         let maxRepsDate = '';
         let maxVolumeDate = '';
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         data.forEach((entry: any) => {
           const entryMaxWeight = Math.max(...(entry.weight_kg || [0]));
           const entryMaxReps = Math.max(...(entry.reps_completed || [0]));

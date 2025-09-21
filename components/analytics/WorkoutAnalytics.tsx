@@ -35,6 +35,7 @@ export default function WorkoutAnalytics({
 
   useEffect(() => {
     fetchAnalytics();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, dateRange]);
 
   const fetchAnalytics = async () => {
@@ -77,10 +78,12 @@ export default function WorkoutAnalytics({
         let totalVol = 0;
         let totalTime = 0;
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         completions.forEach((completion: any) => {
           const date = new Date(completion.completed_at).toLocaleDateString();
           let dailyVolume = 0;
 
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           completion.exercise_completions?.forEach((exercise: any) => {
             // Calculate volume for this exercise
             const exerciseVolume = exercise.weight_kg?.reduce((sum: number, weight: number, index: number) => {

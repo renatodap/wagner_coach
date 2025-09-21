@@ -74,7 +74,7 @@ export default async function AnalyticsPage() {
               href="/dashboard"
               className="inline-block mt-6 px-8 py-3 bg-iron-orange text-iron-black font-heading text-xl uppercase tracking-wider hover:bg-orange-600 transition-colors"
             >
-              Start Today's Workout
+              Start Today&apos;s Workout
             </Link>
           </div>
         </div>
