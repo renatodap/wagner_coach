@@ -89,24 +89,27 @@ export async function POST(request: NextRequest) {
 
     const filteredActivities = activities;
 
-    // Import activities
-    let syncedCount = 0;
-    let errorCount = 0;
-    const errors: string[] = [];
+    // Import activities using the new unified sync endpoint
+    const syncResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ''}/api/activities/sync`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Cookie': request.headers.get('cookie') || ''
+      },
+      body: JSON.stringify({
+        activities: filteredActivities,
+        source: 'strava'
+      })
+    });
 
-    for (const activity of filteredActivities) {
-      try {
-        await supabase.rpc('import_strava_activity', {
-          p_user_id: user.id,
-          p_activity_data: activity
-        });
-        syncedCount++;
-      } catch (error) {
-        errorCount++;
-        errors.push(`Activity ${activity.id}: ${error}`);
-        console.error(`Failed to import activity ${activity.id}:`, error);
-      }
+    if (!syncResponse.ok) {
+      throw new Error('Failed to sync activities to database');
     }
+
+    const syncResult = await syncResponse.json();
+    const syncedCount = syncResult.processed || 0;
+    const errorCount = syncResult.errors || 0;
+    const errors = syncResult.details?.errors || [];
 
     // Update last sync timestamp
     await supabase.from('strava_connections')

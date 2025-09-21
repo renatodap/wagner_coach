@@ -95,9 +95,10 @@ class handler(BaseHTTPRequestHandler):
                     except:
                         continue
 
-                # Return success response
+                # Return the activities for the frontend to process
                 response_data = {
                     'success': True,
+                    'activities': recent_activities,
                     'activitiesSynced': len(recent_activities),
                     'totalActivities': len(activities),
                     'message': f'Successfully synced {len(recent_activities)} activities from Garmin'

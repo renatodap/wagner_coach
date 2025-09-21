@@ -98,8 +98,30 @@ export default function GarminConnection({ className = '' }: GarminConnectionPro
         }
       }
 
+      // Now save the activities to the database
+      if (result.activities && result.activities.length > 0) {
+        const saveResponse = await fetch('/api/activities/sync', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            activities: result.activities,
+            source: 'garmin'
+          })
+        });
+
+        if (!saveResponse.ok) {
+          console.error('Failed to save activities to database');
+        } else {
+          const saveResult = await saveResponse.json();
+          setSyncResult(`Synced ${saveResult.processed || 0} new activities from Garmin${saveResult.duplicates > 0 ? ` (${saveResult.duplicates} duplicates skipped)` : ''}`);
+        }
+      } else {
+        setSyncResult('No new activities found to sync from Garmin');
+      }
+
       setIsConnected(true);
-      setSyncResult(`Successfully synced ${result.activitiesSynced || 0} activities from Garmin`);
 
       // Update local state
       await checkGarminConnection();
