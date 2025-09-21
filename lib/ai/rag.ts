@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { createClient } from '@/lib/supabase/server';
 import { UserContext, WorkoutContext, ProgressContext } from '@/lib/types/coaching';
 import {
