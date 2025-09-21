@@ -450,7 +450,7 @@ export async function getEnhancedUserContext(userId: string, query: string): Pro
         ...traditionalContext,
         profile: {
           ...traditionalContext.profile,
-          goal: enhancedContext.userProfile.basic.aboutMe || traditionalContext.profile.goal,
+          goal: enhancedContext.userProfile.basic.primaryGoal || enhancedContext.userProfile.basic.aboutMe || traditionalContext.profile.goal,
           experience: mapExperienceLevel(enhancedContext.userProfile.basic.experience) || traditionalContext.profile.experience,
           preferences: {
             workoutDays: enhancedContext.preferences.activities || traditionalContext.profile.preferences.workoutDays,
@@ -458,7 +458,10 @@ export async function getEnhancedUserContext(userId: string, query: string): Pro
             limitations: enhancedContext.limitations.physical || [],
             motivationFactors: enhancedContext.preferences.motivationFactors || [],
             trainingStyle: enhancedContext.preferences.trainingStyle || null
-          }
+          },
+          aboutMe: enhancedContext.userProfile.basic.aboutMe,
+          primaryGoal: enhancedContext.userProfile.basic.primaryGoal,
+          focusAreas: enhancedContext.userProfile.basic.focusAreas
         },
         // Add goals context
         goals: enhancedContext.activeGoals.map((goal: any) => ({

@@ -197,7 +197,9 @@ async function assembleContext(
       name: profile?.full_name || 'User',
       age: profile?.age || null,
       experience: profile?.experience_level || null,
-      aboutMe: profile?.about_me || null
+      aboutMe: profile?.about_me || null,
+      primaryGoal: profile?.primary_goal || null,
+      focusAreas: profile?.focus_areas || []
     },
     physical: {
       height: profile?.height || null,
