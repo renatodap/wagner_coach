@@ -1,0 +1,14 @@
+{
+  "functions": {
+    "api/garmin/*.py": {
+      "runtime": "python3.9",
+      "maxDuration": 30
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/garmin/:path*",
+      "destination": "/api/garmin/:path*"
+    }
+  ]
+}

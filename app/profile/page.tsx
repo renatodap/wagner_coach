@@ -354,17 +354,19 @@ export default function ProfilePage() {
               <ChevronRight className="w-5 h-5 text-iron-gray" />
             </button>
 
-            <div className="p-4 border border-iron-gray opacity-50">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Activity className="w-6 h-6 text-iron-gray" />
-                  <div className="text-left">
-                    <p className="text-iron-gray">Garmin Connect</p>
-                    <p className="text-xs text-iron-gray">Coming soon</p>
-                  </div>
+            <button
+              onClick={() => router.push('/settings')}
+              className="w-full p-4 border border-iron-gray hover:border-iron-orange transition-colors flex items-center justify-between"
+            >
+              <div className="flex items-center gap-3">
+                <Activity className="w-6 h-6 text-iron-orange" />
+                <div className="text-left">
+                  <p className="text-iron-white">Garmin Connect</p>
+                  <p className="text-xs text-iron-gray">Sync fitness data</p>
                 </div>
               </div>
-            </div>
+              <ChevronRight className="w-5 h-5 text-iron-gray" />
+            </button>
           </div>
         </div>
 

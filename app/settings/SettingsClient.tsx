@@ -15,6 +15,7 @@ import {
   TrendingDown
 } from 'lucide-react';
 import StravaConnection from '@/components/StravaConnection';
+import GarminConnection from '@/components/GarminConnection';
 import BottomNavigation from '@/app/components/BottomNavigation';
 
 type Goal = 'build_muscle' | 'lose_weight' | 'gain_strength';
@@ -211,6 +212,9 @@ export default function SettingsClient({ profile, userEmail }: SettingsClientPro
 
         {/* Strava Integration */}
         <StravaConnection />
+
+        {/* Garmin Integration */}
+        <GarminConnection />
 
         {error && (
           <div className="text-center text-red-500 border border-red-500 p-4">
