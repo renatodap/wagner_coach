@@ -12,13 +12,19 @@ import {
   TrendingUp,
   Calendar,
   ChevronRight,
+  ChevronDown,
   Play,
   Bike,
   Waves,
   Dumbbell,
   TreePine,
   Target,
-  LinkIcon
+  LinkIcon,
+  Gauge,
+  Battery,
+  Brain,
+  Thermometer,
+  Wind
 } from 'lucide-react';
 
 interface ActivityData {
@@ -28,13 +34,26 @@ interface ActivityData {
   sport_type: string;
   start_date: string;
   elapsed_time_seconds: number;
+  moving_time_seconds?: number;
   distance_meters?: number;
   average_heartrate?: number;
   max_heartrate?: number;
   calories?: number;
   source: string;
   average_speed?: number;
+  max_speed?: number;
   total_elevation_gain?: number;
+  average_cadence?: number;
+  average_power?: number;
+  normalized_power?: number;
+  training_load?: number;
+  perceived_exertion?: number;
+  mood?: string;
+  energy_level?: number;
+  workout_rating?: number;
+  notes?: string;
+  weather_data?: any;
+  raw_data?: any;
 }
 
 interface ActivityListProps {
@@ -88,8 +107,21 @@ export default function ActivityList({ limit = 10, showHeader = true, compact = 
   const [activities, setActivities] = useState<ActivityData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [expandedActivities, setExpandedActivities] = useState<Set<string>>(new Set());
 
   const supabase = createClient();
+
+  const toggleExpanded = (activityId: string) => {
+    setExpandedActivities(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(activityId)) {
+        newSet.delete(activityId);
+      } else {
+        newSet.add(activityId);
+      }
+      return newSet;
+    });
+  };
 
   useEffect(() => {
     fetchActivities();
@@ -238,11 +270,12 @@ export default function ActivityList({ limit = 10, showHeader = true, compact = 
           const iconColor = getActivityColor(activity.activity_type);
           const distance = formatDistance(activity.distance_meters);
           const pace = formatPace(activity.average_speed, activity.distance_meters);
+          const isExpanded = expandedActivities.has(activity.id);
 
           return (
             <div
               key={activity.id}
-              className="border border-iron-gray p-4 hover:border-iron-orange/50 transition-colors cursor-pointer group"
+              className="border border-iron-gray p-4 hover:border-iron-orange/50 transition-colors group"
             >
               <div className="flex items-center gap-4">
                 {/* Activity Icon */}
@@ -254,15 +287,31 @@ export default function ActivityList({ limit = 10, showHeader = true, compact = 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-iron-white font-medium truncate">
-                        {activity.name}
-                      </h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-iron-white font-medium truncate">
+                          {activity.name}
+                        </h3>
+                        <button
+                          onClick={() => toggleExpanded(activity.id)}
+                          className="p-1 hover:bg-iron-gray/20 rounded transition-colors"
+                          title="Show more details"
+                        >
+                          <ChevronDown
+                            className={`w-4 h-4 text-iron-gray transition-transform ${
+                              isExpanded ? 'rotate-180' : ''
+                            }`}
+                          />
+                        </button>
+                      </div>
                       <div className="flex items-center gap-2 mt-1">
                         <span className={`text-xs px-2 py-1 rounded border ${getSourceBadge(activity.source)}`}>
                           {activity.source.toUpperCase()}
                         </span>
                         <span className="text-iron-gray text-xs capitalize">
                           {activity.sport_type?.replace('_', ' ') || activity.activity_type.replace('_', ' ')}
+                        </span>
+                        <span className="text-iron-gray text-xs">
+                          {new Date(activity.start_date).toLocaleDateString()} {new Date(activity.start_date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                         </span>
                       </div>
                     </div>
@@ -280,8 +329,8 @@ export default function ActivityList({ limit = 10, showHeader = true, compact = 
                     )}
                   </div>
 
-                  {/* Stats Grid */}
-                  <div className={`grid gap-4 text-sm ${compact ? 'grid-cols-2' : 'grid-cols-2 md:grid-cols-4'}`}>
+                  {/* Primary Stats Grid */}
+                  <div className={`grid gap-4 text-sm ${compact ? 'grid-cols-2' : 'grid-cols-2 md:grid-cols-5'}`}>
                     <div className="flex items-center gap-2">
                       <Clock className="w-4 h-4 text-iron-gray" />
                       <span className="text-iron-white">{formatDuration(activity.elapsed_time_seconds)}</span>
@@ -297,7 +346,10 @@ export default function ActivityList({ limit = 10, showHeader = true, compact = 
                     {activity.average_heartrate && (
                       <div className="flex items-center gap-2">
                         <Heart className="w-4 h-4 text-iron-gray" />
-                        <span className="text-iron-white">{activity.average_heartrate} bpm</span>
+                        <span className="text-iron-white">
+                          {activity.average_heartrate}
+                          {activity.max_heartrate && <span className="text-iron-gray">/{activity.max_heartrate}</span>} bpm
+                        </span>
                       </div>
                     )}
 
@@ -307,15 +359,39 @@ export default function ActivityList({ limit = 10, showHeader = true, compact = 
                         <span className="text-iron-white">{activity.calories} cal</span>
                       </div>
                     )}
+
+                    {pace && (
+                      <div className="flex items-center gap-2">
+                        <Gauge className="w-4 h-4 text-iron-gray" />
+                        <span className="text-iron-white">{pace}</span>
+                      </div>
+                    )}
                   </div>
 
-                  {/* Additional Stats Row */}
-                  {!compact && (distance || pace || activity.total_elevation_gain) && (
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm mt-3 pt-3 border-t border-iron-gray/30">
-                      {pace && (
+                  {/* Secondary Stats - Always visible for Garmin activities with extra data */}
+                  {(activity.average_power || activity.average_cadence || activity.training_load || activity.total_elevation_gain) && (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mt-3 pt-3 border-t border-iron-gray/30">
+                      {activity.average_power && (
                         <div className="flex items-center gap-2">
-                          <TrendingUp className="w-4 h-4 text-iron-gray" />
-                          <span className="text-iron-gray">{pace}</span>
+                          <Battery className="w-4 h-4 text-iron-gray" />
+                          <span className="text-iron-gray">
+                            {Math.round(activity.average_power)}W
+                            {activity.normalized_power && ` (NP: ${Math.round(activity.normalized_power)}W)`}
+                          </span>
+                        </div>
+                      )}
+
+                      {activity.average_cadence && (
+                        <div className="flex items-center gap-2">
+                          <Wind className="w-4 h-4 text-iron-gray" />
+                          <span className="text-iron-gray">{Math.round(activity.average_cadence)} spm</span>
+                        </div>
+                      )}
+
+                      {activity.training_load && (
+                        <div className="flex items-center gap-2">
+                          <Brain className="w-4 h-4 text-iron-gray" />
+                          <span className="text-iron-gray">Load: {Math.round(activity.training_load)}</span>
                         </div>
                       )}
 
@@ -325,13 +401,102 @@ export default function ActivityList({ limit = 10, showHeader = true, compact = 
                           <span className="text-iron-gray">↗ {Math.round(activity.total_elevation_gain)}m</span>
                         </div>
                       )}
+                    </div>
+                  )}
 
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4 text-iron-gray" />
-                        <span className="text-iron-gray">
-                          {new Date(activity.start_date).toLocaleDateString()}
-                        </span>
-                      </div>
+                  {/* Expanded Details */}
+                  {isExpanded && (
+                    <div className="mt-4 pt-4 border-t border-iron-gray/30 space-y-3">
+                      {/* Time Details */}
+                      {activity.moving_time_seconds && activity.moving_time_seconds !== activity.elapsed_time_seconds && (
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                          <div>
+                            <span className="text-iron-gray">Moving Time:</span>
+                            <span className="text-iron-white ml-2">{formatDuration(activity.moving_time_seconds)}</span>
+                          </div>
+                          <div>
+                            <span className="text-iron-gray">Stopped Time:</span>
+                            <span className="text-iron-white ml-2">
+                              {formatDuration(activity.elapsed_time_seconds - activity.moving_time_seconds)}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Speed Details */}
+                      {activity.max_speed && (
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                          {activity.average_speed && (
+                            <div>
+                              <span className="text-iron-gray">Avg Speed:</span>
+                              <span className="text-iron-white ml-2">
+                                {(activity.average_speed * 3.6).toFixed(1)} km/h
+                              </span>
+                            </div>
+                          )}
+                          <div>
+                            <span className="text-iron-gray">Max Speed:</span>
+                            <span className="text-iron-white ml-2">
+                              {(activity.max_speed * 3.6).toFixed(1)} km/h
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Subjective Metrics */}
+                      {(activity.perceived_exertion || activity.mood || activity.energy_level) && (
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                          {activity.perceived_exertion && (
+                            <div>
+                              <span className="text-iron-gray">RPE:</span>
+                              <span className="text-iron-white ml-2">{activity.perceived_exertion}/10</span>
+                            </div>
+                          )}
+                          {activity.mood && (
+                            <div>
+                              <span className="text-iron-gray">Mood:</span>
+                              <span className="text-iron-white ml-2 capitalize">{activity.mood}</span>
+                            </div>
+                          )}
+                          {activity.energy_level && (
+                            <div>
+                              <span className="text-iron-gray">Energy:</span>
+                              <span className="text-iron-white ml-2">{activity.energy_level}/5</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Notes */}
+                      {activity.notes && (
+                        <div className="text-sm">
+                          <span className="text-iron-gray">Notes:</span>
+                          <p className="text-iron-white mt-1">{activity.notes}</p>
+                        </div>
+                      )}
+
+                      {/* Raw Data Summary for debugging */}
+                      {activity.source === 'garmin' && activity.raw_data && (
+                        <details className="text-xs">
+                          <summary className="cursor-pointer text-iron-gray hover:text-iron-white">
+                            Advanced Metrics (Garmin)
+                          </summary>
+                          <div className="mt-2 grid grid-cols-2 md:grid-cols-3 gap-2 text-iron-gray">
+                            {activity.raw_data.aerobicTrainingEffect && (
+                              <div>Aerobic TE: {activity.raw_data.aerobicTrainingEffect.toFixed(1)}</div>
+                            )}
+                            {activity.raw_data.anaerobicTrainingEffect && (
+                              <div>Anaerobic TE: {activity.raw_data.anaerobicTrainingEffect.toFixed(1)}</div>
+                            )}
+                            {activity.raw_data.vO2MaxValue && (
+                              <div>VO2 Max: {activity.raw_data.vO2MaxValue}</div>
+                            )}
+                            {activity.raw_data.intensityFactor && (
+                              <div>IF: {activity.raw_data.intensityFactor.toFixed(2)}</div>
+                            )}
+                          </div>
+                        </details>
+                      )}
                     </div>
                   )}
                 </div>
