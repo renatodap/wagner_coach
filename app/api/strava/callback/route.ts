@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/client';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -44,7 +45,24 @@ export async function GET(request: NextRequest) {
     }
 
     // Create Supabase client
-    const supabase = createClient();
+    const cookieStore = await cookies();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value;
+          },
+          set(name: string, value: string, options: Record<string, unknown>) {
+            cookieStore.set({ name, value, ...options });
+          },
+          remove(name: string, options: Record<string, unknown>) {
+            cookieStore.set({ name, value: '', ...options });
+          },
+        },
+      }
+    );
 
     // Get current user
     const { data: { user }, error: userError } = await supabase.auth.getUser();
@@ -60,10 +78,10 @@ export async function GET(request: NextRequest) {
       strava_athlete_id: tokenData.athlete.id,
       access_token: tokenData.access_token,
       refresh_token: tokenData.refresh_token,
-      expires_at: new Date(tokenData.expires_at * 1000),
+      expires_at: new Date(tokenData.expires_at * 1000).toISOString(),
       athlete_data: tokenData.athlete,
       scope: tokenData.scope,
-      connected_at: new Date(),
+      connected_at: new Date().toISOString(),
     });
 
     if (insertError) {
@@ -87,7 +105,17 @@ export async function GET(request: NextRequest) {
 }
 
 async function syncStravaActivities(userId: string, accessToken: string) {
-  const supabase = createClient();
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get() { return undefined; },
+        set() {},
+        remove() {},
+      },
+    }
+  );
 
   try {
     // Get recent activities (last 30)

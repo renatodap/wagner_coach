@@ -61,12 +61,19 @@ export default function StravaConnection({ userId }: StravaConnectionProps) {
       }
 
       if (data) {
+        const connectionData = data as {
+          athlete_data: { firstname: string; lastname: string; profile: string; city?: string; state?: string; country?: string; };
+          connected_at: string;
+          last_sync_at: string | null;
+          sync_enabled: boolean;
+        };
+
         setConnection({
           connected: true,
-          athlete: data.athlete_data,
-          connectedAt: data.connected_at,
-          lastSyncAt: data.last_sync_at,
-          syncEnabled: data.sync_enabled,
+          athlete: connectionData.athlete_data,
+          connectedAt: connectionData.connected_at,
+          lastSyncAt: connectionData.last_sync_at,
+          syncEnabled: connectionData.sync_enabled,
         });
       } else {
         setConnection({

@@ -30,21 +30,21 @@ interface Workout {
 }
 
 interface DashboardClientProps {
-  profile: Profile | null;
-  allWorkouts: Workout[];
+  initialWorkouts: Workout[];
   userId: string;
+  profile?: Profile | null;
 }
 
 export default function DashboardClient({
-  profile,
-  allWorkouts,
-  userId
+  initialWorkouts,
+  userId,
+  profile
 }: DashboardClientProps) {
   const [signingOut, setSigningOut] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedType, setSelectedType] = useState('');
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
-  const [workouts, setWorkouts] = useState(allWorkouts);
+  const [workouts, setWorkouts] = useState(initialWorkouts);
   const [selectedWorkout, setSelectedWorkout] = useState<Workout | null>(null);
 
   interface WorkoutExercise {
@@ -294,6 +294,7 @@ export default function DashboardClient({
             {filteredWorkouts.map((workout) => (
               <div
                 key={workout.id}
+                data-testid={`workout-card-${workout.id}`}
                 onClick={() => loadWorkoutDetails(workout)}
                 className="border border-iron-gray p-4 hover:border-iron-orange transition-colors cursor-pointer relative"
               >
@@ -381,7 +382,7 @@ export default function DashboardClient({
       {/* Workout Details Modal */}
       {selectedWorkout && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="bg-iron-black border border-iron-orange max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+          <div data-testid="workout-modal" className="bg-iron-black border border-iron-orange max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               {/* Header */}
               <div className="flex justify-between items-start mb-4">

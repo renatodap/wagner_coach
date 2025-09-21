@@ -59,7 +59,7 @@ export default async function DashboardPage() {
   return (
     <DashboardClient
       profile={profile}
-      allWorkouts={workoutsWithFavorites}
+      initialWorkouts={workoutsWithFavorites}
       userId={user.id}
     />
   );

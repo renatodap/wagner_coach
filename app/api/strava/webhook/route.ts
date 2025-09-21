@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/client';
+import { createServerClient } from '@supabase/ssr';
 
 export async function GET(request: NextRequest) {
   // Webhook verification for Strava
@@ -26,7 +26,17 @@ export async function POST(request: NextRequest) {
     console.log('Strava webhook received:', event);
 
     // Store the webhook event for debugging
-    const supabase = createClient();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get() { return undefined; },
+          set() {},
+          remove() {},
+        },
+      }
+    );
     await supabase.from('webhook_events').insert({
       source: 'strava',
       event_type: event.aspect_type,
@@ -59,7 +69,17 @@ export async function POST(request: NextRequest) {
 }
 
 async function processNewActivity(athleteId: number, activityId: number) {
-  const supabase = createClient();
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get() { return undefined; },
+        set() {},
+        remove() {},
+      },
+    }
+  );
 
   try {
     // Find the user by athlete ID
@@ -117,7 +137,17 @@ async function processActivityUpdate(athleteId: number, activityId: number) {
 }
 
 async function processActivityDeletion(athleteId: number, activityId: number) {
-  const supabase = createClient();
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get() { return undefined; },
+        set() {},
+        remove() {},
+      },
+    }
+  );
 
   try {
     // Find the user by athlete ID

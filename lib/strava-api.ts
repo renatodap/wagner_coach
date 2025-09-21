@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '@supabase/supabase-js';
 
 export interface StravaActivity {
   id: number;
@@ -246,7 +246,10 @@ export class StravaApiClient {
 
 // Helper function to refresh expired tokens
 export async function refreshStravaToken(userId: string): Promise<string | null> {
-  const supabase = createClient();
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
 
   const { data: connection, error } = await supabase
     .from('strava_connections')
@@ -322,7 +325,10 @@ export async function getStravaClientForUser(userId: string): Promise<StravaApiC
 
 // Helper function to check if user has Strava connected
 export async function hasStravaConnection(userId: string): Promise<boolean> {
-  const supabase = createClient();
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
 
   const { data, error } = await supabase
     .from('strava_connections')
@@ -335,7 +341,10 @@ export async function hasStravaConnection(userId: string): Promise<boolean> {
 
 // Helper function to get connection status
 export async function getStravaConnectionStatus(userId: string) {
-  const supabase = createClient();
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
 
   const { data: connection, error } = await supabase
     .from('strava_connections')
