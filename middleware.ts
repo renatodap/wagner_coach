@@ -63,7 +63,8 @@ export async function middleware(request: NextRequest) {
     request.nextUrl.pathname.startsWith('/activities') ||
     request.nextUrl.pathname.startsWith('/settings') ||
     request.nextUrl.pathname.startsWith('/workout') ||
-    request.nextUrl.pathname.startsWith('/analytics')
+    request.nextUrl.pathname.startsWith('/analytics') ||
+    request.nextUrl.pathname.startsWith('/coach')
   )) {
     return NextResponse.redirect(new URL('/auth', request.url))
   }

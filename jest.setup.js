@@ -1,5 +1,8 @@
 import '@testing-library/jest-dom'
 
+// Polyfill fetch for tests
+global.fetch = jest.fn()
+
 // Mock Next.js router
 jest.mock('next/navigation', () => ({
   useRouter: () => ({
