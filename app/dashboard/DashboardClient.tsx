@@ -43,7 +43,27 @@ export default function DashboardClient({
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [workouts, setWorkouts] = useState(allWorkouts);
   const [selectedWorkout, setSelectedWorkout] = useState<Workout | null>(null);
-  const [workoutExercises, setWorkoutExercises] = useState<any[]>([]);
+
+  interface WorkoutExercise {
+    id: number;
+    workout_id: number;
+    exercise_id: number;
+    sets: number;
+    reps: string;
+    rest_seconds: number;
+    order_index: number;
+    notes?: string;
+    exercises?: {
+      id: number;
+      name: string;
+      category: string;
+      muscle_group: string;
+      equipment?: string;
+      difficulty?: string;
+    };
+  }
+
+  const [workoutExercises, setWorkoutExercises] = useState<WorkoutExercise[]>([]);
   const [loadingExercises, setLoadingExercises] = useState(false);
   const router = useRouter();
   const supabase = createClient();
@@ -453,7 +473,7 @@ export default function DashboardClient({
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    toggleFavorite(selectedWorkout.id, e as any);
+                    toggleFavorite(selectedWorkout.id, e);
                   }}
                   className={`px-6 py-4 border ${
                     selectedWorkout.is_favorite
