@@ -96,16 +96,20 @@ export default function StravaConnection({ userId }: StravaConnectionProps) {
     window.location.href = '/api/strava/auth';
   };
 
-  const syncStrava = async () => {
+  const syncStrava = async (syncType: 'recent' | 'all' = 'recent') => {
     setIsSyncing(true);
     setError(null);
     setSyncResult(null);
 
     try {
+      const body = syncType === 'all'
+        ? { syncType: 'all' }
+        : { syncType: 'recent', days: 30, perPage: 50 };
+
       const response = await fetch('/api/strava/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ days: 30, perPage: 50 }),
+        body: JSON.stringify(body),
       });
 
       const data = await response.json();
@@ -114,7 +118,11 @@ export default function StravaConnection({ userId }: StravaConnectionProps) {
         throw new Error(data.error || 'Sync failed');
       }
 
-      setSyncResult(`Successfully synced ${data.activities_synced} activities!`);
+      if (syncType === 'all') {
+        setSyncResult(`Full sync complete! Imported ${data.activities_synced} activities from your entire Strava history.`);
+      } else {
+        setSyncResult(`Successfully synced ${data.activities_synced} recent activities!`);
+      }
 
       // Update last sync time
       await checkConnection();
@@ -327,29 +335,63 @@ export default function StravaConnection({ userId }: StravaConnectionProps) {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex gap-4">
-          <button
-            onClick={syncStrava}
-            disabled={isSyncing}
-            className="flex-1 bg-iron-orange hover:bg-orange-600 text-iron-black px-6 py-3 font-heading uppercase tracking-wider transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-          >
-            {isSyncing ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Syncing...
-              </>
-            ) : (
-              <>
-                <RefreshCw className="w-4 h-4" />
-                Sync Now
-              </>
-            )}
-          </button>
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <button
+              onClick={() => syncStrava('recent')}
+              disabled={isSyncing}
+              className="bg-iron-orange hover:bg-orange-600 text-iron-black px-6 py-3 font-heading uppercase tracking-wider transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {isSyncing ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Syncing...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="w-4 h-4" />
+                  Sync Recent (30 days)
+                </>
+              )}
+            </button>
+
+            <button
+              onClick={() => syncStrava('all')}
+              disabled={isSyncing}
+              className="bg-gradient-to-r from-iron-orange to-orange-600 hover:from-orange-600 hover:to-orange-700 text-iron-black px-6 py-3 font-heading uppercase tracking-wider transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {isSyncing ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Syncing...
+                </>
+              ) : (
+                <>
+                  <Zap className="w-4 h-4" />
+                  Full History Sync
+                </>
+              )}
+            </button>
+          </div>
+
+          <div className="bg-blue-900/20 border border-blue-500/50 p-4 rounded">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" />
+              <div className="text-sm">
+                <p className="text-blue-400 font-medium mb-1">Full History Sync</p>
+                <p className="text-blue-300/80">
+                  This will import EVERY workout from your Strava account since you started using it.
+                  This process may take several minutes depending on your activity history.
+                  Rate limits ensure we stay compliant with Strava&apos;s API.
+                </p>
+              </div>
+            </div>
+          </div>
 
           <button
             onClick={disconnect}
             disabled={isDisconnecting}
-            className="px-6 py-3 border border-red-500 text-red-500 hover:bg-red-500 hover:text-white font-heading uppercase tracking-wider transition-colors disabled:opacity-50 flex items-center gap-2"
+            className="w-full px-6 py-3 border border-red-500 text-red-500 hover:bg-red-500 hover:text-white font-heading uppercase tracking-wider transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {isDisconnecting ? (
               <>

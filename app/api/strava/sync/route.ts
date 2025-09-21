@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
-import { StravaApiClient, refreshStravaToken } from '@/lib/strava-api';
+import { StravaApiClient, refreshStravaToken, StravaActivity } from '@/lib/strava-api';
 
 export async function POST(request: NextRequest) {
   const cookieStore = await cookies();
@@ -44,19 +44,50 @@ export async function POST(request: NextRequest) {
 
     // Get sync options from request body
     const body = await request.json().catch(() => ({}));
-    const daysToSync = body.days || 30;
-    const activitiesPerPage = Math.min(body.perPage || 50, 200); // Strava limit
+    const {
+      syncType = 'recent', // 'recent', 'all', 'range'
+      days = 30,
+      startDate,
+      endDate,
+      perPage = 50
+    } = body;
 
-    // Fetch recent activities
-    const activities = await stravaClient.getActivities(1, activitiesPerPage);
+    let activities: StravaActivity[] = [];
 
-    // Filter activities by date if specified
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - daysToSync);
+    if (syncType === 'all') {
+      // Fetch ALL activities from user's complete history
+      console.log('Starting full history sync...');
+      activities = await stravaClient.getAllActivities((progress) => {
+        console.log(`Sync progress: ${progress.fetched} activities fetched (page ${progress.page})`);
+        if (progress.lastActivityDate) {
+          console.log(`Latest activity date: ${progress.lastActivityDate}`);
+        }
+      });
+    } else if (syncType === 'range' && startDate) {
+      // Fetch activities within a specific date range
+      const start = new Date(startDate);
+      const end = endDate ? new Date(endDate) : new Date();
+      console.log(`Syncing activities between ${start.toISOString()} and ${end.toISOString()}`);
 
-    const filteredActivities = activities.filter((activity: { start_date: string }) =>
-      new Date(activity.start_date) >= cutoffDate
-    );
+      activities = await stravaClient.getAllActivitiesBetween(start, end, (progress) => {
+        console.log(`Range sync progress: ${progress.fetched} activities fetched (page ${progress.page})`);
+        console.log(`Date range: ${progress.dateRange}`);
+      });
+    } else {
+      // Default: fetch recent activities (original behavior)
+      const activitiesPerPage = Math.min(perPage, 200); // Strava limit
+      const fetchedActivities = await stravaClient.getActivities(1, activitiesPerPage);
+
+      // Filter activities by date if specified
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - days);
+
+      activities = fetchedActivities.filter((activity: { start_date: string }) =>
+        new Date(activity.start_date) >= cutoffDate
+      );
+    }
+
+    const filteredActivities = activities;
 
     // Import activities
     let syncedCount = 0;
@@ -84,11 +115,15 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
+      sync_type: syncType,
       total_activities: filteredActivities.length,
       activities_synced: syncedCount,
       errors: errorCount,
       error_details: errors.length > 0 ? errors.slice(0, 5) : undefined, // Limit error details
-      sync_period_days: daysToSync
+      sync_period_days: syncType === 'recent' ? days : null,
+      oldest_activity: filteredActivities.length > 0 ? filteredActivities[filteredActivities.length - 1]?.start_date : null,
+      newest_activity: filteredActivities.length > 0 ? filteredActivities[0]?.start_date : null,
+      sync_duration_ms: Date.now() - new Date().getTime()
     });
   } catch (error) {
     console.error('Strava sync error:', error);

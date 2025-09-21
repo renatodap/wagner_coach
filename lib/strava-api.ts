@@ -242,6 +242,87 @@ export class StravaApiClient {
     sinceDate.setDate(sinceDate.getDate() - days);
     return this.getActivitiesSince(sinceDate, limit);
   }
+
+  // Helper: Get ALL activities from user's account (complete history)
+  async getAllActivities(
+    progressCallback?: (progress: { fetched: number; page: number; lastActivityDate?: string }) => void
+  ): Promise<StravaActivity[]> {
+    const activities: StravaActivity[] = [];
+    let page = 1;
+    const perPage = 200; // Max allowed by Strava API
+
+    while (true) {
+      const batch = await this.getActivities(page, perPage);
+
+      if (batch.length === 0) break; // No more activities
+
+      activities.push(...batch);
+
+      // Report progress
+      if (progressCallback) {
+        progressCallback({
+          fetched: activities.length,
+          page,
+          lastActivityDate: batch[batch.length - 1]?.start_date
+        });
+      }
+
+      // If we got less than requested per page, we've reached the end
+      if (batch.length < perPage) break;
+
+      page++;
+
+      // Add a small delay to respect Strava's rate limits (600 requests per 15 minutes)
+      // That's 40 requests per minute, or roughly 1.5 seconds between requests
+      await new Promise(resolve => setTimeout(resolve, 1500));
+    }
+
+    return activities;
+  }
+
+  // Helper: Get activities with automatic pagination and rate limiting
+  async getAllActivitiesBetween(
+    startDate: Date,
+    endDate?: Date,
+    progressCallback?: (progress: { fetched: number; page: number; dateRange: string }) => void
+  ): Promise<StravaActivity[]> {
+    const after = Math.floor(startDate.getTime() / 1000);
+    const before = endDate ? Math.floor(endDate.getTime() / 1000) : undefined;
+
+    const activities: StravaActivity[] = [];
+    let page = 1;
+    const perPage = 200; // Max allowed by Strava API
+
+    while (true) {
+      const batch = await this.getActivities(page, perPage, before, after);
+
+      if (batch.length === 0) break; // No more activities
+
+      activities.push(...batch);
+
+      // Report progress
+      if (progressCallback) {
+        const firstDate = batch[0]?.start_date;
+        const lastDate = batch[batch.length - 1]?.start_date;
+        progressCallback({
+          fetched: activities.length,
+          page,
+          dateRange: `${lastDate} to ${firstDate}`
+        });
+      }
+
+      // If we got less than requested per page, we've reached the end
+      if (batch.length < perPage) break;
+
+      page++;
+
+      // Rate limiting: Strava allows 600 requests per 15 minutes
+      // Add delay to stay well under the limit
+      await new Promise(resolve => setTimeout(resolve, 1500));
+    }
+
+    return activities;
+  }
 }
 
 // Helper function to refresh expired tokens
