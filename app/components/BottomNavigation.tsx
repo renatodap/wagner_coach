@@ -5,7 +5,6 @@ import { usePathname } from 'next/navigation'
 import {
   Dumbbell,
   Activity,
-  Calendar,
   Settings
 } from 'lucide-react'
 
@@ -15,21 +14,15 @@ export default function BottomNavigation() {
   const navigation = [
     {
       name: 'Workouts',
-      href: '/dashboard',
+      href: '/workouts',
       icon: Dumbbell,
-      current: pathname === '/dashboard'
+      current: pathname === '/workouts'
     },
     {
       name: 'Activities',
       href: '/activities',
       icon: Activity,
       current: pathname === '/activities'
-    },
-    {
-      name: 'Progress',
-      href: '/progress',
-      icon: Calendar,
-      current: pathname === '/progress'
     },
     {
       name: 'Settings',
@@ -42,7 +35,7 @@ export default function BottomNavigation() {
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-iron-black border-t border-iron-gray z-40">
       <div className="max-w-4xl mx-auto px-4">
-        <div className="grid grid-cols-4 py-2">
+        <div className="grid grid-cols-3 py-2">
           {navigation.map((item) => {
             const Icon = item.icon
             return (

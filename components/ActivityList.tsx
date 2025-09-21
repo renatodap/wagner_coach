@@ -18,7 +18,7 @@ import {
   Dumbbell,
   TreePine,
   Target,
-  MoreHorizontal
+  LinkIcon
 } from 'lucide-react';
 
 interface ActivityData {
@@ -41,6 +41,7 @@ interface ActivityListProps {
   limit?: number;
   showHeader?: boolean;
   compact?: boolean;
+  onLinkActivity?: (activityId: string) => void;
 }
 
 const ACTIVITY_ICONS = {
@@ -83,7 +84,7 @@ const ACTIVITY_COLORS = {
   workout: 'text-iron-orange',
 };
 
-export default function ActivityList({ limit = 10, showHeader = true, compact = false }: ActivityListProps) {
+export default function ActivityList({ limit = 10, showHeader = true, compact = false, onLinkActivity }: ActivityListProps) {
   const [activities, setActivities] = useState<ActivityData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -265,9 +266,18 @@ export default function ActivityList({ limit = 10, showHeader = true, compact = 
                         </span>
                       </div>
                     </div>
-                    <button className="opacity-0 group-hover:opacity-100 transition-opacity">
-                      <MoreHorizontal className="w-4 h-4 text-iron-gray" />
-                    </button>
+                    {onLinkActivity && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onLinkActivity(activity.id);
+                        }}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-iron-orange/20 rounded"
+                        title="Link to workout"
+                      >
+                        <LinkIcon className="w-4 h-4 text-iron-orange" />
+                      </button>
+                    )}
                   </div>
 
                   {/* Stats Grid */}

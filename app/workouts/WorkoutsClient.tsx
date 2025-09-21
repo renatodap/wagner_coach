@@ -9,13 +9,10 @@ import {
   Settings,
   LogOut,
   Clock,
-  TrendingUp,
   Star,
-  Search,
-  Calendar
+  Search
 } from 'lucide-react';
 import { Profile } from '@/lib/types';
-import ActivityList from '@/components/ActivityList';
 import BottomNavigation from '@/app/components/BottomNavigation';
 
 interface Workout {
@@ -29,17 +26,17 @@ interface Workout {
   is_favorite: boolean;
 }
 
-interface DashboardClientProps {
+interface WorkoutsClientProps {
   initialWorkouts: Workout[];
   userId: string;
   profile?: Profile | null;
 }
 
-export default function DashboardClient({
+export default function WorkoutsClient({
   initialWorkouts,
   userId,
   profile
-}: DashboardClientProps) {
+}: WorkoutsClientProps) {
   const [signingOut, setSigningOut] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedType, setSelectedType] = useState('');
@@ -207,32 +204,6 @@ export default function DashboardClient({
 
       <main className="max-w-7xl mx-auto px-4 py-8 space-y-8">
 
-        {/* Recent Activities */}
-        <div className="lg:grid lg:grid-cols-3 lg:gap-8 space-y-8 lg:space-y-0">
-          <div className="lg:col-span-2">
-            <ActivityList limit={5} />
-          </div>
-          <div className="border border-iron-gray p-6">
-            <h3 className="font-heading text-xl text-iron-white mb-4 flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-iron-orange" />
-              QUICK STATS
-            </h3>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-iron-gray">This Week</span>
-                <span className="text-iron-white font-medium">4 workouts</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-iron-gray">Total Time</span>
-                <span className="text-iron-white font-medium">3h 45m</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-iron-gray">Avg. Heart Rate</span>
-                <span className="text-iron-white font-medium">142 bpm</span>
-              </div>
-            </div>
-          </div>
-        </div>
 
         {/* Workout Library */}
         <div>
@@ -240,13 +211,6 @@ export default function DashboardClient({
             <h3 className="font-heading text-2xl text-iron-white">
               WORKOUT LIBRARY
             </h3>
-            <Link
-              href="/progress"
-              className="text-iron-gray hover:text-iron-orange transition-colors flex items-center gap-1"
-            >
-              <TrendingUp className="w-4 h-4" />
-              View Progress
-            </Link>
           </div>
 
           {/* Search and Filters */}
