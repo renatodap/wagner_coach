@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { createClient } from '@/lib/supabase/server';
-import { UserContext, WorkoutContext, ProgressContext } from '@/lib/types/coaching';
+import { UserContext, WorkoutContext, ProgressContext, WorkoutPattern } from '@/lib/types/coaching';
 import {
   WorkoutCompletionRecord,
   PersonalRecordRow,
@@ -89,7 +89,7 @@ export async function getUserContext(userId: string, query: string): Promise<Use
 
   // Build workout context
   const workoutContext: WorkoutContext = {
-    recent: recentWorkouts?.map(w => ({
+    recent: (recentWorkouts as any[])?.map(w => ({
       id: w.id.toString(),
       name: w.workouts?.name || 'Unknown Workout',
       type: w.workouts?.type || 'general',
@@ -99,7 +99,7 @@ export async function getUserContext(userId: string, query: string): Promise<Use
       notes: w.notes,
       rating: w.workout_rating
     })) || [],
-    favorites: favoriteWorkouts?.map(f => ({
+    favorites: (favoriteWorkouts as any[])?.map(f => ({
       id: f.workout_id.toString(),
       name: f.workouts?.name || 'Unknown',
       type: f.workouts?.type || 'general',
@@ -114,7 +114,7 @@ export async function getUserContext(userId: string, query: string): Promise<Use
   const progressContext: ProgressContext = {
     milestones: detectMilestones(personalRecords || []),
     trends: progressTrends,
-    personalRecords: personalRecords?.map(pr => ({
+    personalRecords: (personalRecords as any[])?.map(pr => ({
       exercise: pr.exercises?.name || 'Unknown Exercise',
       type: pr.record_type as 'weight' | 'reps' | 'volume' | 'time',
       value: pr.value,
@@ -136,20 +136,20 @@ export async function getUserContext(userId: string, query: string): Promise<Use
   return {
     userId,
     profile: {
-      goal: profile?.goal || 'build_muscle',
+      goal: (profile as any)?.goal || 'build_muscle',
       experience: determineExperience(workoutStats, personalRecords?.length || 0),
       preferences: {
         workoutDays: [],
         equipment: [],
       },
-      createdAt: profile?.created_at ? new Date(profile.created_at) : new Date()
+      createdAt: (profile as any)?.created_at ? new Date((profile as any).created_at) : new Date()
     },
     workouts: workoutContext,
     progress: progressContext,
     conversations: {
       topics: conversationTopics,
-      lastInteraction: conversations?.[0]?.updated_at
-        ? new Date(conversations[0].updated_at)
+      lastInteraction: (conversations as any[])?.[0]?.updated_at
+        ? new Date((conversations as any[])[0].updated_at)
         : new Date(),
       sessionCount: conversations?.length || 0,
       averageLength: calculateAverageConversationLength(conversations || [])
@@ -294,13 +294,7 @@ function analyzeConsistencyTrend(workouts: WorkoutCompletionRecord[]): ProgressT
   };
 }
 
-interface WorkoutPattern {
-  type: string;
-  pattern: string;
-  confidence: number;
-}
-
-function detectWorkoutPatterns(workouts: WorkoutCompletionRecord[]): WorkoutPattern[] {
+function detectWorkoutPatterns(workouts: any[]): WorkoutPattern[] {
   const patterns: WorkoutPattern[] = [];
 
   // Detect workout split pattern
@@ -316,7 +310,7 @@ function detectWorkoutPatterns(workouts: WorkoutCompletionRecord[]): WorkoutPatt
 
   if (mostCommonType) {
     patterns.push({
-      type: 'split',
+      type: 'split' as const,
       pattern: `Primarily ${mostCommonType[0]} workouts`,
       confidence: mostCommonType[1] / types.length
     });
@@ -339,7 +333,7 @@ function detectWorkoutPatterns(workouts: WorkoutCompletionRecord[]): WorkoutPatt
 
     if (preferredDays.length > 0) {
       patterns.push({
-        type: 'frequency',
+        type: 'frequency' as const,
         pattern: `Prefers training on specific days`,
         confidence: 0.7
       });
@@ -356,9 +350,9 @@ interface Milestone {
   value: number;
 }
 
-function detectMilestones(personalRecords: PersonalRecordRow[]): Milestone[] {
+function detectMilestones(personalRecords: any[]): Milestone[] {
   return personalRecords.slice(0, 5).map(pr => ({
-    type: 'personal_record',
+    type: 'personal_record' as const,
     achievement: `${pr.exercises?.name || 'Exercise'}: ${pr.value}`,
     date: new Date(pr.achieved_date),
     value: pr.value
@@ -394,7 +388,7 @@ function extractConversationTopics(conversations: ConversationRecord[]): string[
   return Array.from(topics);
 }
 
-function calculateAverageConversationLength(conversations: ConversationRecord[]): number {
+function calculateAverageConversationLength(conversations: any[]): number {
   if (conversations.length === 0) return 0;
 
   const totalMessages = conversations.reduce((sum, conv) => {
