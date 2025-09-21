@@ -38,9 +38,8 @@ class handler(BaseHTTPRequestHandler):
             # Try to import and use garminconnect
             try:
                 from garminconnect import Garmin
-                import cloudscraper
 
-                # Initialize Garmin API with cloudscraper to bypass Cloudflare
+                # Initialize Garmin API - the library handles Cloudflare internally
                 api = None
                 session_file = f"/tmp/garmin_session_{email.replace('@', '_at_')}.json"
 
@@ -52,9 +51,8 @@ class handler(BaseHTTPRequestHandler):
                     try:
                         with open(session_file, 'r') as f:
                             saved_session = json.load(f)
-                        # Create new API instance with cloudscraper
-                        scraper = cloudscraper.create_scraper()
-                        api = Garmin(email, password, session_data=saved_session, session=scraper)
+                        # Create new API instance with saved session
+                        api = Garmin(session_data=saved_session)
                         # Test if session is still valid
                         api.get_user_profile()
                     except Exception as e:
@@ -66,9 +64,8 @@ class handler(BaseHTTPRequestHandler):
 
                 # Create new session if needed
                 if not api:
-                    # Use cloudscraper to handle Cloudflare protection
-                    scraper = cloudscraper.create_scraper()
-                    api = Garmin(email, password, session=scraper)
+                    # The garminconnect library handles Cloudflare internally
+                    api = Garmin(email, password)
                     api.login()
 
                     # Save session for future use (disabled for now)
