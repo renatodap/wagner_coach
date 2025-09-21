@@ -43,7 +43,8 @@ export default function GarminConnection({ className = '' }: GarminConnectionPro
         if (savedEmail) setEmail(savedEmail);
       }
     } catch (err) {
-      console.error('Error checking Garmin connection:', err);
+      // Table might not exist yet, ignore error
+      console.log('Garmin connections table may not exist yet');
     }
   };
 
@@ -85,8 +86,13 @@ export default function GarminConnection({ className = '' }: GarminConnectionPro
 
       const result = await response.json();
 
+      // Check if it's an error response
+      if (result.error) {
+        throw new Error(result.error + (result.details ? `: ${result.details}` : ''));
+      }
+
       setIsConnected(true);
-      setSyncResult(`Successfully synced ${result.activitiesSynced} activities from Garmin`);
+      setSyncResult(`Successfully synced ${result.activitiesSynced || 0} activities from Garmin`);
 
       // Update local state
       await checkGarminConnection();

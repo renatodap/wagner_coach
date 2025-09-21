@@ -1,15 +1,13 @@
 from http.server import BaseHTTPRequestHandler
 import json
 import os
+import sys
 from datetime import datetime, timedelta
 
 class handler(BaseHTTPRequestHandler):
     def do_POST(self):
         """Sync Garmin activities to database"""
         try:
-            # Import here to avoid import errors during build
-            from garminconnect import Garmin, GarminConnectAuthenticationError, GarminConnectTooManyRequestsError
-
             # Parse request body
             content_length = int(self.headers.get('Content-Length', 0))
             body = self.rfile.read(content_length)
@@ -22,87 +20,140 @@ class handler(BaseHTTPRequestHandler):
             days_back = request_data.get('daysBack', 30)
 
             if not email or not password:
-                self.send_error(400, 'Missing Garmin credentials')
+                self.send_response(400)
+                self.send_header('Content-type', 'application/json')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                self.wfile.write(json.dumps({'error': 'Missing Garmin credentials'}).encode())
                 return
 
             if not user_id:
-                self.send_error(400, 'Missing userId')
+                self.send_response(400)
+                self.send_header('Content-type', 'application/json')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                self.wfile.write(json.dumps({'error': 'Missing userId'}).encode())
                 return
 
-            # Initialize Garmin API
-            api = None
-            session_file = f"/tmp/garmin_session_{email.replace('@', '_at_')}.json"
-
-            # Try to use saved session first
+            # Try to import and use garminconnect
             try:
-                if os.path.exists(session_file):
-                    with open(session_file, 'r') as f:
-                        saved_session = json.load(f)
-                    api = Garmin(session_data=saved_session)
-                    api.login()
-            except:
+                from garminconnect import Garmin
+
+                # Initialize Garmin API
                 api = None
+                session_file = f"/tmp/garmin_session_{email.replace('@', '_at_')}.json"
 
-            # Create new session if needed
-            if not api:
-                api = Garmin(email, password)
-                api.login()
-
-                # Save session for future use
+                # Try to use saved session first
                 try:
-                    with open(session_file, 'w') as f:
-                        json.dump(api.session_data, f)
+                    if os.path.exists(session_file):
+                        with open(session_file, 'r') as f:
+                            saved_session = json.load(f)
+                        api = Garmin(session_data=saved_session)
+                        api.login()
                 except:
-                    pass  # Session save is optional
+                    api = None
 
-            # Get activities from the last N days
-            activities = api.get_activities(0, min(days_back * 5, 100))  # Cap at 100 activities
+                # Create new session if needed
+                if not api:
+                    api = Garmin(email, password)
+                    api.login()
 
-            # Filter activities to requested date range
-            cutoff_date = datetime.now() - timedelta(days=days_back)
-            recent_activities = []
-            for activity in activities:
-                try:
-                    start_time = activity.get('startTimeLocal', '')
-                    if start_time:
-                        # Handle different date formats
-                        activity_date = datetime.fromisoformat(start_time.replace('Z', '').replace('+00:00', ''))
-                        if activity_date > cutoff_date:
-                            recent_activities.append(activity)
-                except:
-                    continue
+                    # Save session for future use
+                    try:
+                        with open(session_file, 'w') as f:
+                            json.dump(api.session_data, f)
+                    except:
+                        pass  # Session save is optional
 
-            # Return success response
-            response_data = {
-                'success': True,
-                'activitiesSynced': len(recent_activities),
-                'totalActivities': len(activities),
-                'message': f'Successfully synced {len(recent_activities)} activities from Garmin'
-            }
+                # Get activities from the last N days
+                activities = api.get_activities(0, min(days_back * 5, 100))  # Cap at 100 activities
 
-            self.send_response(200)
-            self.send_header('Content-type', 'application/json')
-            self.send_header('Access-Control-Allow-Origin', '*')
-            self.send_header('Access-Control-Allow-Methods', 'POST, OPTIONS')
-            self.send_header('Access-Control-Allow-Headers', 'Content-Type')
-            self.end_headers()
-            self.wfile.write(json.dumps(response_data).encode())
+                # Filter activities to requested date range
+                cutoff_date = datetime.now() - timedelta(days=days_back)
+                recent_activities = []
 
-        except Exception as e:
-            # Import error types here if available
-            error_message = str(e)
+                for activity in activities:
+                    try:
+                        start_time = activity.get('startTimeLocal', '')
+                        if start_time:
+                            # Handle different date formats
+                            activity_date = datetime.fromisoformat(start_time.split('.')[0])
+                            if activity_date > cutoff_date:
+                                recent_activities.append(activity)
+                    except:
+                        continue
 
-            if 'GarminConnectAuthenticationError' in str(type(e).__name__):
-                self.send_error(401, 'Garmin authentication failed. Please check your credentials.')
-            elif 'GarminConnectTooManyRequestsError' in str(type(e).__name__):
-                self.send_error(429, 'Too many requests to Garmin. Please try again later.')
-            else:
-                # Send generic error with details
+                # Return success response
+                response_data = {
+                    'success': True,
+                    'activitiesSynced': len(recent_activities),
+                    'totalActivities': len(activities),
+                    'message': f'Successfully synced {len(recent_activities)} activities from Garmin'
+                }
+
+                self.send_response(200)
+                self.send_header('Content-type', 'application/json')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.send_header('Access-Control-Allow-Methods', 'POST, OPTIONS')
+                self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+                self.end_headers()
+                self.wfile.write(json.dumps(response_data).encode())
+
+            except ImportError as ie:
+                # garminconnect not installed
                 self.send_response(500)
                 self.send_header('Content-type', 'application/json')
                 self.send_header('Access-Control-Allow-Origin', '*')
                 self.end_headers()
-                self.wfile.write(json.dumps({'error': f'Server error: {error_message}'}).encode())
+                error_msg = {
+                    'error': 'Garmin Connect library not available. Please ensure dependencies are installed.',
+                    'details': str(ie)
+                }
+                self.wfile.write(json.dumps(error_msg).encode())
+
+            except Exception as ge:
+                # Garmin-specific error
+                error_name = type(ge).__name__
+                error_msg = str(ge)
+
+                if 'Authentication' in error_name or 'authentication' in error_msg.lower():
+                    self.send_response(401)
+                    self.send_header('Content-type', 'application/json')
+                    self.send_header('Access-Control-Allow-Origin', '*')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({
+                        'error': 'Garmin authentication failed. Please check your credentials.',
+                        'details': error_msg
+                    }).encode())
+                elif 'TooManyRequests' in error_name or 'rate' in error_msg.lower():
+                    self.send_response(429)
+                    self.send_header('Content-type', 'application/json')
+                    self.send_header('Access-Control-Allow-Origin', '*')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({
+                        'error': 'Too many requests to Garmin. Please try again later.',
+                        'details': error_msg
+                    }).encode())
+                else:
+                    raise  # Re-raise to outer exception handler
+
+        except Exception as e:
+            # Generic error handler with detailed message
+            self.send_response(500)
+            self.send_header('Content-type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+
+            error_response = {
+                'error': f'Server error: {str(e)}',
+                'type': type(e).__name__,
+                'details': str(e)
+            }
+
+            # Add Python version info for debugging
+            error_response['python_version'] = sys.version
+
+            self.wfile.write(json.dumps(error_response).encode())
 
     def do_OPTIONS(self):
         """Handle CORS preflight"""
