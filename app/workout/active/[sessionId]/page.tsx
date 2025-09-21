@@ -25,7 +25,7 @@ export default async function ActiveWorkoutPage({ params }: PageParams) {
     .select('*, workouts(name)')
     .eq('id', sessionId)
     .eq('user_id', user.id)
-    .single();
+    .single() as { data: { workouts: { name: string } } | null };
 
   if (!session) {
     redirect('/dashboard');

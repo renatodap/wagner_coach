@@ -108,7 +108,7 @@ export default function WorkoutHistoryClient({ initialHistory, userId }: Workout
         .from('workout_completions')
         .select('user_workout_id')
         .eq('id', workout.completion_id)
-        .single();
+        .single() as { data: { user_workout_id: number } | null };
 
       if (completion?.user_workout_id) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any

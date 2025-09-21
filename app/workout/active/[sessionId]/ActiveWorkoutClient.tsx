@@ -7,11 +7,8 @@ import {
   Play,
   Pause,
   SkipForward,
-  Check,
   X,
-  ChevronRight,
   Weight,
-  Clock,
   CheckCircle
 } from 'lucide-react';
 
@@ -153,16 +150,6 @@ export default function ActiveWorkoutClient({
     }
   };
 
-  const nextSet = () => {
-    if (!currentExercise) return;
-
-    if (currentSet < currentExercise.sets_planned) {
-      setCurrentSet(currentSet + 1);
-      setRestTimer(null);
-    } else {
-      nextExercise();
-    }
-  };
 
   const nextExercise = () => {
     if (currentExerciseIndex < exercises.length - 1) {
@@ -199,7 +186,8 @@ export default function ActiveWorkoutClient({
     if (confirm('Are you sure you want to cancel this workout? Progress will be lost.')) {
       try {
         // Update session status to cancelled
-        await supabase
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (supabase as any)
           .from('active_workout_sessions')
           .update({ status: 'cancelled' })
           .eq('id', sessionId);
@@ -212,9 +200,6 @@ export default function ActiveWorkoutClient({
   };
 
   const getExerciseCompletionStatus = (exercise: Exercise, index: number) => {
-    const key = `${exercise.exercise_id}`;
-    const completed = completedSets[key]?.length || 0;
-
     if (index < currentExerciseIndex) return 'completed';
     if (index === currentExerciseIndex) return 'current';
     return 'upcoming';
@@ -467,7 +452,7 @@ export default function ActiveWorkoutClient({
                   ALL EXERCISES COMPLETE!
                 </h2>
                 <p className="text-iron-gray mb-6">
-                  Great work! You've completed all exercises.
+                  Great work! You&apos;ve completed all exercises.
                 </p>
                 <button
                   onClick={finishWorkout}
