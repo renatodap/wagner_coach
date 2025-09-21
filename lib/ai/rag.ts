@@ -403,3 +403,84 @@ function calculateAverageConversationLength(conversations: ConversationRecord[])
 
   return Math.round(totalMessages / conversations.length);
 }
+
+// Enhanced context function that integrates profile and goals
+export async function getEnhancedUserContext(userId: string, query: string): Promise<UserContext> {
+  const supabase = await createClient();
+
+  try {
+    // Get the enhanced AI context with full profile and goals
+    const contextResponse = await fetch(
+      `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/ai/context?` +
+      new URLSearchParams({
+        requestType: 'general',
+        query: query,
+        includeHistory: 'true'
+      })
+    );
+
+    if (contextResponse.ok) {
+      const contextData = await contextResponse.json();
+      const enhancedContext = contextData.context;
+
+      // Get traditional RAG context for workout-specific data
+      const traditionalContext = await getUserContext(userId, query);
+
+      // Merge the contexts to provide both profile/goals and workout data
+      const mergedContext: UserContext = {
+        ...traditionalContext,
+        profile: {
+          ...traditionalContext.profile,
+          goal: enhancedContext.userProfile.basic.aboutMe || traditionalContext.profile.goal,
+          experience: mapExperienceLevel(enhancedContext.userProfile.basic.experience) || traditionalContext.profile.experience,
+          preferences: {
+            workoutDays: enhancedContext.preferences.activities || traditionalContext.profile.preferences.workoutDays,
+            equipment: enhancedContext.capabilities.equipment || traditionalContext.profile.preferences.equipment,
+            limitations: enhancedContext.limitations.physical || [],
+            motivationFactors: enhancedContext.preferences.motivationFactors || [],
+            trainingStyle: enhancedContext.preferences.trainingStyle || null
+          }
+        },
+        // Add goals context
+        goals: enhancedContext.activeGoals.map((goal: any) => ({
+          id: goal.id,
+          type: goal.type,
+          description: goal.description,
+          target: goal.target,
+          priority: goal.priority,
+          progress: goal.progress,
+          status: goal.status
+        })),
+        // Add enhanced capabilities and limitations
+        capabilities: enhancedContext.capabilities,
+        limitations: enhancedContext.limitations
+      };
+
+      return mergedContext;
+    }
+
+    // Fallback to traditional context if enhanced context fails
+    return await getUserContext(userId, query);
+
+  } catch (error) {
+    console.error('Error getting enhanced context:', error);
+    // Fallback to traditional context
+    return await getUserContext(userId, query);
+  }
+}
+
+function mapExperienceLevel(level: string | null): 'beginner' | 'intermediate' | 'advanced' {
+  switch (level?.toLowerCase()) {
+    case 'beginner':
+    case 'novice':
+      return 'beginner';
+    case 'intermediate':
+    case 'experienced':
+      return 'intermediate';
+    case 'advanced':
+    case 'expert':
+      return 'advanced';
+    default:
+      return 'beginner';
+  }
+}

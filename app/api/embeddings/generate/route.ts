@@ -10,6 +10,11 @@ export async function POST(request: NextRequest) {
   try {
     const { content, contentType, userId, metadata, contentId, update } = await request.json();
 
+    // If only content is provided, generate a simple embedding (for queries)
+    if (content && !contentType && !userId) {
+      return await generateSimpleEmbedding(content);
+    }
+
     if (!content || !contentType || !userId) {
       return Response.json(
         { error: 'Content, contentType, and userId are required' },
@@ -142,6 +147,67 @@ export async function POST(request: NextRequest) {
         error: 'Failed to generate embedding',
         details: error instanceof Error ? error.message : 'Unknown error'
       },
+      { status: 500 }
+    );
+  }
+}
+
+async function generateSimpleEmbedding(content: string) {
+  try {
+    if (!content || content.trim().length === 0) {
+      return Response.json(
+        { error: 'Content is required and cannot be empty' },
+        { status: 400 }
+      );
+    }
+
+    if (content.length > 10000) {
+      return Response.json(
+        { error: 'Content too long (max 10,000 characters)' },
+        { status: 400 }
+      );
+    }
+
+    // Generate embedding using Google AI
+    const model = genAI.getGenerativeModel({ model: 'text-embedding-004' });
+    const result = await model.embedContent(content.trim());
+    const embedding = result.embedding.values;
+
+    // Validate embedding dimensions
+    const expectedDimensions = 768; // text-embedding-004 standard dimensions
+    if (embedding.length !== expectedDimensions) {
+      console.warn(`Unexpected embedding dimensions: ${embedding.length}, expected: ${expectedDimensions}`);
+    }
+
+    return Response.json({
+      embedding,
+      dimensions: embedding.length,
+      model: 'text-embedding-004',
+      success: true
+    });
+
+  } catch (error) {
+    console.error('Simple embedding generation error:', error);
+
+    // Handle specific error types
+    if (error instanceof Error) {
+      if (error.message.includes('API key')) {
+        return Response.json(
+          { error: 'Invalid or missing API key' },
+          { status: 401 }
+        );
+      }
+
+      if (error.message.includes('quota') || error.message.includes('limit')) {
+        return Response.json(
+          { error: 'API quota exceeded. Please try again later.' },
+          { status: 429 }
+        );
+      }
+    }
+
+    return Response.json(
+      { error: 'Failed to generate embedding' },
       { status: 500 }
     );
   }

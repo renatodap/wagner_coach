@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import { getSystemPrompt } from '@/lib/ai/coaching-prompts';
-import { getUserContext } from '@/lib/ai/rag';
+import { getUserContext, getEnhancedUserContext } from '@/lib/ai/rag';
 
 export async function POST(request: NextRequest) {
   try {
@@ -49,8 +49,8 @@ export async function POST(request: NextRequest) {
     //   }
     // }
 
-    // Get user context for RAG
-    const context = await getUserContext(userId, message);
+    // Get enhanced user context including profile and goals
+    const context = await getEnhancedUserContext(userId, message);
 
     // Get conversation history if exists
     let conversationHistory: Array<{ role: string; content: string }> = [];

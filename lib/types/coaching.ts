@@ -73,6 +73,9 @@ export interface UserContext {
   workouts: WorkoutContext;
   progress: ProgressContext;
   conversations: ConversationContext;
+  goals?: GoalContext[];
+  capabilities?: CapabilityContext;
+  limitations?: LimitationContext;
 }
 
 export interface ProfileContext {
@@ -87,6 +90,9 @@ export interface UserPreferences {
   workoutTime?: string;
   equipment: string[];
   injuries?: string[];
+  limitations?: string[];
+  motivationFactors?: string[];
+  trainingStyle?: string | null;
 }
 
 export interface WorkoutContext {
@@ -353,6 +359,35 @@ export enum CoachErrorCode {
   STREAMING_ERROR = 'STREAMING_ERROR',
   VALIDATION_ERROR = 'VALIDATION_ERROR',
   AUTHENTICATION_ERROR = 'AUTHENTICATION_ERROR'
+}
+
+// Enhanced context types for profile and goals integration
+export interface GoalContext {
+  id: string;
+  type: string;
+  description: string;
+  target: {
+    value: number | null;
+    unit: string | null;
+    date: string | null;
+  };
+  priority: number;
+  progress: number;
+  status: string;
+}
+
+export interface CapabilityContext {
+  equipment: string[];
+  skillLevel: string;
+  timeAvailable: string | null;
+  trainingEnvironment: 'home' | 'gym' | 'outdoor' | 'mixed';
+}
+
+export interface LimitationContext {
+  physical: string[];
+  time: string | null;
+  equipment: string[];
+  dietary: string[];
 }
 
 // Validation schemas
