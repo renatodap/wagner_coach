@@ -33,12 +33,12 @@ interface AIRecommendation {
 }
 
 interface AIContext {
-  userProfile: any;
-  activeGoals: any[];
-  capabilities: any;
-  limitations: any;
-  preferences: any;
-  history: any;
+  userProfile: Record<string, unknown>;
+  activeGoals: Array<Record<string, unknown>>;
+  capabilities: Record<string, unknown>;
+  limitations: Record<string, unknown>;
+  preferences: Record<string, unknown>;
+  history: Record<string, unknown>;
 }
 
 export async function POST(request: NextRequest) {
@@ -253,7 +253,7 @@ IMPORTANT: Always reference and respect the user's goals, limitations, and prefe
 function buildContextualUserPrompt(
   message: string,
   context: AIContext,
-  contextUsed: any
+  contextUsed: Record<string, unknown>
 ): string {
   let enhancedMessage = message;
 

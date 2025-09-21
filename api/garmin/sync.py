@@ -38,32 +38,47 @@ class handler(BaseHTTPRequestHandler):
             # Try to import and use garminconnect
             try:
                 from garminconnect import Garmin
+                import cloudscraper
 
-                # Initialize Garmin API
+                # Initialize Garmin API with cloudscraper to bypass Cloudflare
                 api = None
                 session_file = f"/tmp/garmin_session_{email.replace('@', '_at_')}.json"
 
-                # Try to use saved session first
-                try:
-                    if os.path.exists(session_file):
+                # Try to use saved session first (disabled for now due to auth issues)
+                # Session reuse might be causing the 401 errors
+                use_saved_session = False
+
+                if use_saved_session and os.path.exists(session_file):
+                    try:
                         with open(session_file, 'r') as f:
                             saved_session = json.load(f)
-                        api = Garmin(session_data=saved_session)
-                        api.login()
-                except:
-                    api = None
+                        # Create new API instance with cloudscraper
+                        scraper = cloudscraper.create_scraper()
+                        api = Garmin(email, password, session_data=saved_session, session=scraper)
+                        # Test if session is still valid
+                        api.get_user_profile()
+                    except Exception as e:
+                        print(f"Saved session failed: {e}")
+                        api = None
+                        # Remove invalid session file
+                        if os.path.exists(session_file):
+                            os.remove(session_file)
 
                 # Create new session if needed
                 if not api:
-                    api = Garmin(email, password)
+                    # Use cloudscraper to handle Cloudflare protection
+                    scraper = cloudscraper.create_scraper()
+                    api = Garmin(email, password, session=scraper)
                     api.login()
 
-                    # Save session for future use
-                    try:
-                        with open(session_file, 'w') as f:
-                            json.dump(api.session_data, f)
-                    except:
-                        pass  # Session save is optional
+                    # Save session for future use (disabled for now)
+                    # Session saving might be causing issues
+                    if use_saved_session:
+                        try:
+                            with open(session_file, 'w') as f:
+                                json.dump(api.session_data, f)
+                        except:
+                            pass  # Session save is optional
 
                 # Get activities from the last N days
                 activities = api.get_activities(0, min(days_back * 5, 100))  # Cap at 100 activities
@@ -116,7 +131,42 @@ class handler(BaseHTTPRequestHandler):
                 error_name = type(ge).__name__
                 error_msg = str(ge)
 
-                if 'Authentication' in error_name or 'authentication' in error_msg.lower():
+                # Log the full error for debugging
+                print(f"Garmin error: {error_name}: {error_msg}")
+
+                if 'GarthHTTPError' in error_name:
+                    # This is a specific Garmin HTTP error
+                    if '401' in error_msg or 'Unauthorized' in error_msg:
+                        self.send_response(401)
+                        self.send_header('Content-type', 'application/json')
+                        self.send_header('Access-Control-Allow-Origin', '*')
+                        self.end_headers()
+                        self.wfile.write(json.dumps({
+                            'error': 'Garmin authentication failed. This could be due to:',
+                            'details': 'Invalid credentials, account locked, or Garmin requiring CAPTCHA. Try logging in to Garmin Connect website first.',
+                            'raw_error': error_msg
+                        }).encode())
+                    elif '429' in error_msg or 'Too Many Requests' in error_msg:
+                        self.send_response(429)
+                        self.send_header('Content-type', 'application/json')
+                        self.send_header('Access-Control-Allow-Origin', '*')
+                        self.end_headers()
+                        self.wfile.write(json.dumps({
+                            'error': 'Too many requests to Garmin. Please try again in a few minutes.',
+                            'details': error_msg
+                        }).encode())
+                    else:
+                        # Other HTTP errors
+                        self.send_response(400)
+                        self.send_header('Content-type', 'application/json')
+                        self.send_header('Access-Control-Allow-Origin', '*')
+                        self.end_headers()
+                        self.wfile.write(json.dumps({
+                            'error': 'Garmin API error',
+                            'details': error_msg,
+                            'type': error_name
+                        }).encode())
+                elif 'Authentication' in error_name or 'authentication' in error_msg.lower():
                     self.send_response(401)
                     self.send_header('Content-type', 'application/json')
                     self.send_header('Access-Control-Allow-Origin', '*')

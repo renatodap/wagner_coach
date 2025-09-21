@@ -88,7 +88,14 @@ export default function GarminConnection({ className = '' }: GarminConnectionPro
 
       // Check if it's an error response
       if (result.error) {
-        throw new Error(result.error + (result.details ? `: ${result.details}` : ''));
+        // Handle specific error cases with better user guidance
+        if (result.error.includes('authentication failed')) {
+          throw new Error('Authentication failed. Please verify:\n1. Your email and password are correct\n2. You can log in at connect.garmin.com\n3. Your account is not locked\n4. Two-factor authentication is disabled or app password is used');
+        } else if (result.error.includes('Too many requests')) {
+          throw new Error('Garmin is temporarily blocking requests. Please wait 10-15 minutes before trying again.');
+        } else {
+          throw new Error(result.error + (result.details ? `\n${result.details}` : ''));
+        }
       }
 
       setIsConnected(true);
@@ -231,7 +238,7 @@ export default function GarminConnection({ className = '' }: GarminConnectionPro
           </p>
 
           {error && (
-            <div className="text-red-500 text-sm border border-red-500 p-3">
+            <div className="text-red-500 text-sm border border-red-500 p-3 whitespace-pre-line">
               {error}
             </div>
           )}
@@ -275,7 +282,7 @@ export default function GarminConnection({ className = '' }: GarminConnectionPro
           )}
 
           {error && (
-            <div className="text-red-500 text-sm border border-red-500 p-3">
+            <div className="text-red-500 text-sm border border-red-500 p-3 whitespace-pre-line">
               {error}
             </div>
           )}

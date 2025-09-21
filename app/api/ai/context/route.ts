@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { Profile, UserGoal } from '@/types/profile';
 
 interface AIContext {
   userProfile: ProfileContext;
@@ -70,16 +69,16 @@ interface PreferenceContext {
 
 interface HistoryContext {
   totalWorkouts: number;
-  recentWorkouts: any[];
-  achievements: any[];
-  progressTrends: any[];
+  recentWorkouts: Array<Record<string, unknown>>;
+  achievements: Array<Record<string, unknown>>;
+  progressTrends: Array<Record<string, unknown>>;
 }
 
 interface SimilarityResult {
   id: string;
   content: string;
   similarity: number;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
   type: 'profile' | 'goal';
 }
 
@@ -316,7 +315,7 @@ async function searchSimilarContent(
 
     // Process profile matches
     if (profileMatches) {
-      profileMatches.forEach((match: any) => {
+      profileMatches.forEach((match: Record<string, any>) => {
         results.push({
           id: match.id,
           content: `Profile: ${match.metadata?.source_field || 'profile data'}`,
@@ -329,7 +328,7 @@ async function searchSimilarContent(
 
     // Process goal matches
     if (goalMatches) {
-      goalMatches.forEach((match: any) => {
+      goalMatches.forEach((match: Record<string, any>) => {
         results.push({
           id: match.id,
           content: `Goal: ${match.metadata?.goal_type || 'fitness goal'}`,
@@ -439,7 +438,7 @@ async function fallbackTextSearch(
   }
 }
 
-function calculateGoalProgress(goal: any): number {
+function calculateGoalProgress(goal: Record<string, any>): number {
   // Simple progress calculation based on time
   if (!goal.target_date) return 0;
 

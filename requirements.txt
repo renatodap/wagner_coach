@@ -2,3 +2,5 @@
 garminconnect==0.2.19
 cloudscraper==1.2.71
 requests==2.31.0
+pwinput==1.0.3
+readchar==4.0.5

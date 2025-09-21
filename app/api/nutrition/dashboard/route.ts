@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
     };
 
     // Fetch user's nutrition goals
-    let { data: goalsData, error: goalsError } = await supabase
+    const { data: goalsData, error: goalsError } = await supabase
       .from('nutrition_goals')
       .select('*')
       .eq('user_id', user.id)
