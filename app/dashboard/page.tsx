@@ -19,12 +19,13 @@ export default async function DashboardPage() {
     .eq('id', user.id)
     .single();
 
-  // Get all workouts with favorites
+  // Get all workouts that have exercises, with favorites
   const { data: allWorkouts, error: workoutsError } = await supabase
     .from('workouts')
     .select(`
       *,
-      favorite_workouts!left(user_id)
+      favorite_workouts!left(user_id),
+      workout_exercises!inner(id)
     `)
     .order('name');
 
@@ -46,13 +47,18 @@ export default async function DashboardPage() {
     description: string | null;
     estimated_duration_minutes: number | null;
     favorite_workouts?: FavoriteWorkout[];
+    workout_exercises?: any[];
   }
-  const workoutsWithFavorites = (allWorkouts as WorkoutWithFavorites[] | null)?.map(workout => ({
-    ...workout,
-    is_favorite: workout.favorite_workouts?.some((fav: FavoriteWorkout) => fav.user_id === user.id) || false,
-    description: workout.description || '',
-    estimated_duration_minutes: workout.estimated_duration_minutes || 45
-  })) || [];
+  const workoutsWithFavorites = (allWorkouts as WorkoutWithFavorites[] | null)?.map(workout => {
+    // Remove workout_exercises from the data passed to client
+    const { workout_exercises, ...workoutData } = workout;
+    return {
+      ...workoutData,
+      is_favorite: workout.favorite_workouts?.some((fav: FavoriteWorkout) => fav.user_id === user.id) || false,
+      description: workout.description || '',
+      estimated_duration_minutes: workout.estimated_duration_minutes || 45
+    };
+  }) || [];
 
   return (
     <DashboardClient
