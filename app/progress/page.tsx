@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import ProgressClient from './ProgressClient';
+import WorkoutHistoryClient from './WorkoutHistoryClient';
 
 export default async function ProgressPage() {
   const supabase = await createClient();
@@ -71,15 +72,41 @@ export default async function ProgressPage() {
     }
   }
 
+  // Get workout history using the new RPC function
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: workoutHistory } = await (supabase as any).rpc('get_user_workout_history', {
+    p_user_id: user.id,
+    p_limit: 50,
+    p_offset: 0
+  });
+
   return (
-    <ProgressClient
-      completions={completions || []}
-      stats={{
-        totalCompleted,
-        totalScheduled,
-        completionRate,
-        currentStreak
-      }}
-    />
+    <div className="min-h-screen bg-iron-black">
+      <header className="border-b border-iron-gray">
+        <div className="max-w-6xl mx-auto px-4 py-6">
+          <h1 className="font-heading text-4xl text-iron-orange">PROGRESS</h1>
+        </div>
+      </header>
+
+      <div className="max-w-6xl mx-auto px-4 py-6">
+        <ProgressClient
+          completions={completions || []}
+          stats={{
+            totalCompleted,
+            totalScheduled,
+            completionRate,
+            currentStreak
+          }}
+        />
+
+        <div className="mt-8">
+          <h2 className="font-heading text-2xl text-iron-white mb-4">WORKOUT HISTORY</h2>
+          <WorkoutHistoryClient
+            initialHistory={workoutHistory || []}
+            userId={user.id}
+          />
+        </div>
+      </div>
+    </div>
   );
 }
