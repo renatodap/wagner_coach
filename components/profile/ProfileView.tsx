@@ -156,7 +156,7 @@ export function ProfileView({
           <Card>
             <CardContent className="p-4 text-center">
               <Activity className="h-8 w-8 mx-auto mb-2 text-blue-500" />
-              <div className="text-2xl font-bold">{stats.totalWorkouts.toLocaleString()}</div>
+              <div className="text-2xl font-bold">{(stats.totalWorkouts || 0).toLocaleString()}</div>
               <p className="text-sm text-muted-foreground">Total Workouts</p>
             </CardContent>
           </Card>
@@ -164,7 +164,7 @@ export function ProfileView({
           <Card>
             <CardContent className="p-4 text-center">
               <Flame className="h-8 w-8 mx-auto mb-2 text-orange-500" />
-              <div className="text-2xl font-bold">{stats.currentStreak}</div>
+              <div className="text-2xl font-bold">{stats.currentStreak || 0}</div>
               <p className="text-sm text-muted-foreground">Day Streak</p>
             </CardContent>
           </Card>
@@ -172,7 +172,7 @@ export function ProfileView({
           <Card>
             <CardContent className="p-4 text-center">
               <Trophy className="h-8 w-8 mx-auto mb-2 text-yellow-500" />
-              <div className="text-2xl font-bold">{stats.goalsCompleted}</div>
+              <div className="text-2xl font-bold">{stats.goalsCompleted || 0}</div>
               <p className="text-sm text-muted-foreground">Goals Completed</p>
             </CardContent>
           </Card>
@@ -180,7 +180,7 @@ export function ProfileView({
           <Card>
             <CardContent className="p-4 text-center">
               <Clock className="h-8 w-8 mx-auto mb-2 text-green-500" />
-              <div className="text-2xl font-bold">{stats.totalMinutes.toLocaleString()}</div>
+              <div className="text-2xl font-bold">{(stats.totalMinutes || 0).toLocaleString()}</div>
               <p className="text-sm text-muted-foreground">Total Minutes</p>
             </CardContent>
           </Card>
