@@ -11,9 +11,12 @@ import {
   Clock,
   TrendingUp,
   Star,
-  Search
+  Search,
+  Calendar,
+  Activity
 } from 'lucide-react';
 import { Profile } from '@/lib/types';
+import ActivityList from '@/components/ActivityList';
 
 interface Workout {
   id: number;
@@ -204,6 +207,33 @@ export default function DashboardClient({
 
       <main className="max-w-7xl mx-auto px-4 py-8 space-y-8">
 
+        {/* Recent Activities */}
+        <div className="lg:grid lg:grid-cols-3 lg:gap-8 space-y-8 lg:space-y-0">
+          <div className="lg:col-span-2">
+            <ActivityList limit={5} />
+          </div>
+          <div className="border border-iron-gray p-6">
+            <h3 className="font-heading text-xl text-iron-white mb-4 flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-iron-orange" />
+              QUICK STATS
+            </h3>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-iron-gray">This Week</span>
+                <span className="text-iron-white font-medium">4 workouts</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-iron-gray">Total Time</span>
+                <span className="text-iron-white font-medium">3h 45m</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-iron-gray">Avg. Heart Rate</span>
+                <span className="text-iron-white font-medium">142 bpm</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Workout Library */}
         <div>
           <div className="flex justify-between items-center mb-4">
@@ -314,19 +344,26 @@ export default function DashboardClient({
         {/* Bottom Navigation */}
         <nav className="fixed bottom-0 left-0 right-0 bg-iron-black border-t border-iron-gray">
           <div className="max-w-4xl mx-auto px-4">
-            <div className="grid grid-cols-3 py-2">
+            <div className="grid grid-cols-4 py-2">
               <Link
                 href="/dashboard"
                 className="flex flex-col items-center gap-1 py-2 text-iron-orange"
               >
                 <Dumbbell className="w-5 h-5" />
-                <span className="text-[10px] uppercase">Workout</span>
+                <span className="text-[10px] uppercase">Workouts</span>
+              </Link>
+              <Link
+                href="/activities"
+                className="flex flex-col items-center gap-1 py-2 text-iron-gray hover:text-iron-orange transition-colors"
+              >
+                <Activity className="w-5 h-5" />
+                <span className="text-[10px] uppercase">Activities</span>
               </Link>
               <Link
                 href="/progress"
                 className="flex flex-col items-center gap-1 py-2 text-iron-gray hover:text-iron-orange transition-colors"
               >
-                <TrendingUp className="w-5 h-5" />
+                <Calendar className="w-5 h-5" />
                 <span className="text-[10px] uppercase">Progress</span>
               </Link>
               <Link

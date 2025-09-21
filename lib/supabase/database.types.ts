@@ -122,12 +122,184 @@ export type Database = {
           notifications_enabled: boolean
           created_at: string
           updated_at: string
+          auto_sync_activities?: boolean
+          preferred_units?: string
+          default_activity_privacy?: string
+          watch_type?: string
         }
         Update: {
           preferred_workout_days?: string[]
           preferred_workout_time?: string | null
           notifications_enabled?: boolean
           updated_at?: string
+          auto_sync_activities?: boolean
+          preferred_units?: string
+          default_activity_privacy?: string
+          watch_type?: string
+        }
+      }
+      strava_connections: {
+        Row: {
+          id: string
+          user_id: string
+          strava_athlete_id: number
+          access_token: string
+          refresh_token: string
+          expires_at: string
+          athlete_data: Record<string, unknown>
+          scope?: string
+          connected_at: string
+          last_sync_at?: string
+          sync_enabled: boolean
+        }
+        Insert: {
+          user_id: string
+          strava_athlete_id: number
+          access_token: string
+          refresh_token: string
+          expires_at: string
+          athlete_data: Record<string, unknown>
+          scope?: string
+          connected_at?: string
+          last_sync_at?: string
+          sync_enabled?: boolean
+        }
+        Update: {
+          access_token?: string
+          refresh_token?: string
+          expires_at?: string
+          athlete_data?: Record<string, unknown>
+          scope?: string
+          last_sync_at?: string
+          sync_enabled?: boolean
+        }
+      }
+      activities: {
+        Row: {
+          id: string
+          user_id: string
+          source: string
+          external_id?: string
+          name: string
+          activity_type: string
+          sport_type?: string
+          start_date: string
+          end_date?: string
+          elapsed_time_seconds?: number
+          moving_time_seconds?: number
+          distance_meters?: number
+          total_elevation_gain?: number
+          average_heartrate?: number
+          max_heartrate?: number
+          heartrate_zones?: Record<string, unknown>
+          average_speed?: number
+          max_speed?: number
+          average_cadence?: number
+          average_power?: number
+          normalized_power?: number
+          calories?: number
+          active_calories?: number
+          training_load?: number
+          perceived_exertion?: number
+          workout_id?: number
+          sets_completed?: number
+          reps_completed?: number
+          total_weight_lifted_kg?: number
+          start_lat?: number
+          start_lng?: number
+          end_lat?: number
+          end_lng?: number
+          weather_data?: Record<string, unknown>
+          notes?: string
+          mood?: string
+          energy_level?: number
+          workout_rating?: number
+          raw_data?: Record<string, unknown>
+          created_at: string
+          updated_at: string
+          synced_at?: string
+        }
+        Insert: {
+          user_id: string
+          source: string
+          external_id?: string
+          name: string
+          activity_type: string
+          sport_type?: string
+          start_date: string
+          end_date?: string
+          elapsed_time_seconds?: number
+          moving_time_seconds?: number
+          distance_meters?: number
+          total_elevation_gain?: number
+          average_heartrate?: number
+          max_heartrate?: number
+          heartrate_zones?: Record<string, unknown>
+          average_speed?: number
+          max_speed?: number
+          average_cadence?: number
+          average_power?: number
+          normalized_power?: number
+          calories?: number
+          active_calories?: number
+          training_load?: number
+          perceived_exertion?: number
+          workout_id?: number
+          sets_completed?: number
+          reps_completed?: number
+          total_weight_lifted_kg?: number
+          start_lat?: number
+          start_lng?: number
+          end_lat?: number
+          end_lng?: number
+          weather_data?: Record<string, unknown>
+          notes?: string
+          mood?: string
+          energy_level?: number
+          workout_rating?: number
+          raw_data?: Record<string, unknown>
+          created_at?: string
+          updated_at?: string
+          synced_at?: string
+        }
+        Update: {
+          name?: string
+          activity_type?: string
+          sport_type?: string
+          start_date?: string
+          end_date?: string
+          elapsed_time_seconds?: number
+          moving_time_seconds?: number
+          distance_meters?: number
+          total_elevation_gain?: number
+          average_heartrate?: number
+          max_heartrate?: number
+          heartrate_zones?: Record<string, unknown>
+          average_speed?: number
+          max_speed?: number
+          average_cadence?: number
+          average_power?: number
+          normalized_power?: number
+          calories?: number
+          active_calories?: number
+          training_load?: number
+          perceived_exertion?: number
+          workout_id?: number
+          sets_completed?: number
+          reps_completed?: number
+          total_weight_lifted_kg?: number
+          start_lat?: number
+          start_lng?: number
+          end_lat?: number
+          end_lng?: number
+          weather_data?: Record<string, unknown>
+          notes?: string
+          mood?: string
+          energy_level?: number
+          workout_rating?: number
+          raw_data?: Record<string, unknown>
+          updated_at?: string
+          synced_at?: string
         }
       }
     }

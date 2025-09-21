@@ -16,6 +16,7 @@ import {
   Calendar,
   Settings
 } from 'lucide-react';
+import StravaConnection from '@/components/StravaConnection';
 
 type Goal = 'build_muscle' | 'lose_weight' | 'gain_strength';
 
@@ -208,6 +209,9 @@ export default function SettingsClient({ profile, userEmail }: SettingsClientPro
             Changing your goal will generate new workouts starting next week
           </p>
         </div>
+
+        {/* Strava Integration */}
+        <StravaConnection />
 
         {error && (
           <div className="text-center text-red-500 border border-red-500 p-4">
