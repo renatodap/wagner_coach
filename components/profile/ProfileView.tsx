@@ -108,10 +108,22 @@ export function ProfileView({
                 <p className="text-muted-foreground">
                   {profile.email}
                 </p>
-                <p className="text-sm text-muted-foreground">
-                  {profile.age ? `${profile.age} years old` : 'Age not provided'} •
-                  {profile.experience_level ? ` ${profile.experience_level.charAt(0).toUpperCase() + profile.experience_level.slice(1)}` : ' Experience level not set'}
-                </p>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {profile.age && (
+                    <Badge variant="secondary">{profile.age} years</Badge>
+                  )}
+                  {profile.experience_level && (
+                    <Badge variant="secondary">
+                      {profile.experience_level.charAt(0).toUpperCase() + profile.experience_level.slice(1)}
+                    </Badge>
+                  )}
+                  {profile.weekly_hours && (
+                    <Badge variant="secondary">{profile.weekly_hours}h/week</Badge>
+                  )}
+                  {profile.location && (
+                    <Badge variant="secondary">{profile.location}</Badge>
+                  )}
+                </div>
               </div>
 
               {profile.about_me && (
@@ -120,10 +132,11 @@ export function ProfileView({
                 </p>
               )}
 
-              {!profile.about_me && (
-                <p className="text-sm text-muted-foreground italic">
-                  No description provided
-                </p>
+              {profile.primary_goal && (
+                <div className="p-3 bg-muted rounded-lg">
+                  <p className="text-xs font-medium text-muted-foreground mb-1">PRIMARY GOAL</p>
+                  <p className="text-sm">{profile.primary_goal}</p>
+                </div>
               )}
             </div>
 
@@ -171,6 +184,81 @@ export function ProfileView({
           </Card>
         </div>
       </section>
+
+      {/* Preferences & Focus Areas */}
+      {(profile.focus_areas?.length > 0 || profile.dietary_preferences || profile.equipment_access || profile.health_conditions) && (
+        <section aria-label="Preferences section">
+          <Card>
+            <CardHeader>
+              <CardTitle>Preferences & Focus Areas</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {profile.focus_areas && profile.focus_areas.length > 0 && (
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-2">Focus Areas</p>
+                  <div className="flex flex-wrap gap-2">
+                    {profile.focus_areas.map((area) => (
+                      <Badge key={area} variant="outline">
+                        {area.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {profile.dietary_preferences && (
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Dietary Preferences</p>
+                    <p className="text-sm">{profile.dietary_preferences}</p>
+                  </div>
+                )}
+
+                {profile.equipment_access && (
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Equipment Access</p>
+                    <p className="text-sm">{profile.equipment_access}</p>
+                  </div>
+                )}
+
+                {profile.health_conditions && (
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Health Considerations</p>
+                    <p className="text-sm">{profile.health_conditions}</p>
+                  </div>
+                )}
+
+                {profile.preferred_workout_time && (
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Preferred Workout Time</p>
+                    <p className="text-sm">
+                      {profile.preferred_workout_time.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {(profile.strengths || profile.areas_for_improvement) && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                  {profile.strengths && (
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground mb-1">Strengths</p>
+                      <p className="text-sm">{profile.strengths}</p>
+                    </div>
+                  )}
+
+                  {profile.areas_for_improvement && (
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground mb-1">Areas for Improvement</p>
+                      <p className="text-sm">{profile.areas_for_improvement}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </section>
+      )}
 
       {/* Goals Section */}
       <section aria-label="Goals section">

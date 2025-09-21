@@ -6,7 +6,7 @@ import {
   Dumbbell,
   Activity,
   MessageSquare,
-  Settings
+  User
 } from 'lucide-react'
 
 export default function BottomNavigation() {
@@ -32,10 +32,10 @@ export default function BottomNavigation() {
       current: pathname === '/coach'
     },
     {
-      name: 'Settings',
-      href: '/settings',
-      icon: Settings,
-      current: pathname === '/settings'
+      name: 'Profile',
+      href: '/profile',
+      icon: User,
+      current: pathname === '/profile' || pathname.startsWith('/profile/')
     }
   ]
 

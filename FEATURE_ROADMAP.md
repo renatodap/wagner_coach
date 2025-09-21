@@ -939,13 +939,83 @@ Develop Wagner Coach as a complete lifestyle system with philosophical foundatio
 
 ---
 
+### Issue #21: Garmin Connect Integration
+**Priority:** High
+**Status:** Not Started
+**Estimated Effort:** 5 weeks
+
+#### Description
+Integrate Garmin Connect to provide comprehensive fitness device data alongside existing Strava integration, using Python serverless functions within the Next.js architecture for secure server-side data access.
+
+#### Requirements
+- [ ] **Authentication & Authorization**
+  - [ ] Secure Garmin credential storage with AES-256 encryption
+  - [ ] Session persistence (1-year token management)
+  - [ ] OAuth flow alternative investigation
+  - [ ] Per-user credential management in database
+  - [ ] Test connection validation before saving
+
+- [ ] **Data Synchronization**
+  - [ ] Daily health metrics (steps, calories, distance, sleep, HRV)
+  - [ ] Activity import (runs, rides, workouts)
+  - [ ] Training status and readiness scores
+  - [ ] Device battery and sync status monitoring
+  - [ ] Historical data backfill (30-90 days)
+  - [ ] Automatic deduplication with Strava activities
+
+- [ ] **UI Integration**
+  - [ ] Settings page Garmin connection management
+  - [ ] Dashboard widgets for Garmin-specific metrics
+  - [ ] Activities page unified view (Strava + Garmin)
+  - [ ] Source filtering and duplicate detection
+  - [ ] Sync status indicators and manual sync buttons
+
+- [ ] **Advanced Metrics**
+  - [ ] Training readiness and recovery metrics
+  - [ ] Sleep quality analysis and trends
+  - [ ] Heart rate variability (HRV) tracking
+  - [ ] Body Battery and stress levels
+  - [ ] Training load and performance condition
+
+#### Technical Considerations
+- Python serverless functions in /api/garmin/ directory
+- Session-based authentication to minimize credential usage
+- Rate limiting with exponential backoff (100 requests/hour)
+- Background sync jobs with queue management
+- Encrypted credential storage in Supabase
+- Data normalization for AI coach integration
+
+#### Implementation Phases
+1. **Week 1**: Python serverless setup, authentication, encryption
+2. **Week 2**: Core sync functionality, database storage
+3. **Week 3**: UI integration, settings management
+4. **Week 4**: Advanced metrics, training readiness
+5. **Week 5**: Polish, error handling, documentation
+
+#### Use Cases
+- Athletes using Garmin devices alongside Strava
+- Access to sleep and recovery metrics not available in Strava
+- Training readiness assessment for workout planning
+- Comprehensive health tracking beyond just activities
+- Device battery monitoring and sync status
+
+#### Security & Privacy
+- AES-256 encryption for stored credentials
+- Server-side only credential handling
+- GDPR-compliant data deletion
+- Clear user consent and privacy controls
+- Personal use only disclaimer (ToS consideration)
+
+---
+
 ## 🗺️ Implementation Roadmap
 
 ### Phase 1: Foundation & Core Features (Months 1-2)
 1. Custom Workout Builder (Issue #1)
 2. Activity-Workout Linking (Issue #2)
-3. Fresh Chat Sessions (Issue #6)
-4. Enhanced Nutrition Integration & AI Coaching (Issue #7)
+3. Garmin Connect Integration (Issue #21)
+4. Fresh Chat Sessions (Issue #6)
+5. Enhanced Nutrition Integration & AI Coaching (Issue #7)
 
 ### Phase 2: Psychology & User Experience (Months 3-4)
 1. User Testimonials & Transformation Stories (Issue #16)
