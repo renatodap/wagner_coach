@@ -79,10 +79,13 @@ export interface UserContext {
 }
 
 export interface ProfileContext {
-  goal: 'build_muscle' | 'lose_weight' | 'gain_strength';
+  goal: 'build_muscle' | 'lose_weight' | 'gain_strength' | string;
   experience: 'beginner' | 'intermediate' | 'advanced';
   preferences: UserPreferences;
   createdAt: Date;
+  primaryGoal?: string;
+  aboutMe?: string;
+  focusAreas?: string[];
 }
 
 export interface UserPreferences {

@@ -6,7 +6,8 @@ import { createClient } from '@/lib/supabase/client';
 import {
   Send,
   Loader2,
-  ChevronLeft
+  ChevronLeft,
+  Trash2
 } from 'lucide-react';
 import Link from 'next/link';
 import BottomNavigation from '@/app/components/BottomNavigation';
@@ -20,6 +21,10 @@ interface CoachClientProps {
     id: string;
     goal?: string;
     full_name?: string;
+    primary_goal?: string;
+    primaryGoal?: string;
+    about_me?: string;
+    aboutMe?: string;
   };
   previousConversation?: {
     id: string;
@@ -37,6 +42,7 @@ export default function CoachClient({
   const [isLoading, setIsLoading] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const supabase = createClient();
@@ -211,6 +217,29 @@ What would you like to work on today?`,
     }, 100);
   };
 
+  const handleClearChat = async () => {
+    if (!showClearConfirm) {
+      setShowClearConfirm(true);
+      setTimeout(() => setShowClearConfirm(false), 3000); // Auto-hide after 3 seconds
+      return;
+    }
+
+    // Clear the current conversation
+    setMessages([]);
+    setConversationId(null);
+    setShowClearConfirm(false);
+    setError(null);
+
+    // Show welcome message again
+    const welcomeMessage: CoachMessage = {
+      id: 'welcome-new',
+      role: 'assistant',
+      content: `Welcome back! I've cleared our previous conversation. What would you like to work on today?`,
+      timestamp: new Date()
+    };
+    setMessages([welcomeMessage]);
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -233,9 +262,22 @@ What would you like to work on today?`,
               </Link>
               <h1 className="font-heading text-2xl text-iron-orange">AI COACH</h1>
             </div>
-            <div className="text-iron-gray text-sm">
-              {profile?.goal && (
-                <span className="capitalize">{profile.goal.replace('_', ' ')}</span>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleClearChat}
+                className={`p-2 rounded transition-colors ${
+                  showClearConfirm
+                    ? 'text-red-500 hover:bg-red-500/10'
+                    : 'text-iron-gray hover:text-iron-orange'
+                }`}
+                title={showClearConfirm ? 'Click again to clear chat' : 'Clear chat'}
+              >
+                <Trash2 className="w-5 h-5" />
+              </button>
+              {(profile?.primary_goal || profile?.primaryGoal) && (
+                <span className="text-iron-gray text-sm hidden sm:block">
+                  Goal: {profile.primary_goal || profile.primaryGoal}
+                </span>
               )}
             </div>
           </div>
