@@ -111,61 +111,66 @@ export default function ManualActivityForm({
       // Combine date and time
       const startDateTime = new Date(`${startDate}T${startTime}`);
 
-      // Save manual activity
+      // Prepare the activity data for the activities table
+      const activityData = {
+        user_id: userId,
+        name,
+        activity_type: type,
+        sport_type: type,
+        source: 'manual', // Mark as manual entry
+        start_date: startDateTime.toISOString(),
+        end_date: new Date(startDateTime.getTime() + durationSeconds * 1000).toISOString(),
+        elapsed_time_seconds: durationSeconds,
+        moving_time_seconds: durationSeconds,
+        distance_meters: distance ? distance * 1000 : null, // Convert km to meters
+        total_elevation_gain: elevationGain,
+        calories,
+        average_heartrate: avgHeartRate,
+        max_heartrate: maxHeartRate,
+        perceived_exertion: rpe,
+        mood,
+        energy_level: energyLevel,
+        notes: notes || null,
+        weather_data: weather ? { conditions: weather, temperature_celsius: temperature, location, indoor } : null,
+        external_id: null, // No external ID for manual entries
+        created_at: new Date().toISOString()
+      };
+
+      console.log('Submitting activity data:', activityData);
+
+      // Save activity
       const { data: activity, error: activityError } = await supabase
-        .from('manual_activities')
-        .insert({
-          user_id: userId,
-          name,
-          type,
-          start_time: startDateTime.toISOString(),
-          duration_seconds: durationSeconds,
-          distance_meters: distance ? distance * 1000 : null, // Convert km to meters
-          elevation_gain_meters: elevationGain,
-          calories,
-          average_heart_rate: avgHeartRate,
-          max_heart_rate: maxHeartRate,
-          rpe,
-          mood,
-          energy_level: energyLevel,
-          soreness_level: sorenessLevel,
-          weather_conditions: weather || null,
-          temperature_celsius: temperature,
-          location: location || null,
-          indoor,
-          notes: notes || null
-        })
+        .from('activities')
+        .insert(activityData)
         .select()
         .single();
 
-      if (activityError) throw activityError;
-
-      // If workout is linked, create the link
-      if (linkedWorkoutId && linkedWorkoutType) {
-        const linkData: any = {
-          user_id: userId,
-          activity_source: 'manual',
-          manual_activity_id: activity.id,
-          link_type: 'manual'
-        };
-
-        if (linkedWorkoutType === 'custom') {
-          linkData.custom_workout_id = linkedWorkoutId;
-        } else {
-          linkData.standard_workout_id = parseInt(linkedWorkoutId);
-        }
-
-        const { error: linkError } = await supabase
-          .from('activity_workout_links')
-          .insert(linkData);
-
-        if (linkError) throw linkError;
+      if (activityError) {
+        console.error('Activity insert error:', activityError);
+        throw activityError;
       }
 
+      console.log('Activity saved:', activity);
+
+      // If workout is linked, update the activity with the workout_id
+      if (linkedWorkoutId && linkedWorkoutType === 'standard' && activity) {
+        const { error: updateError } = await supabase
+          .from('activities')
+          .update({ workout_id: parseInt(linkedWorkoutId) })
+          .eq('id', activity.id);
+
+        if (updateError) {
+          console.error('Failed to link workout:', updateError);
+          // Don't throw here, activity was saved successfully
+        }
+      }
+
+      // Navigate to activities page
       router.push('/activities');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving activity:', error);
-      setErrors({ save: 'Failed to save activity' });
+      const errorMessage = error?.message || 'Failed to save activity. Please try again.';
+      setErrors({ save: errorMessage });
     } finally {
       setSaving(false);
     }
