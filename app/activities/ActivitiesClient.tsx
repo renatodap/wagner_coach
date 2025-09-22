@@ -9,23 +9,29 @@ import {
   Heart,
   ChevronDown,
   ChevronUp,
-  LinkIcon
+  LinkIcon,
+  Plus
 } from 'lucide-react';
+import Link from 'next/link';
 import ActivityList from '@/components/ActivityList';
+import ActivityWorkoutLink from '@/components/ActivityWorkoutLink';
 import BottomNavigation from '@/app/components/BottomNavigation';
+import { Button } from '@/components/ui/button';
 
 export default function ActivitiesClient() {
   const [showAllActivities, setShowAllActivities] = useState(false);
   const [selectedActivityId, setSelectedActivityId] = useState<string | null>(null);
+  const [selectedActivitySource, setSelectedActivitySource] = useState<'strava' | 'garmin' | 'manual'>('manual');
+  const [showLinkModal, setShowLinkModal] = useState(false);
 
   const handleToggleActivities = () => {
     setShowAllActivities(!showAllActivities);
   };
 
-  const handleLinkActivity = async (activityId: string) => {
+  const handleLinkActivity = async (activityId: string, source: 'strava' | 'garmin' | 'manual' = 'manual') => {
     setSelectedActivityId(activityId);
-    // TODO: Open modal to select workout to link to
-    console.log('Link activity:', activityId);
+    setSelectedActivitySource(source);
+    setShowLinkModal(true);
   };
 
   return (
@@ -33,7 +39,15 @@ export default function ActivitiesClient() {
       {/* Header */}
       <header className="border-b border-iron-gray">
         <div className="max-w-6xl mx-auto px-4 py-6">
-          <h1 className="font-heading text-4xl text-iron-orange">MY ACTIVITIES</h1>
+          <div className="flex items-center justify-between">
+            <h1 className="font-heading text-4xl text-iron-orange">MY ACTIVITIES</h1>
+            <Link href="/activities/add">
+              <Button className="bg-iron-orange text-iron-black hover:bg-orange-600">
+                <Plus className="w-4 h-4 mr-2" />
+                Add Manual Activity
+              </Button>
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -117,6 +131,22 @@ export default function ActivitiesClient() {
           </div>
         </div>
       </main>
+
+      {/* Activity-Workout Link Modal */}
+      {selectedActivityId && (
+        <ActivityWorkoutLink
+          activityId={selectedActivityId}
+          activitySource={selectedActivitySource}
+          isOpen={showLinkModal}
+          onClose={() => {
+            setShowLinkModal(false);
+            setSelectedActivityId(null);
+          }}
+          onLink={() => {
+            // Refresh activity list or show success
+          }}
+        />
+      )}
 
       {/* Bottom Navigation */}
       <BottomNavigation />

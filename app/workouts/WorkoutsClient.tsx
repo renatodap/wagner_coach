@@ -10,10 +10,13 @@ import {
   LogOut,
   Clock,
   Star,
-  Search
+  Search,
+  Plus,
+  PlusCircle
 } from 'lucide-react';
 import { Profile } from '@/lib/types';
 import BottomNavigation from '@/app/components/BottomNavigation';
+import { Button } from '@/components/ui/button';
 
 interface Workout {
   id: number;
@@ -204,6 +207,30 @@ export default function WorkoutsClient({
 
       <main className="max-w-7xl mx-auto px-4 py-8 space-y-8">
 
+
+        {/* Custom Workout Builder Card */}
+        <div className="mb-8">
+          <Link href="/workouts/builder">
+            <div className="bg-gradient-to-r from-iron-orange/20 to-orange-900/20 border-2 border-iron-orange p-6 hover:border-orange-400 transition-all cursor-pointer group">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="bg-iron-orange/30 p-3 group-hover:bg-iron-orange/50 transition-colors">
+                    <PlusCircle className="w-8 h-8 text-iron-orange" />
+                  </div>
+                  <div>
+                    <h3 className="font-heading text-xl text-iron-white mb-1">
+                      CREATE CUSTOM WORKOUT
+                    </h3>
+                    <p className="text-iron-gray text-sm">
+                      Build your own personalized workout with drag-and-drop exercises
+                    </p>
+                  </div>
+                </div>
+                <Plus className="w-6 h-6 text-iron-orange group-hover:translate-x-1 transition-transform" />
+              </div>
+            </div>
+          </Link>
+        </div>
 
         {/* Workout Library */}
         <div>
