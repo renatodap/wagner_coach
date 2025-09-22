@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/utils/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 
 interface RouteContext {
   params: {
@@ -7,9 +7,19 @@ interface RouteContext {
   };
 }
 
+// Helper to check if a table exists
+async function tableExists(supabase: any, tableName: string): Promise<boolean> {
+  try {
+    const { data, error } = await supabase.from(tableName).select('id').limit(1);
+    return !error;
+  } catch {
+    return false;
+  }
+}
+
 export async function DELETE(request: NextRequest, context: RouteContext) {
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
     const { id } = context.params;
 
     // Get authenticated user
@@ -76,7 +86,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
 
 export async function GET(request: NextRequest, context: RouteContext) {
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
     const { id } = context.params;
 
     // Get authenticated user
@@ -97,22 +107,62 @@ export async function GET(request: NextRequest, context: RouteContext) {
       );
     }
 
-    // Fetch the meal
-    const { data: meal, error: fetchError } = await supabase
-      .from('meals')
-      .select('*')
-      .eq('id', id)
-      .eq('user_id', user.id)
-      .single();
+    // Check which table structure we're using
+    const hasNewSchema = await tableExists(supabase, 'meal_logs');
 
-    if (fetchError || !meal) {
-      return NextResponse.json(
-        { error: 'Meal not found or access denied' },
-        { status: 404 }
-      );
+    if (hasNewSchema) {
+      // New schema - fetch from meal_logs with foods
+      const { data: meal, error } = await supabase
+        .from('meal_logs')
+        .select(`
+          *,
+          meal_log_foods (
+            *,
+            food:foods (*)
+          )
+        `)
+        .eq('id', id)
+        .eq('user_id', user.id)
+        .single();
+
+      if (error || !meal) {
+        return NextResponse.json({ error: 'Meal not found' }, { status: 404 });
+      }
+
+      // Transform for compatibility
+      const transformed = {
+        id: meal.id,
+        meal_name: meal.meal_name || meal.meal_log_foods?.map((f: any) => f.food.name).join(', '),
+        meal_category: meal.meal_category,
+        logged_at: meal.logged_at,
+        notes: meal.notes,
+        calories: meal.total_calories,
+        protein_g: meal.total_protein_g,
+        carbs_g: meal.total_carbs_g,
+        fat_g: meal.total_fat_g,
+        fiber_g: meal.total_fiber_g,
+        foods: meal.meal_log_foods
+      };
+
+      return NextResponse.json({ meal: transformed });
+    } else {
+      // Old schema - fetch from meals table
+      const { data: meal, error: fetchError } = await supabase
+        .from('meals')
+        .select('*')
+        .eq('id', id)
+        .eq('user_id', user.id)
+        .single();
+
+      if (fetchError || !meal) {
+        return NextResponse.json(
+          { error: 'Meal not found or access denied' },
+          { status: 404 }
+        );
+      }
+
+      return NextResponse.json({ meal });
     }
-
-    return NextResponse.json({ data: meal });
 
   } catch (error) {
     console.error('Get meal API error:', error);
@@ -125,7 +175,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
 export async function PUT(request: NextRequest, context: RouteContext) {
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
     const { id } = context.params;
 
     // Get authenticated user

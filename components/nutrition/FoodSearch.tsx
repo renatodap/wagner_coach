@@ -104,8 +104,22 @@ export function FoodSearch({ onSelectFood, placeholder = "Search foods..." }: Fo
               Searching...
             </div>
           ) : foods.length === 0 ? (
-            <div className="p-4 text-center text-iron-gray">
-              {query.length >= 2 ? 'No foods found' : 'Start typing to search'}
+            <div className="p-4 text-center">
+              {query.length >= 2 ? (
+                <div>
+                  <p className="text-iron-gray mb-3">No foods found</p>
+                  <a
+                    href="/nutrition/foods/create"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-iron-orange hover:text-orange-600 text-sm"
+                  >
+                    Create custom food →
+                  </a>
+                </div>
+              ) : (
+                <p className="text-iron-gray">Start typing to search</p>
+              )}
             </div>
           ) : (
             <>
