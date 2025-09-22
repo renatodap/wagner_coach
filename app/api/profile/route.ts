@@ -20,7 +20,6 @@ interface ActivityItem {
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient();
-
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
@@ -130,7 +129,6 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const supabase = await createClient();
-
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {

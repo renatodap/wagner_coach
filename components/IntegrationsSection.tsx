@@ -165,36 +165,13 @@ export default function IntegrationsSection() {
     try {
       setGarminSyncing(true);
 
-      // Use the new direct sync route
-      const syncResponse = await fetch('/api/garmin/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}) // Will use stored credentials
-      });
-
-      if (!syncResponse.ok) {
-        const errorData = await syncResponse.json();
-
-        if (errorData.details?.includes('pip install')) {
-          alert('Garmin library not installed. Please run: pip install garminconnect');
-        } else if (errorData.error?.includes('credentials')) {
-          alert('Please reconnect your Garmin account');
-          setGarminConnected(false);
-        } else {
-          alert(errorData.error || 'Failed to sync Garmin activities');
-        }
-        return;
-      }
-
-      const syncData = await syncResponse.json();
-      alert(syncData.message || `Synced ${syncData.syncedCount || 0} activities from Garmin`);
-
-      // Refresh the page to show new activities
-      window.location.reload();
+      // For now, Garmin sync is not available on Vercel deployment
+      // Would need a separate backend service to handle Python execution
+      alert('Garmin sync is currently only available in local development. A separate backend service is required for production.');
 
     } catch (error) {
       console.error('Garmin sync error:', error);
-      alert('Failed to sync Garmin activities. Please check your connection.');
+      alert('Failed to sync Garmin activities.');
     } finally {
       setGarminSyncing(false);
     }
