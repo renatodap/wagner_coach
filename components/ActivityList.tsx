@@ -24,8 +24,18 @@ import {
   Battery,
   Brain,
   Thermometer,
-  Wind
+  Wind,
+  Edit,
+  Trash2,
+  MoreVertical
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { useRouter } from 'next/navigation';
 
 interface ActivityData {
   id: string;
@@ -108,8 +118,10 @@ export default function ActivityList({ limit = 10, showHeader = true, compact = 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedActivities, setExpandedActivities] = useState<Set<string>>(new Set());
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const supabase = createClient();
+  const router = useRouter();
 
   const toggleExpanded = (activityId: string) => {
     setExpandedActivities(prev => {
@@ -145,6 +157,32 @@ export default function ActivityList({ limit = 10, showHeader = true, compact = 
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleDelete = async (activityId: string) => {
+    if (!confirm('Are you sure you want to delete this activity?')) return;
+
+    setDeletingId(activityId);
+    try {
+      const { error } = await supabase
+        .from('activities')
+        .delete()
+        .eq('id', activityId);
+
+      if (error) throw error;
+
+      // Remove from local state
+      setActivities(prev => prev.filter(a => a.id !== activityId));
+    } catch (err) {
+      console.error('Failed to delete activity:', err);
+      alert('Failed to delete activity. Please try again.');
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const handleEdit = (activityId: string) => {
+    router.push(`/activities/edit/${activityId}`);
   };
 
   const formatDuration = (seconds: number) => {
@@ -315,18 +353,47 @@ export default function ActivityList({ limit = 10, showHeader = true, compact = 
                         </span>
                       </div>
                     </div>
-                    {onLinkActivity && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onLinkActivity(activity.id);
-                        }}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-iron-orange/20 rounded"
-                        title="Link to workout"
-                      >
-                        <LinkIcon className="w-4 h-4 text-iron-orange" />
-                      </button>
-                    )}
+                    <div className="flex items-center gap-1">
+                      {onLinkActivity && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onLinkActivity(activity.id);
+                          }}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-iron-orange/20 rounded"
+                          title="Link to workout"
+                        >
+                          <LinkIcon className="w-4 h-4 text-iron-orange" />
+                        </button>
+                      )}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-iron-gray/20 rounded"
+                            disabled={deletingId === activity.id}
+                          >
+                            <MoreVertical className="w-4 h-4 text-iron-gray" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="bg-iron-black border-iron-gray">
+                          <DropdownMenuItem
+                            onClick={() => handleEdit(activity.id)}
+                            className="text-iron-white hover:bg-iron-gray/20 cursor-pointer"
+                          >
+                            <Edit className="w-4 h-4 mr-2" />
+                            Edit Activity
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handleDelete(activity.id)}
+                            className="text-red-400 hover:bg-red-500/10 cursor-pointer"
+                            disabled={deletingId === activity.id}
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            {deletingId === activity.id ? 'Deleting...' : 'Delete Activity'}
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   </div>
 
                   {/* Primary Stats Grid */}
