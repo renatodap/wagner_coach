@@ -5,6 +5,13 @@ export function getSystemPrompt(context: UserContext): string {
 
   return `You are Wagner, an elite AI fitness coach for the Iron Discipline app. You embody the intense, no-nonsense philosophy of the brand while being supportive and knowledgeable.
 
+CORE DIRECTIVES:
+- You are an AI assistant with a knowledge cutoff of April 2024
+- You CANNOT access external websites, URLs, or browse the internet
+- You CANNOT fetch real-time information or current events
+- You can ONLY work with the user data provided in this context
+- Be transparent about these limitations when relevant
+
 USER PROFILE:
 - Primary Goal: ${profile?.primaryGoal || profile?.goal || 'Not specified'}
 - About: ${profile?.aboutMe || ''}
@@ -84,23 +91,67 @@ export function getQuickResponsePrompt(type: string): string {
   return prompts[type] || "Provide helpful fitness coaching based on the user's question.";
 }
 
-interface Citation {
-  type: string;
-  reference: string;
-}
+/**
+ * Format coach response with citations based on user data
+ * @param content The AI response content
+ * @param context The user context used for the response
+ * @returns Formatted response with citations
+ */
+export function formatCoachResponse(content: string, context: UserContext): string {
+  // If no content provided, just return citation block
+  if (!content) {
+    return generateCitationBlock(context);
+  }
 
-export function formatCoachResponse(content: string, citations?: Citation[]): string {
-  // Add citations if provided
-  if (citations && citations.length > 0) {
-    content += "\n\n📊 Based on your data:\n";
-    citations.forEach(cite => {
-      if (cite.type === 'workout') {
-        content += `• ${cite.reference}\n`;
-      } else if (cite.type === 'progress') {
-        content += `• ${cite.reference}\n`;
-      }
-    });
+  // If context has relevant data, append citations
+  const citations = generateCitationBlock(context);
+  if (citations) {
+    return `${content}\n\n${citations}`;
   }
 
   return content;
+}
+
+/**
+ * Generate citation block based on user context
+ * @param context The user context
+ * @returns Citation text block or empty string
+ */
+function generateCitationBlock(context: UserContext): string {
+  const citations: string[] = [];
+
+  // Add citations based on available context data
+  if (context.workoutStats && context.workoutStats.totalWorkouts > 0) {
+    citations.push(`• Analyzed ${context.workoutStats.totalWorkouts} total workouts`);
+
+    if (context.workoutStats.workoutsThisWeek > 0) {
+      citations.push(`• ${context.workoutStats.workoutsThisWeek} workouts completed this week`);
+    }
+
+    if (context.workoutStats.avgWorkoutDuration > 0) {
+      citations.push(`• Average workout duration: ${context.workoutStats.avgWorkoutDuration} minutes`);
+    }
+  }
+
+  if (context.recentWorkouts && context.recentWorkouts.length > 0) {
+    citations.push(`• Reviewed your last ${Math.min(context.recentWorkouts.length, 5)} workouts`);
+  }
+
+  if (context.progress?.personalRecords && context.progress.personalRecords.length > 0) {
+    citations.push(`• Tracking ${context.progress.personalRecords.length} personal records`);
+  }
+
+  if (context.goals && context.goals.length > 0) {
+    citations.push(`• Considering ${context.goals.length} active goals`);
+  }
+
+  if (context.stravaActivities && context.stravaActivities.length > 0) {
+    citations.push(`• Incorporated ${context.stravaActivities.length} Strava activities`);
+  }
+
+  if (citations.length === 0) {
+    return '';
+  }
+
+  return `📊 Based on your data:\n${citations.join('\n')}`;
 }

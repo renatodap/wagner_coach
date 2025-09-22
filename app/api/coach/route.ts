@@ -1,9 +1,9 @@
 import { NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { openai } from '@ai-sdk/openai';
-import { streamText } from 'ai';
-import { getSystemPrompt } from '@/lib/ai/coaching-prompts';
-import { getUserContext, getEnhancedUserContext } from '@/lib/ai/rag';
+import { streamText, StreamingTextResponse } from 'ai';
+import { getSystemPrompt, formatCoachResponse } from '@/lib/ai/coaching-prompts';
+import { getConsolidatedUserContext } from '@/lib/ai/rag';
 
 export async function POST(request: NextRequest) {
   try {
@@ -27,46 +27,81 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Rate limiting check (simplified for now - will use rate_limits table when available)
-    // TODO: Implement rate limiting with database table
-    const rateLimitKey = `coach:${userId}`;
+    // PHASE 1: RATE LIMITING - Check and enforce rate limits
+    const { data: rateLimit } = await supabase
+      .from('rate_limits')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('endpoint', 'coach')
+      .single();
 
-    // For now, we'll skip rate limiting until the table is created
-    // const { data: rateData } = await supabase
-    //   .from('rate_limits')
-    //   .select('*')
-    //   .eq('user_id', userId)
-    //   .eq('endpoint', 'coach')
-    //   .single();
+    if (rateLimit) {
+      const resetTime = new Date(rateLimit.reset_at);
+      const now = new Date();
 
-    // if (rateData) {
-    //   const resetTime = new Date(rateData.reset_at);
-    //   if (resetTime > new Date() && rateData.requests >= 100) {
-    //     return Response.json(
-    //       { error: 'Rate limit exceeded. Please try again later.' },
-    //       { status: 429 }
-    //     );
-    //   }
-    // }
+      // If window has passed, reset the counter
+      if (resetTime <= now) {
+        await supabase
+          .from('rate_limits')
+          .update({
+            requests: 1,
+            reset_at: new Date(Date.now() + rateLimit.window_seconds * 1000).toISOString(),
+            updated_at: now.toISOString()
+          })
+          .eq('user_id', userId)
+          .eq('endpoint', 'coach');
+      } else if (rateLimit.requests >= 100) {
+        // Rate limit exceeded
+        return Response.json(
+          { error: 'Rate limit exceeded. Please try again later.' },
+          { status: 429 }
+        );
+      } else {
+        // Increment request count
+        await supabase
+          .from('rate_limits')
+          .update({
+            requests: rateLimit.requests + 1,
+            updated_at: now.toISOString()
+          })
+          .eq('user_id', userId)
+          .eq('endpoint', 'coach');
+      }
+    } else {
+      // Create new rate limit entry
+      await supabase
+        .from('rate_limits')
+        .insert({
+          user_id: userId,
+          endpoint: 'coach',
+          requests: 1,
+          window_seconds: 86400, // 24 hours
+          reset_at: new Date(Date.now() + 86400000).toISOString()
+        });
+    }
 
-    // Get enhanced user context including profile and goals
-    const context = await getEnhancedUserContext(userId, message);
+    // PHASE 2: Get consolidated context using RPC function (single database call)
+    const context = await getConsolidatedUserContext(userId, message);
 
     // Get conversation history if exists
     let conversationHistory: Array<{ role: string; content: string }> = [];
+    let existingConversationId = conversationId;
+
     if (conversationId) {
-      const { data: conv, error } = await supabase
+      const { data: conv } = await supabase
         .from('ai_conversations')
         .select('messages')
         .eq('id', conversationId)
         .single();
 
-      if (!error && conv) {
-        const convData = conv as { messages?: Array<{ role: string; content: string }> };
-        if (convData.messages && Array.isArray(convData.messages)) {
-          conversationHistory = convData.messages.slice(-10); // Last 10 messages for context
-        }
+      if (conv && conv.messages && Array.isArray(conv.messages)) {
+        conversationHistory = conv.messages.slice(-10); // Last 10 messages for context
       }
+    }
+
+    // Create new conversation if needed
+    if (!existingConversationId) {
+      existingConversationId = crypto.randomUUID();
     }
 
     // Build messages array for AI
@@ -85,24 +120,93 @@ export async function POST(request: NextRequest) {
       }
     ];
 
-    // Stream response from OpenAI
+    // Get model name from environment variable with fallback
+    const modelName = process.env.OPENAI_MODEL_NAME || 'gpt-4-turbo';
+
+    // PHASE 3: Stream response using StreamingTextResponse
     const result = await streamText({
-      model: openai('gpt-4-turbo'),
+      model: openai(modelName),
       messages,
       temperature: 0.7,
       maxRetries: 3,
+      onFinish: async ({ text }) => {
+        // PHASE 1: CONVERSATION PERSISTENCE - Save conversation after completion
+        try {
+          const newMessages = [
+            ...conversationHistory,
+            { role: 'user', content: message },
+            { role: 'assistant', content: text }
+          ];
+
+          if (conversationId) {
+            // Update existing conversation
+            await supabase
+              .from('ai_conversations')
+              .update({
+                messages: newMessages,
+                last_message_at: new Date().toISOString(),
+                context_used: {
+                  profile: context.profile,
+                  workoutStats: context.workoutStats,
+                  recentWorkouts: context.recentWorkouts?.length || 0,
+                  goals: context.goals?.length || 0
+                }
+              })
+              .eq('id', conversationId);
+          } else {
+            // Create new conversation
+            await supabase
+              .from('ai_conversations')
+              .insert({
+                id: existingConversationId,
+                user_id: userId,
+                title: message.substring(0, 100), // First 100 chars as title
+                messages: newMessages,
+                last_message_at: new Date().toISOString(),
+                context_used: {
+                  profile: context.profile,
+                  workoutStats: context.workoutStats,
+                  recentWorkouts: context.recentWorkouts?.length || 0,
+                  goals: context.goals?.length || 0
+                }
+              });
+          }
+        } catch (error) {
+          console.error('Error saving conversation:', error);
+        }
+
+        // PHASE 3: Add response citations
+        const citationText = formatCoachResponse(text, context);
+        if (citationText && citationText !== text) {
+          // Update the saved message with citations
+          try {
+            const updatedMessages = [
+              ...conversationHistory,
+              { role: 'user', content: message },
+              { role: 'assistant', content: citationText }
+            ];
+
+            await supabase
+              .from('ai_conversations')
+              .update({
+                messages: updatedMessages
+              })
+              .eq('id', existingConversationId);
+          } catch (error) {
+            console.error('Error updating conversation with citations:', error);
+          }
+        }
+      }
     });
 
-    // Create streaming response
-    const stream = new ReadableStream({
+    // Create a custom stream that includes conversation ID and citations
+    const encoder = new TextEncoder();
+    const customStream = new ReadableStream({
       async start(controller) {
-        const encoder = new TextEncoder();
-
-        // Send conversation ID if new conversation
+        // Send conversation ID first
         if (!conversationId) {
-          const newConvId = crypto.randomUUID();
           controller.enqueue(
-            encoder.encode(`data: ${JSON.stringify({ conversationId: newConvId })}\n\n`)
+            encoder.encode(`data: ${JSON.stringify({ conversationId: existingConversationId })}\n\n`)
           );
         }
 
@@ -113,35 +217,21 @@ export async function POST(request: NextRequest) {
           );
         }
 
+        // Add citations at the end
+        const citationText = formatCoachResponse('', context);
+        if (citationText) {
+          controller.enqueue(
+            encoder.encode(`data: ${JSON.stringify({ content: '\n\n' + citationText })}\n\n`)
+          );
+        }
+
         // Send completion signal
         controller.enqueue(encoder.encode('data: [DONE]\n\n'));
         controller.close();
       }
     });
 
-    // Update rate limit (commented out until rate_limits table is created)
-    // if (rateData) {
-    //   await supabase
-    //     .from('rate_limits')
-    //     .update({
-    //       requests: rateData.requests + 1,
-    //       updated_at: new Date().toISOString()
-    //     })
-    //     .eq('user_id', userId)
-    //     .eq('endpoint', 'coach');
-    // } else {
-    //   await supabase
-    //     .from('rate_limits')
-    //     .insert({
-    //       user_id: userId,
-    //       endpoint: 'coach',
-    //       requests: 1,
-    //       window_seconds: 86400, // 24 hours
-    //       reset_at: new Date(Date.now() + 86400000).toISOString()
-    //     });
-    // }
-
-    return new Response(stream, {
+    return new Response(customStream, {
       headers: {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
