@@ -112,7 +112,7 @@ export default function IntegrationsSection() {
       setConnectionError('');
 
       // Use backend URL from environment or fallback to local
-      const backendUrl = process.env.NEXT_PUBLIC_GARMIN_BACKEND_URL || 'http://localhost:8000';
+      const backendUrl = (process.env.NEXT_PUBLIC_GARMIN_BACKEND_URL || 'http://localhost:8000').replace(/\/$/, '');
 
       console.log('Testing Garmin connection...');
 
@@ -175,7 +175,7 @@ export default function IntegrationsSection() {
       }
 
       // Use backend URL from environment or fallback to local
-      const backendUrl = process.env.NEXT_PUBLIC_GARMIN_BACKEND_URL || 'http://localhost:8000';
+      const backendUrl = (process.env.NEXT_PUBLIC_GARMIN_BACKEND_URL || 'http://localhost:8000').replace(/\/$/, '');
 
       const response = await fetch(`${backendUrl}/api/garmin/sync`, {
         method: 'POST',

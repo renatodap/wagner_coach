@@ -24,12 +24,13 @@ origins = [
     "http://localhost:3000",
     "https://sharpened.me",
     "https://www.sharpened.me",
+    "https://*.vercel.app",  # Allow Vercel preview deployments
     os.getenv("FRONTEND_URL", "https://sharpened.me")
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"],  # Allow all origins for now
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
