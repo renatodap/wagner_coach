@@ -10,10 +10,14 @@ import {
   LogOut,
   Clock,
   Star,
-  Search
+  Search,
+  PlusCircle,
+  Edit,
+  Trash2
 } from 'lucide-react';
 import { Profile } from '@/lib/types';
 import BottomNavigation from '@/app/components/BottomNavigation';
+import { Button } from '@/components/ui/button';
 
 interface Workout {
   id: number;
@@ -24,6 +28,8 @@ interface Workout {
   description: string;
   estimated_duration_minutes: number;
   is_favorite: boolean;
+  is_public: boolean;
+  owner_user_id: string;
 }
 
 interface WorkoutsClientProps {
@@ -111,6 +117,22 @@ export default function WorkoutsClient({
       ));
     } catch (error) {
       console.error('Error toggling favorite:', error);
+    }
+  };
+
+  const handleDelete = async (e: React.MouseEvent, workoutId: number) => {
+    e.stopPropagation();
+    if (window.confirm('Are you sure you want to permanently delete this workout?')) {
+      const { error } = await supabase
+        .from('workouts')
+        .delete()
+        .eq('id', workoutId);
+
+      if (error) {
+        alert(`Failed to delete workout: ${error.message}`);
+      } else {
+        setWorkouts(currentWorkouts => currentWorkouts.filter(w => w.id !== workoutId));
+      }
     }
   };
 
@@ -211,6 +233,12 @@ export default function WorkoutsClient({
             <h3 className="font-heading text-2xl text-iron-white">
               WORKOUT LIBRARY
             </h3>
+            <Link href="/workouts/create">
+              <Button>
+                <PlusCircle className="w-5 h-5 mr-2" />
+                Create Workout
+              </Button>
+            </Link>
           </div>
 
           {/* Search and Filters */}
@@ -260,7 +288,7 @@ export default function WorkoutsClient({
                 key={workout.id}
                 data-testid={`workout-card-${workout.id}`}
                 onClick={() => loadWorkoutDetails(workout)}
-                className="border border-iron-gray p-4 hover:border-iron-orange transition-colors cursor-pointer relative"
+                className="border border-iron-gray p-4 hover:border-iron-orange transition-colors cursor-pointer relative group"
               >
                 {/* Favorite Star */}
                 <button
@@ -277,7 +305,7 @@ export default function WorkoutsClient({
                   {workout.name}
                 </h4>
 
-                <p className="text-iron-gray text-sm mb-3 line-clamp-2">
+                <p className="text-iron-gray text-sm mb-3 line-clamp-2 h-10">
                   {workout.description || 'No description available'}
                 </p>
 
@@ -294,6 +322,20 @@ export default function WorkoutsClient({
                   <Clock className="w-4 h-4" />
                   <span>{workout.estimated_duration_minutes || 45} min</span>
                 </div>
+
+                {/* Edit/Delete Buttons for User-Owned Workouts */}
+                {workout.owner_user_id === userId && (
+                  <div className="absolute bottom-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Link href={`/workouts/edit/${workout.id}`} onClick={(e) => e.stopPropagation()}>
+                       <Button size="sm" variant="outline" className="h-8 px-2">
+                         <Edit className="w-4 h-4" />
+                       </Button>
+                    </Link>
+                    <Button size="sm" variant="destructive" className="h-8 px-2" onClick={(e) => handleDelete(e, workout.id)}>
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                )}
               </div>
             ))}
           </div>
