@@ -313,7 +313,8 @@ export default function ActivityList({ limit = 10, showHeader = true, compact = 
           return (
             <div
               key={activity.id}
-              className="border border-iron-gray p-4 hover:border-iron-orange/50 transition-colors group"
+              className="border border-iron-gray p-4 hover:border-iron-orange/50 transition-colors group cursor-pointer"
+              onClick={() => router.push(`/activities/${activity.id}`)}
             >
               <div className="flex items-center gap-4">
                 {/* Activity Icon */}
@@ -326,11 +327,14 @@ export default function ActivityList({ limit = 10, showHeader = true, compact = 
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <h3 className="text-iron-white font-medium truncate">
+                        <h3 className="text-iron-white font-medium truncate hover:text-iron-orange transition-colors">
                           {activity.name}
                         </h3>
                         <button
-                          onClick={() => toggleExpanded(activity.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleExpanded(activity.id);
+                          }}
                           className="p-1 hover:bg-iron-gray/20 rounded transition-colors"
                           title="Show more details"
                         >

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Profile, UserGoal } from '@/types/profile';
 import BottomNavigation from '@/app/components/BottomNavigation';
+import IntegrationsSection from '@/components/IntegrationsSection';
 import {
   Loader2,
   User,
@@ -334,41 +335,7 @@ export default function ProfilePage() {
         )}
 
         {/* Integrations */}
-        <div className="border border-iron-gray p-6">
-          <h3 className="font-heading text-xl text-iron-white mb-4 flex items-center gap-2">
-            <LinkIcon className="w-5 h-5 text-iron-orange" />
-            INTEGRATIONS
-          </h3>
-          <div className="space-y-3">
-            <button
-              onClick={() => router.push('/settings')}
-              className="w-full p-4 border border-iron-gray hover:border-iron-orange transition-colors flex items-center justify-between"
-            >
-              <div className="flex items-center gap-3">
-                <Activity className="w-6 h-6 text-iron-orange" />
-                <div className="text-left">
-                  <p className="text-iron-white">Strava</p>
-                  <p className="text-xs text-iron-gray">Sync workout data</p>
-                </div>
-              </div>
-              <ChevronRight className="w-5 h-5 text-iron-gray" />
-            </button>
-
-            <button
-              onClick={() => router.push('/settings')}
-              className="w-full p-4 border border-iron-gray hover:border-iron-orange transition-colors flex items-center justify-between"
-            >
-              <div className="flex items-center gap-3">
-                <Activity className="w-6 h-6 text-iron-orange" />
-                <div className="text-left">
-                  <p className="text-iron-white">Garmin Connect</p>
-                  <p className="text-xs text-iron-gray">Sync fitness data</p>
-                </div>
-              </div>
-              <ChevronRight className="w-5 h-5 text-iron-gray" />
-            </button>
-          </div>
-        </div>
+        <IntegrationsSection />
 
         {/* Sign Out */}
         <button

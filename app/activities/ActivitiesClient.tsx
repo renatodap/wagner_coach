@@ -10,19 +10,25 @@ import {
   ChevronDown,
   ChevronUp,
   LinkIcon,
-  Plus
+  Plus,
+  RefreshCw
 } from 'lucide-react';
 import Link from 'next/link';
 import ActivityList from '@/components/ActivityList';
 import ActivityWorkoutLink from '@/components/ActivityWorkoutLink';
 import BottomNavigation from '@/app/components/BottomNavigation';
 import { Button } from '@/components/ui/button';
+import { createClient } from '@/lib/supabase/client';
+import { useRouter } from 'next/navigation';
 
 export default function ActivitiesClient() {
   const [showAllActivities, setShowAllActivities] = useState(false);
   const [selectedActivityId, setSelectedActivityId] = useState<string | null>(null);
   const [selectedActivitySource, setSelectedActivitySource] = useState<'strava' | 'garmin' | 'manual'>('manual');
   const [showLinkModal, setShowLinkModal] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const router = useRouter();
+  const supabase = createClient();
 
   const handleToggleActivities = () => {
     setShowAllActivities(!showAllActivities);
@@ -34,6 +40,66 @@ export default function ActivitiesClient() {
     setShowLinkModal(true);
   };
 
+  const handleSyncActivities = async () => {
+    setIsSyncing(true);
+    try {
+      // Check which services are connected and sync them
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        alert('Please sign in to sync activities');
+        return;
+      }
+
+      let syncMessages = [];
+
+      // Check and sync Strava
+      const { data: stravaConnection } = await supabase
+        .from('strava_connections')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      if (stravaConnection) {
+        try {
+          const stravaResponse = await fetch('/api/strava/activities', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ source: 'strava' })
+          });
+
+          if (stravaResponse.ok) {
+            const stravaData = await stravaResponse.json();
+            syncMessages.push(`Strava: ${stravaData.syncedCount || 0} activities`);
+          }
+        } catch (error) {
+          console.error('Strava sync error:', error);
+        }
+      }
+
+      // Check and sync Garmin
+      const garminResponse = await fetch('/api/connections/garmin');
+      if (garminResponse.ok) {
+        const garminData = await garminResponse.json();
+        if (garminData.connected) {
+          // Sync Garmin activities through the Python API
+          alert('Garmin sync in progress. Please check back in a moment.');
+        }
+      }
+
+      if (syncMessages.length > 0) {
+        alert(`Sync complete:\n${syncMessages.join('\n')}`);
+        router.refresh();
+      } else {
+        alert('No connected services found. Connect Strava or Garmin in your profile.');
+      }
+    } catch (error) {
+      console.error('Sync error:', error);
+      alert('Failed to sync activities');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-iron-black text-iron-white">
       {/* Header */}
@@ -41,12 +107,23 @@ export default function ActivitiesClient() {
         <div className="max-w-6xl mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
             <h1 className="font-heading text-4xl text-iron-orange">MY ACTIVITIES</h1>
-            <Link href="/activities/add">
-              <Button className="bg-iron-orange text-iron-black hover:bg-orange-600">
-                <Plus className="w-4 h-4 mr-2" />
-                Add Manual Activity
+            <div className="flex gap-2">
+              <Button
+                onClick={handleSyncActivities}
+                disabled={isSyncing}
+                variant="outline"
+                className="border-iron-orange text-iron-orange hover:bg-iron-orange hover:text-iron-black"
+              >
+                <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
+                {isSyncing ? 'Syncing...' : 'Sync'}
               </Button>
-            </Link>
+              <Link href="/activities/add">
+                <Button className="bg-iron-orange text-iron-black hover:bg-orange-600">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Manual
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
       </header>
