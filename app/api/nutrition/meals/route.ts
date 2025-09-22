@@ -1,59 +1,175 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { MealInsert } from '@/types/nutrition';
 
-// Helper function to sanitize input
-function sanitizeInput(input: string): string {
-  return input.replace(/<[^>]*>?/gm, '').trim();
+// Helper function to check if table exists
+async function tableExists(supabase: any, tableName: string): Promise<boolean> {
+  try {
+    const { data, error } = await supabase
+      .from(tableName)
+      .select('id')
+      .limit(1);
+
+    // If no error, table exists
+    return !error;
+  } catch {
+    return false;
+  }
 }
 
-// Validation function
-function validateMealData(data: unknown): { valid: boolean; error?: string } {
-  // Check required fields
-  if (!data.meal_name || typeof data.meal_name !== 'string' || data.meal_name.trim().length === 0) {
-    return { valid: false, error: 'meal_name is required' };
-  }
+// GET endpoint - fetch user's meals
+export async function GET(request: NextRequest) {
+  try {
+    const supabase = await createClient();
 
-  if (data.meal_name.length > 200) {
-    return { valid: false, error: 'meal_name must be 200 characters or less' };
-  }
+    // Check authentication
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-  if (!data.meal_category || !['breakfast', 'lunch', 'dinner', 'snack'].includes(data.meal_category)) {
-    return { valid: false, error: 'Invalid meal category' };
-  }
-
-  if (!data.logged_at) {
-    return { valid: false, error: 'logged_at is required' };
-  }
-
-  // Validate date
-  const loggedAtDate = new Date(data.logged_at);
-  if (isNaN(loggedAtDate.getTime())) {
-    return { valid: false, error: 'Invalid date format for logged_at' };
-  }
-
-  // Validate optional numeric fields
-  const numericFields = ['calories', 'protein_g', 'carbs_g', 'fat_g', 'fiber_g'];
-  for (const field of numericFields) {
-    if (data[field] !== undefined && data[field] !== null) {
-      const value = Number(data[field]);
-      if (isNaN(value) || value < 0) {
-        return { valid: false, error: `${field} must be a positive number` };
-      }
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
     }
-  }
 
-  // Validate notes if provided
-  if (data.notes && typeof data.notes === 'string' && data.notes.length > 500) {
-    return { valid: false, error: 'notes must be 500 characters or less' };
-  }
+    // Check which schema we're using
+    const hasNewSchema = await tableExists(supabase, 'meal_logs');
+    const hasOldSchema = await tableExists(supabase, 'meals');
 
-  return { valid: true };
+    // If new schema exists, use it
+    if (hasNewSchema) {
+      // Parse query parameters
+      const { searchParams } = new URL(request.url);
+      const date = searchParams.get('date');
+      const limit = parseInt(searchParams.get('limit') || '50');
+
+      // Build query for new schema
+      let query = supabase
+        .from('meal_logs')
+        .select(`
+          *,
+          foods:meal_log_foods(
+            *,
+            food:foods(*)
+          )
+        `)
+        .eq('user_id', user.id)
+        .order('logged_at', { ascending: false })
+        .limit(limit);
+
+      // Filter by date if provided
+      if (date) {
+        const startDate = new Date(date);
+        startDate.setHours(0, 0, 0, 0);
+        const endDate = new Date(date);
+        endDate.setHours(23, 59, 59, 999);
+
+        query = query
+          .gte('logged_at', startDate.toISOString())
+          .lte('logged_at', endDate.toISOString());
+      } else {
+        // Default to today's meals
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+
+        query = query
+          .gte('logged_at', today.toISOString())
+          .lt('logged_at', tomorrow.toISOString());
+      }
+
+      const { data: meals, error } = await query;
+
+      if (error) {
+        console.error('Database error:', error);
+        return NextResponse.json(
+          { error: 'Failed to fetch meals' },
+          { status: 500 }
+        );
+      }
+
+      // Transform to match old format if needed
+      const transformedMeals = meals?.map(meal => ({
+        id: meal.id,
+        meal_name: meal.name || 'Meal',
+        meal_category: meal.category,
+        logged_at: meal.logged_at,
+        notes: meal.notes,
+        calories: meal.total_calories,
+        protein_g: meal.total_protein_g,
+        carbs_g: meal.total_carbs_g,
+        fat_g: meal.total_fat_g,
+        fiber_g: meal.total_fiber_g,
+        created_at: meal.created_at,
+        foods: meal.foods
+      }));
+
+      return NextResponse.json({ meals: transformedMeals || [] });
+    }
+
+    // Fallback to old schema if it exists
+    if (hasOldSchema) {
+      const { searchParams } = new URL(request.url);
+      const date = searchParams.get('date');
+      const limit = parseInt(searchParams.get('limit') || '50');
+
+      let query = supabase
+        .from('meals')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('logged_at', { ascending: false })
+        .limit(limit);
+
+      if (date) {
+        const startDate = new Date(date);
+        startDate.setHours(0, 0, 0, 0);
+        const endDate = new Date(date);
+        endDate.setHours(23, 59, 59, 999);
+
+        query = query
+          .gte('logged_at', startDate.toISOString())
+          .lte('logged_at', endDate.toISOString());
+      } else {
+        // Default to today's meals
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+
+        query = query
+          .gte('logged_at', today.toISOString())
+          .lt('logged_at', tomorrow.toISOString());
+      }
+
+      const { data: meals, error } = await query;
+
+      if (error) {
+        console.error('Database error:', error);
+        return NextResponse.json(
+          { error: 'Failed to fetch meals' },
+          { status: 500 }
+        );
+      }
+
+      return NextResponse.json({ meals: meals || [] });
+    }
+
+    // No schema exists yet
+    console.log('No nutrition tables found in database. Please run migrations.');
+    return NextResponse.json({ meals: [] });
+
+  } catch (error) {
+    console.error('Unexpected error:', error);
+    return NextResponse.json(
+      { error: 'An unexpected error occurred' },
+      { status: 500 }
+    );
+  }
 }
 
+// POST endpoint - create a new meal
 export async function POST(request: NextRequest) {
   try {
-    // Get Supabase client
     const supabase = await createClient();
 
     // Check authentication
@@ -67,7 +183,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Parse request body
-    let body: unknown;
+    let body: any;
     try {
       body = await request.json();
     } catch {
@@ -77,112 +193,146 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate input
-    const validation = validateMealData(body);
-    if (!validation.valid) {
-      return NextResponse.json(
-        { error: validation.error },
-        { status: 400 }
-      );
+    // Check which schema we're using
+    const hasNewSchema = await tableExists(supabase, 'meal_logs');
+    const hasOldSchema = await tableExists(supabase, 'meals');
+
+    // Use new schema if available
+    if (hasNewSchema) {
+      // Handle quick add (single food) vs full meal
+      if (body.food_id) {
+        // Quick add single food
+        const { data: meal, error: mealError } = await supabase
+          .from('meal_logs')
+          .insert({
+            user_id: user.id,
+            category: body.category || 'snack',
+            logged_at: body.logged_at || new Date().toISOString(),
+            notes: body.notes
+          })
+          .select()
+          .single();
+
+        if (mealError) {
+          console.error('Error creating meal:', mealError);
+          return NextResponse.json(
+            { error: 'Failed to create meal' },
+            { status: 500 }
+          );
+        }
+
+        // Add the food to the meal
+        const { error: foodError } = await supabase
+          .from('meal_log_foods')
+          .insert({
+            meal_log_id: meal.id,
+            food_id: body.food_id,
+            quantity: body.quantity || 1,
+            unit: body.unit || 'serving'
+          });
+
+        if (foodError) {
+          console.error('Error adding food to meal:', foodError);
+          return NextResponse.json(
+            { error: 'Failed to add food to meal' },
+            { status: 500 }
+          );
+        }
+
+        return NextResponse.json({ data: meal }, { status: 201 });
+      } else if (body.foods && Array.isArray(body.foods)) {
+        // Full meal with multiple foods
+        const { data: meal, error: mealError } = await supabase
+          .from('meal_logs')
+          .insert({
+            user_id: user.id,
+            name: body.name,
+            category: body.category || 'other',
+            logged_at: body.logged_at || new Date().toISOString(),
+            notes: body.notes
+          })
+          .select()
+          .single();
+
+        if (mealError) {
+          console.error('Error creating meal:', mealError);
+          return NextResponse.json(
+            { error: 'Failed to create meal' },
+            { status: 500 }
+          );
+        }
+
+        // Add all foods to the meal
+        const foodInserts = body.foods.map((food: any) => ({
+          meal_log_id: meal.id,
+          food_id: food.food_id,
+          quantity: food.quantity,
+          unit: food.unit
+        }));
+
+        const { error: foodError } = await supabase
+          .from('meal_log_foods')
+          .insert(foodInserts);
+
+        if (foodError) {
+          console.error('Error adding foods to meal:', foodError);
+          return NextResponse.json(
+            { error: 'Failed to add foods to meal' },
+            { status: 500 }
+          );
+        }
+
+        return NextResponse.json({ data: meal }, { status: 201 });
+      }
     }
 
-    // Sanitize and prepare data
-    const mealData: MealInsert & { user_id: string } = {
-      user_id: user.id,
-      meal_name: sanitizeInput(body.meal_name),
-      meal_category: body.meal_category,
-      logged_at: body.logged_at,
-      notes: body.notes ? sanitizeInput(body.notes) : null,
-      calories: body.calories !== undefined ? Number(body.calories) : null,
-      protein_g: body.protein_g !== undefined ? Number(body.protein_g) : null,
-      carbs_g: body.carbs_g !== undefined ? Number(body.carbs_g) : null,
-      fat_g: body.fat_g !== undefined ? Number(body.fat_g) : null,
-      fiber_g: body.fiber_g !== undefined ? Number(body.fiber_g) : null,
-    };
+    // Fallback to old schema
+    if (hasOldSchema) {
+      // Validate required fields
+      if (!body.meal_name || !body.meal_category) {
+        return NextResponse.json(
+          { error: 'meal_name and meal_category are required' },
+          { status: 400 }
+        );
+      }
 
-    // Insert into database
-    const { data: insertedMeal, error: insertError } = await supabase
-      .from('meals')
-      .insert(mealData)
-      .select()
-      .single();
+      // Sanitize input
+      const mealData = {
+        user_id: user.id,
+        meal_name: body.meal_name.trim(),
+        meal_category: body.meal_category,
+        logged_at: body.logged_at || new Date().toISOString(),
+        notes: body.notes?.trim(),
+        calories: body.calories ? Number(body.calories) : null,
+        protein_g: body.protein_g ? Number(body.protein_g) : null,
+        carbs_g: body.carbs_g ? Number(body.carbs_g) : null,
+        fat_g: body.fat_g ? Number(body.fat_g) : null,
+        fiber_g: body.fiber_g ? Number(body.fiber_g) : null,
+      };
 
-    if (insertError) {
-      console.error('Database error:', insertError);
-      return NextResponse.json(
-        { error: 'Failed to create meal' },
-        { status: 500 }
-      );
+      // Insert into database
+      const { data: insertedMeal, error: insertError } = await supabase
+        .from('meals')
+        .insert(mealData)
+        .select()
+        .single();
+
+      if (insertError) {
+        console.error('Database error:', insertError);
+        return NextResponse.json(
+          { error: 'Failed to create meal' },
+          { status: 500 }
+        );
+      }
+
+      return NextResponse.json({ data: insertedMeal }, { status: 201 });
     }
 
-    // Return success response
+    // No schema exists
     return NextResponse.json(
-      { data: insertedMeal },
-      { status: 201 }
-    );
-
-  } catch (error) {
-    console.error('Unexpected error:', error);
-    return NextResponse.json(
-      { error: 'An unexpected error occurred' },
+      { error: 'No nutrition tables found. Please run database migrations.' },
       { status: 500 }
     );
-  }
-}
-
-export async function GET(request: NextRequest) {
-  try {
-    // Get Supabase client
-    const supabase = await createClient();
-
-    // Check authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
-    // Parse query parameters
-    const { searchParams } = new URL(request.url);
-    const date = searchParams.get('date');
-    const limit = parseInt(searchParams.get('limit') || '50');
-
-    // Build query
-    let query = supabase
-      .from('meals')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('logged_at', { ascending: false })
-      .limit(limit);
-
-    // Filter by date if provided
-    if (date) {
-      const startOfDay = new Date(date);
-      startOfDay.setHours(0, 0, 0, 0);
-
-      const endOfDay = new Date(date);
-      endOfDay.setHours(23, 59, 59, 999);
-
-      query = query
-        .gte('logged_at', startOfDay.toISOString())
-        .lte('logged_at', endOfDay.toISOString());
-    }
-
-    // Execute query
-    const { data: meals, error: queryError } = await query;
-
-    if (queryError) {
-      console.error('Database query error:', queryError);
-      return NextResponse.json(
-        { error: 'Failed to fetch meals' },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json({ data: meals });
 
   } catch (error) {
     console.error('Unexpected error:', error);
