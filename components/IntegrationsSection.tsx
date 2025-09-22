@@ -110,6 +110,10 @@ export default function IntegrationsSection() {
   const connectGarmin = async () => {
     try {
       setConnectionError('');
+
+      // First test if we can connect to Garmin
+      console.log('Testing Garmin connection...');
+
       const response = await fetch('/api/connections/garmin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -119,17 +123,27 @@ export default function IntegrationsSection() {
       const data = await response.json();
 
       if (!response.ok) {
-        setConnectionError(data.error || 'Failed to connect');
+        // Parse specific error types
+        if (data.details?.includes('401') || data.details?.includes('Unauthorized')) {
+          setConnectionError('Invalid Garmin credentials. Please check your email and password.');
+        } else if (data.details?.includes('429') || data.details?.includes('Too Many Requests')) {
+          setConnectionError('Too many attempts. Please wait a few minutes and try again.');
+        } else if (data.details?.includes('Garmin API not available')) {
+          setConnectionError('Garmin sync service is not running. Please ensure the Python API is active.');
+        } else {
+          setConnectionError(data.error || 'Failed to connect to Garmin');
+        }
+        console.error('Garmin connection failed:', data);
         return;
       }
 
       setGarminConnected(true);
       setShowGarminForm(false);
       setGarminCredentials({ email: '', password: '' });
-      alert('Successfully connected to Garmin');
+      alert('Successfully connected to Garmin! You can now sync your activities.');
     } catch (error) {
       console.error('Garmin connection error:', error);
-      setConnectionError('Failed to connect to Garmin');
+      setConnectionError('Network error. Please check your connection and try again.');
     }
   };
 
@@ -151,56 +165,36 @@ export default function IntegrationsSection() {
     try {
       setGarminSyncing(true);
 
-      // First, call the Python API to get activities
-      const { data: { user } } = await supabase.auth.getUser();
-      const { data: connection } = await supabase
-        .from('garmin_connections')
-        .select('*')
-        .eq('user_id', user!.id)
-        .single();
-
-      if (!connection) {
-        alert('Please connect your Garmin account first');
-        return;
-      }
-
-      // Get activities from Python API
-      const garminResponse = await fetch(`${process.env.NEXT_PUBLIC_GARMIN_API_URL || 'http://localhost:3001'}/api/garmin/sync`, {
+      // Use the new direct sync route
+      const syncResponse = await fetch('/api/garmin/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: connection.garmin_email,
-          password: connection.encrypted_password,
-          userId: user!.id,
-          daysBack: 30
-        })
-      });
-
-      if (!garminResponse.ok) {
-        throw new Error('Failed to fetch from Garmin');
-      }
-
-      const garminData = await garminResponse.json();
-
-      // Save activities to database
-      const syncResponse = await fetch('/api/activities/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          activities: garminData.activities,
-          source: 'garmin'
-        })
+        body: JSON.stringify({}) // Will use stored credentials
       });
 
       if (!syncResponse.ok) {
-        throw new Error('Failed to save activities');
+        const errorData = await syncResponse.json();
+
+        if (errorData.details?.includes('pip install')) {
+          alert('Garmin library not installed. Please run: pip install garminconnect');
+        } else if (errorData.error?.includes('credentials')) {
+          alert('Please reconnect your Garmin account');
+          setGarminConnected(false);
+        } else {
+          alert(errorData.error || 'Failed to sync Garmin activities');
+        }
+        return;
       }
 
       const syncData = await syncResponse.json();
-      alert(`Synced ${syncData.processed || 0} new activities from Garmin (${syncData.duplicates || 0} duplicates skipped)`);
+      alert(syncData.message || `Synced ${syncData.syncedCount || 0} activities from Garmin`);
+
+      // Refresh the page to show new activities
+      window.location.reload();
+
     } catch (error) {
       console.error('Garmin sync error:', error);
-      alert('Failed to sync Garmin activities');
+      alert('Failed to sync Garmin activities. Please check your connection.');
     } finally {
       setGarminSyncing(false);
     }

@@ -46,34 +46,75 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Email and password required' }, { status: 400 });
     }
 
-    // Test the credentials with the Python API
-    const testResponse = await fetch(`${process.env.GARMIN_API_URL || 'http://localhost:3001'}/api/garmin/test`, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' }
-    });
+    // For now, we'll test the credentials directly with garminconnect
+    // since the Python API server might not be running
+    try {
+      // Try a simple test import of the Python library
+      const { execSync } = require('child_process');
 
-    if (!testResponse.ok) {
-      return NextResponse.json({ error: 'Garmin API not available' }, { status: 503 });
-    }
+      // Create a test Python script inline
+      const testScript = `
+import sys
+import json
+from garminconnect import Garmin
 
-    // Try to sync some activities to validate credentials
-    const syncResponse = await fetch(`${process.env.GARMIN_API_URL || 'http://localhost:3001'}/api/garmin/sync`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email,
-        password,
-        userId: user.id,
-        daysBack: 1 // Just test with 1 day
-      })
-    });
+try:
+    garmin = Garmin('${email}', '${password.replace(/'/g, "\\'")}')
+    garmin.login()
+    print(json.dumps({"success": True}))
+except Exception as e:
+    print(json.dumps({"success": False, "error": str(e)}))
+`;
 
-    if (!syncResponse.ok) {
-      const errorData = await syncResponse.json();
-      return NextResponse.json({
-        error: errorData.error || 'Failed to connect to Garmin',
-        details: errorData.details
-      }, { status: 400 });
+      const result = execSync(`python -c "${testScript.replace(/"/g, '\\"').replace(/\n/g, ' ')}"`, {
+        encoding: 'utf8',
+        maxBuffer: 1024 * 1024
+      });
+
+      const testResult = JSON.parse(result);
+
+      if (!testResult.success) {
+        return NextResponse.json({
+          error: 'Failed to connect to Garmin',
+          details: testResult.error
+        }, { status: 400 });
+      }
+
+    } catch (error: any) {
+      // If Python execution fails, try the API endpoint as fallback
+      console.log('Direct Python test failed, trying API endpoint...');
+
+      const testResponse = await fetch(`${process.env.GARMIN_API_URL || 'http://localhost:3001'}/api/garmin/test`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      }).catch(() => null);
+
+      if (!testResponse || !testResponse.ok) {
+        return NextResponse.json({
+          error: 'Garmin API not available. Please ensure Python and garminconnect are installed.',
+          details: 'Run: pip install garminconnect'
+        }, { status: 503 });
+      }
+
+      // Try to validate credentials via API
+      const syncResponse = await fetch(`${process.env.GARMIN_API_URL || 'http://localhost:3001'}/api/garmin/sync`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          password,
+          userId: user.id,
+          daysBack: 1
+        })
+      });
+
+      if (!syncResponse.ok) {
+        const errorData = await syncResponse.json();
+        return NextResponse.json({
+          error: errorData.error || 'Failed to connect to Garmin',
+          details: errorData.details
+        }, { status: 400 });
+      }
     }
 
     // Store connection (encrypt password in production!)
