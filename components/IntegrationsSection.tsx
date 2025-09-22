@@ -111,10 +111,12 @@ export default function IntegrationsSection() {
     try {
       setConnectionError('');
 
-      // First test if we can connect to Garmin
+      // Use backend URL from environment or fallback to local
+      const backendUrl = process.env.NEXT_PUBLIC_GARMIN_BACKEND_URL || 'http://localhost:8000';
+
       console.log('Testing Garmin connection...');
 
-      const response = await fetch('/api/connections/garmin', {
+      const response = await fetch(`${backendUrl}/api/garmin/test`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(garminCredentials)
@@ -165,13 +167,44 @@ export default function IntegrationsSection() {
     try {
       setGarminSyncing(true);
 
-      // For now, Garmin sync is not available on Vercel deployment
-      // Would need a separate backend service to handle Python execution
-      alert('Garmin sync is currently only available in local development. A separate backend service is required for production.');
+      // Get stored credentials from local storage or state
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        alert('Please log in first');
+        return;
+      }
+
+      // Use backend URL from environment or fallback to local
+      const backendUrl = process.env.NEXT_PUBLIC_GARMIN_BACKEND_URL || 'http://localhost:8000';
+
+      const response = await fetch(`${backendUrl}/api/garmin/sync`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: garminCredentials.email || 'stored_email', // You should store this after successful connection
+          password: garminCredentials.password || 'stored_password', // You should store this securely
+          days_back: 30
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        alert(errorData.detail || 'Failed to sync Garmin activities');
+        return;
+      }
+
+      const syncData = await response.json();
+      alert(`Successfully synced ${syncData.count} activities from Garmin`);
+
+      // TODO: Save activities to Supabase here
+      // You'll need to create an endpoint to save the activities
+
+      // Refresh the page to show new activities
+      window.location.reload();
 
     } catch (error) {
       console.error('Garmin sync error:', error);
-      alert('Failed to sync Garmin activities.');
+      alert('Failed to sync Garmin activities. Make sure the backend service is running.');
     } finally {
       setGarminSyncing(false);
     }
