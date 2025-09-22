@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { MealLogForm } from '@/components/nutrition/MealLogForm';
+import { MealBuilder } from '@/components/nutrition/MealBuilder';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import BottomNavigation from '@/app/components/BottomNavigation';
@@ -20,17 +20,7 @@ export default function AddMealPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          meal_name: mealData.name,
-          meal_category: mealData.meal_type,
-          logged_at: new Date().toISOString(),
-          calories: mealData.calories ? parseInt(mealData.calories) : undefined,
-          protein_g: mealData.protein ? parseFloat(mealData.protein) : undefined,
-          carbs_g: mealData.carbs ? parseFloat(mealData.carbs) : undefined,
-          fat_g: mealData.fat ? parseFloat(mealData.fat) : undefined,
-          fiber_g: mealData.fiber ? parseFloat(mealData.fiber) : undefined,
-          notes: mealData.notes || undefined
-        }),
+        body: JSON.stringify(mealData),
       });
 
       if (!response.ok) {
@@ -43,7 +33,6 @@ export default function AddMealPage() {
     } catch (error) {
       console.error('Error saving meal:', error);
       alert(error instanceof Error ? error.message : 'Failed to save meal');
-    } finally {
       setIsSubmitting(false);
     }
   };
@@ -64,16 +53,18 @@ export default function AddMealPage() {
             >
               <ArrowLeft className="w-6 h-6" />
             </Link>
-            <h1 className="font-heading text-4xl text-iron-orange">ADD MEAL</h1>
+            <h1 className="font-heading text-4xl text-iron-orange">BUILD MEAL</h1>
           </div>
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto px-4 py-8 pb-24">
-        <MealLogForm
-          onSubmit={handleSubmit}
-          onCancel={handleCancel}
-        />
+      <main className="max-w-4xl mx-auto px-4 py-8 pb-24">
+        <div className="border border-iron-gray p-6">
+          <MealBuilder
+            onSubmit={handleSubmit}
+            onCancel={handleCancel}
+          />
+        </div>
       </main>
 
       {/* Bottom Navigation */}
