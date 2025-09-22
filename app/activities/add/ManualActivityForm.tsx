@@ -312,25 +312,31 @@ export default function ManualActivityForm({
                   Link to Workout (Optional)
                 </Label>
                 <Select
-                  value={linkedWorkoutId}
+                  value={linkedWorkoutId ? `${linkedWorkoutType}-${linkedWorkoutId}` : 'none'}
                   onValueChange={(value) => {
-                    setLinkedWorkoutId(value);
-                    const isCustom = customWorkouts.some(w => w.id === value);
-                    setLinkedWorkoutType(isCustom ? 'custom' : 'standard');
+                    if (value === 'none') {
+                      setLinkedWorkoutId('');
+                      setLinkedWorkoutType('');
+                    } else {
+                      const [type, ...idParts] = value.split('-');
+                      const id = idParts.join('-');
+                      setLinkedWorkoutId(id);
+                      setLinkedWorkoutType(type as 'custom' | 'standard');
+                    }
                   }}
                 >
                   <SelectTrigger className="bg-iron-black border-iron-gray text-iron-white">
                     <SelectValue placeholder="Select a workout to link..." />
                   </SelectTrigger>
                   <SelectContent className="bg-iron-black border-iron-gray">
-                    <SelectItem value="">No workout</SelectItem>
+                    <SelectItem value="none">No workout</SelectItem>
                     {customWorkouts.length > 0 && (
                       <>
-                        <SelectItem value="custom-header" disabled>
-                          <span className="text-iron-orange">— Your Workouts —</span>
-                        </SelectItem>
+                        <div className="px-2 py-1.5 text-sm font-semibold text-iron-orange">
+                          Your Workouts
+                        </div>
                         {customWorkouts.map((workout) => (
-                          <SelectItem key={workout.id} value={workout.id.toString()}>
+                          <SelectItem key={`custom-${workout.id}`} value={`custom-${workout.id}`}>
                             {workout.name}
                           </SelectItem>
                         ))}
@@ -338,11 +344,11 @@ export default function ManualActivityForm({
                     )}
                     {standardWorkouts.length > 0 && (
                       <>
-                        <SelectItem value="standard-header" disabled>
-                          <span className="text-iron-orange">— Standard Workouts —</span>
-                        </SelectItem>
+                        <div className="px-2 py-1.5 text-sm font-semibold text-iron-orange">
+                          Standard Workouts
+                        </div>
                         {standardWorkouts.map((workout) => (
-                          <SelectItem key={workout.id} value={workout.id.toString()}>
+                          <SelectItem key={`standard-${workout.id}`} value={`standard-${workout.id}`}>
                             {workout.name}
                           </SelectItem>
                         ))}
@@ -558,11 +564,12 @@ export default function ManualActivityForm({
                         <Cloud className="w-4 h-4" />
                         Weather Conditions
                       </Label>
-                      <Select value={weather} onValueChange={setWeather}>
+                      <Select value={weather || 'none'} onValueChange={(val) => setWeather(val === 'none' ? '' : val)}>
                         <SelectTrigger className="bg-iron-black border-iron-gray text-iron-white">
                           <SelectValue placeholder="Select weather..." />
                         </SelectTrigger>
                         <SelectContent className="bg-iron-black border-iron-gray">
+                          <SelectItem value="none">Not specified</SelectItem>
                           <SelectItem value="sunny">Sunny</SelectItem>
                           <SelectItem value="partly_cloudy">Partly Cloudy</SelectItem>
                           <SelectItem value="cloudy">Cloudy</SelectItem>
