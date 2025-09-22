@@ -21,40 +21,106 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20');
     const includeUserFoods = searchParams.get('includeUserFoods') !== 'false';
 
-    // If no query, return popular/all foods
-    if (!query) {
-      const { data: foods, error } = await supabase
+    // First, check if user_food_frequency table exists
+    const { data: tableCheck, error: tableError } = await supabase
+      .from('user_food_frequency')
+      .select('food_id')
+      .limit(1);
+
+    const hasFrequencyTracking = !tableError;
+
+    // Get user's frequently logged foods if table exists
+    let personalizedFoods = [];
+    let excludeIds = [];
+
+    if (hasFrequencyTracking) {
+      // Get user's frequently logged foods
+      const { data: frequentFoods, error: freqError } = await supabase
+        .from('user_food_frequency')
+        .select(`
+          food_id,
+          log_count,
+          last_logged_at,
+          last_quantity,
+          last_unit,
+          favorite,
+          foods!inner (*)
+        `)
+        .eq('user_id', user.id)
+        .order('favorite', { ascending: false })
+        .order('log_count', { ascending: false })
+        .order('last_logged_at', { ascending: false })
+        .limit(100); // Get more to filter
+
+      if (frequentFoods && frequentFoods.length > 0) {
+        // Filter by search query if provided
+        const filtered = frequentFoods.filter(item =>
+          !query ||
+          item.foods.name.toLowerCase().includes(query.toLowerCase()) ||
+          (item.foods.brand && item.foods.brand.toLowerCase().includes(query.toLowerCase()))
+        );
+
+        // Take top results for personalized section
+        personalizedFoods = filtered.slice(0, Math.floor(limit * 0.6)).map(item => ({
+          ...item.foods,
+          _personalized: true,
+          _log_count: item.log_count,
+          _last_logged: item.last_logged_at,
+          _last_quantity: item.last_quantity,
+          _last_unit: item.last_unit,
+          _is_favorite: item.favorite,
+          _relevance: item.favorite ? 10000 : (item.log_count * 100)
+        }));
+
+        excludeIds = personalizedFoods.map(f => f.id);
+      }
+    }
+
+    // Calculate remaining limit for general search
+    const remainingLimit = limit - personalizedFoods.length;
+
+    // Get additional foods from main database if needed
+    if (remainingLimit > 0) {
+      let searchQuery = supabase
         .from('foods')
         .select('*')
-        .or(`is_public.eq.true,is_verified.eq.true${includeUserFoods ? `,created_by.eq.${user.id}` : ''}`)
-        .order('is_verified', { ascending: false })
-        .order('name')
-        .limit(limit);
+        .or(`is_public.eq.true,is_verified.eq.true${includeUserFoods ? `,created_by.eq.${user.id}` : ''}`);
 
-      if (error) {
-        console.error('Error fetching foods:', error);
-        return NextResponse.json({ foods: [] });
+      // Apply search filter
+      if (query) {
+        searchQuery = searchQuery.or(`name.ilike.%${query}%,brand.ilike.%${query}%`);
       }
 
-      return NextResponse.json({ foods: foods || [] });
+      // Exclude already shown personalized foods
+      if (excludeIds.length > 0) {
+        searchQuery = searchQuery.not('id', 'in', `(${excludeIds.join(',')})`);
+      }
+
+      const { data: additionalFoods, error: searchError } = await searchQuery
+        .order('is_verified', { ascending: false })
+        .order('name')
+        .limit(remainingLimit);
+
+      if (additionalFoods) {
+        // Combine results with personalized foods first
+        const allFoods = [
+          ...personalizedFoods,
+          ...additionalFoods.map(f => ({ ...f, _personalized: false, _relevance: 0 }))
+        ];
+
+        return NextResponse.json({
+          foods: allFoods,
+          personalized: personalizedFoods.length > 0,
+          frequentCount: personalizedFoods.length
+        });
+      }
     }
 
-    // Search for foods by name
-    const { data: foods, error } = await supabase
-      .from('foods')
-      .select('*')
-      .or(`is_public.eq.true,is_verified.eq.true${includeUserFoods ? `,created_by.eq.${user.id}` : ''}`)
-      .ilike('name', `%${query}%`)
-      .order('is_verified', { ascending: false })
-      .order('name')
-      .limit(limit);
-
-    if (error) {
-      console.error('Error searching foods:', error);
-      return NextResponse.json({ foods: [] });
-    }
-
-    return NextResponse.json({ foods: foods || [] });
+    return NextResponse.json({
+      foods: personalizedFoods,
+      personalized: personalizedFoods.length > 0,
+      frequentCount: personalizedFoods.length
+    });
 
   } catch (error) {
     console.error('Unexpected error:', error);

@@ -125,28 +125,51 @@ export function FoodSearch({ onSelectFood, placeholder = "Search foods..." }: Fo
             <>
               {query.length === 0 && (
                 <div className="px-4 py-2 text-iron-gray text-xs uppercase border-b border-iron-gray">
-                  Popular Foods
+                  {foods.some((f: any) => f._personalized) ? 'Your Frequent Foods' : 'Popular Foods'}
                 </div>
               )}
-              {foods.map((food) => (
+              {foods.map((food: any) => (
                 <button
                   key={food.id}
                   onClick={() => handleSelectFood(food)}
-                  className="w-full px-4 py-3 hover:bg-iron-gray/20 transition-colors text-left group"
+                  className="w-full px-4 py-3 hover:bg-iron-gray/20 transition-colors text-left group relative"
                 >
+                  {/* Personalized indicator */}
+                  {food._personalized && (
+                    <div className="absolute left-1 top-1/2 -translate-y-1/2 w-1 h-8 bg-iron-orange rounded-full" />
+                  )}
+
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
-                      <div className="text-iron-white font-medium">
-                        {food.name}
+                      <div className="flex items-center gap-2">
+                        <span className="text-iron-white font-medium">
+                          {food.name}
+                        </span>
+                        {food._is_favorite && (
+                          <span className="text-iron-orange text-xs">★</span>
+                        )}
+                        {food._log_count > 5 && (
+                          <span className="text-iron-gray text-xs bg-iron-gray/20 px-1.5 py-0.5 rounded">
+                            {food._log_count}x
+                          </span>
+                        )}
                         {food.brand && (
-                          <span className="text-iron-gray text-sm ml-2">
+                          <span className="text-iron-gray text-sm">
                             {food.brand}
                           </span>
                         )}
                       </div>
-                      <div className="text-iron-gray text-sm">
-                        {food.serving_size} {food.serving_unit}
-                        {food.serving_description && ` (${food.serving_description})`}
+                      <div className="flex items-center gap-3 text-sm">
+                        <span className="text-iron-gray">
+                          {food._last_quantity && food._last_unit ? (
+                            <span className="text-iron-orange">
+                              Last: {food._last_quantity} {food._last_unit}
+                            </span>
+                          ) : (
+                            `${food.serving_size} ${food.serving_unit}`
+                          )}
+                          {food.serving_description && ` (${food.serving_description})`}
+                        </span>
                       </div>
                       <div className="text-iron-gray text-xs mt-1">
                         {formatNutrition(food)}

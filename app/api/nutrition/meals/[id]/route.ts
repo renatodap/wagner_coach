@@ -40,34 +40,54 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
       );
     }
 
-    // Verify meal exists and belongs to user
-    const { data: meal, error: fetchError } = await supabase
-      .from('meals')
-      .select('id, user_id')
-      .eq('id', id)
-      .eq('user_id', user.id)
-      .single();
+    // Check which table structure we're using
+    const hasNewSchema = await tableExists(supabase, 'meal_logs');
 
-    if (fetchError || !meal) {
-      return NextResponse.json(
-        { error: 'Meal not found or access denied' },
-        { status: 404 }
-      );
-    }
+    if (hasNewSchema) {
+      // New schema - delete from meal_logs (cascade will handle meal_log_foods)
+      const { error } = await supabase
+        .from('meal_logs')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', user.id);
 
-    // Delete the meal
-    const { error: deleteError } = await supabase
-      .from('meals')
-      .delete()
-      .eq('id', id)
-      .eq('user_id', user.id);
+      if (error) {
+        console.error('Error deleting meal from meal_logs:', error);
+        return NextResponse.json(
+          { error: 'Failed to delete meal' },
+          { status: 500 }
+        );
+      }
+    } else {
+      // Old schema - verify meal exists and belongs to user
+      const { data: meal, error: fetchError } = await supabase
+        .from('meals')
+        .select('id, user_id')
+        .eq('id', id)
+        .eq('user_id', user.id)
+        .single();
 
-    if (deleteError) {
-      console.error('Error deleting meal:', deleteError);
-      return NextResponse.json(
-        { error: 'Failed to delete meal' },
-        { status: 500 }
-      );
+      if (fetchError || !meal) {
+        return NextResponse.json(
+          { error: 'Meal not found or access denied' },
+          { status: 404 }
+        );
+      }
+
+      // Delete from meals table
+      const { error: deleteError } = await supabase
+        .from('meals')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', user.id);
+
+      if (deleteError) {
+        console.error('Error deleting meal from meals table:', deleteError);
+        return NextResponse.json(
+          { error: 'Failed to delete meal' },
+          { status: 500 }
+        );
+      }
     }
 
     return NextResponse.json(
