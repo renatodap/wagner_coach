@@ -3,8 +3,9 @@ Garmin Sync Backend Service
 FastAPI backend for handling Garmin Connect integration
 """
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from garminconnect import Garmin
 from datetime import datetime, timedelta
@@ -19,21 +20,15 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Wagner Coach Garmin Backend")
 
-# Configure CORS - Update with your actual frontend URL
-origins = [
-    "http://localhost:3000",
-    "https://sharpened.me",
-    "https://www.sharpened.me",
-    "https://*.vercel.app",  # Allow Vercel preview deployments
-    os.getenv("FRONTEND_URL", "https://sharpened.me")
-]
-
+# Configure CORS - MUST be before any routes
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins for now
+    allow_origins=["*"],  # Allow all origins
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
+    max_age=3600,
 )
 
 class GarminCredentials(BaseModel):
@@ -58,11 +53,20 @@ class Activity(BaseModel):
 
 @app.get("/")
 async def root():
-    return {"status": "healthy", "service": "Wagner Coach Garmin Backend"}
+    return {"status": "healthy", "service": "Wagner Coach Garmin Backend", "cors": "enabled"}
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy"}
+    return {"status": "healthy", "cors": "enabled"}
+
+@app.options("/{rest_of_path:path}")
+async def preflight_handler(request: Request, rest_of_path: str):
+    """Handle CORS preflight requests"""
+    return JSONResponse(content={}, headers={
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "Access-Control-Allow-Headers": "*",
+    })
 
 @app.post("/api/garmin/test")
 async def test_connection(credentials: GarminCredentials):
@@ -204,4 +208,5 @@ async def get_activity_details(activity_id: str, credentials: GarminCredentials)
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 8000))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    print(f"Starting server on port {port}")
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=False)

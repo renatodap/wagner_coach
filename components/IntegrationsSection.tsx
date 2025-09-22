@@ -22,11 +22,17 @@ export default function IntegrationsSection() {
   const [garminSyncing, setGarminSyncing] = useState(false);
   const [showGarminForm, setShowGarminForm] = useState(false);
   const [garminCredentials, setGarminCredentials] = useState({ email: '', password: '' });
+  const [storedGarminCreds, setStoredGarminCreds] = useState({ email: '', password: '' });
   const [connectionError, setConnectionError] = useState('');
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     checkConnections();
+    // Check if we have stored Garmin credentials
+    const storedCreds = localStorage.getItem('garmin_temp_creds');
+    if (storedCreds) {
+      setGarminConnected(true);
+    }
   }, []);
 
   const checkConnections = async () => {
@@ -141,6 +147,10 @@ export default function IntegrationsSection() {
 
       setGarminConnected(true);
       setShowGarminForm(false);
+      // Store credentials for sync (in production, use secure storage)
+      setStoredGarminCreds({ email: garminCredentials.email, password: garminCredentials.password });
+      // Store in localStorage temporarily (not secure - just for testing)
+      localStorage.setItem('garmin_temp_creds', JSON.stringify({ email: garminCredentials.email, password: garminCredentials.password }));
       setGarminCredentials({ email: '', password: '' });
       alert('Successfully connected to Garmin! You can now sync your activities.');
     } catch (error) {
@@ -177,12 +187,21 @@ export default function IntegrationsSection() {
       // Use backend URL from environment or fallback to local
       const backendUrl = (process.env.NEXT_PUBLIC_GARMIN_BACKEND_URL || 'http://localhost:8000').replace(/\/$/, '');
 
+      // Get stored credentials from localStorage (temporary - use secure storage in production)
+      const storedCreds = localStorage.getItem('garmin_temp_creds');
+      if (!storedCreds) {
+        alert('Please connect your Garmin account first');
+        return;
+      }
+
+      const creds = JSON.parse(storedCreds);
+
       const response = await fetch(`${backendUrl}/api/garmin/sync`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: garminCredentials.email || 'stored_email', // You should store this after successful connection
-          password: garminCredentials.password || 'stored_password', // You should store this securely
+          email: creds.email,
+          password: creds.password,
           days_back: 30
         })
       });
