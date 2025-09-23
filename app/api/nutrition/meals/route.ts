@@ -204,9 +204,15 @@ export async function POST(request: NextRequest) {
           .from('meal_logs')
           .insert({
             user_id: user.id,
+            name: body.name || 'Quick Meal',
             category: body.category || 'snack',
             logged_at: body.logged_at || new Date().toISOString(),
-            notes: body.notes
+            notes: body.notes,
+            total_calories: body.calories || 0,
+            total_protein_g: body.protein_g || 0,
+            total_carbs_g: body.carbs_g || 0,
+            total_fat_g: body.fat_g || 0,
+            total_fiber_g: body.fiber_g || 0
           })
           .select()
           .single();
@@ -239,15 +245,46 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json({ data: meal }, { status: 201 });
       } else if (body.foods && Array.isArray(body.foods)) {
-        // Full meal with multiple foods
+        // Full meal with multiple foods - calculate totals
+        let totalCalories = 0;
+        let totalProtein = 0;
+        let totalCarbs = 0;
+        let totalFat = 0;
+        let totalFiber = 0;
+
+        // Get food details to calculate totals
+        for (const food of body.foods) {
+          if (food.food_id) {
+            const { data: foodData } = await supabase
+              .from('foods')
+              .select('calories, protein_g, carbs_g, fat_g, fiber_g')
+              .eq('id', food.food_id)
+              .single();
+
+            if (foodData) {
+              const quantity = food.quantity || 1;
+              totalCalories += (foodData.calories || 0) * quantity;
+              totalProtein += (foodData.protein_g || 0) * quantity;
+              totalCarbs += (foodData.carbs_g || 0) * quantity;
+              totalFat += (foodData.fat_g || 0) * quantity;
+              totalFiber += (foodData.fiber_g || 0) * quantity;
+            }
+          }
+        }
+
         const { data: meal, error: mealError } = await supabase
           .from('meal_logs')
           .insert({
             user_id: user.id,
-            name: body.name,
+            name: body.name || 'Meal',
             category: body.category || 'other',
             logged_at: body.logged_at || new Date().toISOString(),
-            notes: body.notes
+            notes: body.notes,
+            total_calories: totalCalories,
+            total_protein_g: totalProtein,
+            total_carbs_g: totalCarbs,
+            total_fat_g: totalFat,
+            total_fiber_g: totalFiber
           })
           .select()
           .single();
@@ -264,8 +301,8 @@ export async function POST(request: NextRequest) {
         const foodInserts = body.foods.map((food: any) => ({
           meal_log_id: meal.id,
           food_id: food.food_id,
-          quantity: food.quantity,
-          unit: food.unit
+          quantity: food.quantity || 1,
+          unit: food.unit || 'serving'
         }));
 
         const { error: foodError } = await supabase
@@ -331,7 +368,6 @@ export async function POST(request: NextRequest) {
       { error: 'No nutrition tables found. Please run database migrations.' },
       { status: 500 }
     );
-
   } catch (error) {
     console.error('Unexpected error:', error);
     return NextResponse.json(

@@ -57,7 +57,7 @@ export function QuickMealEntry({ onMealAdded }: QuickMealEntryProps) {
     try {
       const mealData = isEditing ? editedMeal : parsedMeal;
 
-      // Ensure the data matches the API's expected format
+      // Use the simple format that works with the existing API
       const formattedMealData = {
         meal_name: mealData?.meal_name || 'Meal',
         meal_category: mealData?.meal_category || 'other',
@@ -70,6 +70,8 @@ export function QuickMealEntry({ onMealAdded }: QuickMealEntryProps) {
         notes: mealData?.notes
       };
 
+      console.log('Saving meal:', formattedMealData);
+
       const response = await fetch('/api/nutrition/meals', {
         method: 'POST',
         headers: {
@@ -78,9 +80,14 @@ export function QuickMealEntry({ onMealAdded }: QuickMealEntryProps) {
         body: JSON.stringify(formattedMealData),
       });
 
+      const responseData = await response.json();
+
       if (!response.ok) {
-        throw new Error('Failed to save meal');
+        console.error('Meal save error:', responseData);
+        throw new Error(responseData?.error || `Failed to save meal: ${response.statusText}`);
       }
+
+      console.log('Meal saved successfully:', responseData);
 
       // Reset state
       setDescription('');

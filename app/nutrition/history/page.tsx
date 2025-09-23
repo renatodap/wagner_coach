@@ -88,6 +88,8 @@ export default function NutritionHistoryPage() {
         notes: meal.notes ? `Copy from ${new Date(meal.logged_at).toLocaleDateString()}: ${meal.notes}` : `Copied from ${new Date(meal.logged_at).toLocaleDateString()}`
       };
 
+      console.log('Copying meal from history:', mealCopy);
+
       const response = await fetch('/api/nutrition/meals', {
         method: 'POST',
         headers: {
@@ -96,9 +98,14 @@ export default function NutritionHistoryPage() {
         body: JSON.stringify(mealCopy),
       });
 
+      const responseData = await response.json();
+
       if (!response.ok) {
-        throw new Error('Failed to copy meal');
+        console.error('Copy meal error:', responseData);
+        throw new Error(responseData?.error || 'Failed to copy meal');
       }
+
+      console.log('Meal copied successfully:', responseData);
 
       // Redirect to nutrition dashboard
       router.push('/nutrition');

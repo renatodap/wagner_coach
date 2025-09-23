@@ -98,6 +98,8 @@ export function NutritionDashboard() {
         notes: meal.notes ? `${meal.notes} (copied)` : 'Copied from previous meal'
       };
 
+      console.log('Copying meal:', mealCopy);
+
       const response = await fetch('/api/nutrition/meals', {
         method: 'POST',
         headers: {
@@ -106,9 +108,14 @@ export function NutritionDashboard() {
         body: JSON.stringify(mealCopy),
       });
 
+      const responseData = await response.json();
+
       if (!response.ok) {
-        throw new Error('Failed to copy meal');
+        console.error('Copy meal error:', responseData);
+        throw new Error(responseData?.error || 'Failed to copy meal');
       }
+
+      console.log('Meal copied successfully:', responseData);
 
       // Refresh meals
       await fetchMeals();

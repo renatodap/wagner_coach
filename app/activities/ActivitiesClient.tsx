@@ -2,11 +2,7 @@
 
 import { useState } from 'react';
 import {
-  Calendar,
   Activity,
-  Clock,
-  TrendingUp,
-  Heart,
   ChevronDown,
   ChevronUp,
   LinkIcon,
@@ -129,41 +125,6 @@ export default function ActivitiesClient() {
       </header>
 
       <main className="max-w-6xl mx-auto px-4 py-8 pb-24 space-y-8">
-        {/* Quick Stats Section */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="border border-iron-gray p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Calendar className="w-4 h-4 text-iron-orange" />
-              <span className="text-iron-gray text-sm">THIS WEEK</span>
-            </div>
-            <p className="text-2xl font-bold text-iron-white">5 workouts</p>
-          </div>
-
-          <div className="border border-iron-gray p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Clock className="w-4 h-4 text-iron-orange" />
-              <span className="text-iron-gray text-sm">TOTAL TIME</span>
-            </div>
-            <p className="text-2xl font-bold text-iron-white">6h 23m</p>
-          </div>
-
-          <div className="border border-iron-gray p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Heart className="w-4 h-4 text-iron-orange" />
-              <span className="text-iron-gray text-sm">AVG HEART RATE</span>
-            </div>
-            <p className="text-2xl font-bold text-iron-white">142 bpm</p>
-          </div>
-
-          <div className="border border-iron-gray p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <TrendingUp className="w-4 h-4 text-iron-orange" />
-              <span className="text-iron-gray text-sm">CURRENT STREAK</span>
-            </div>
-            <p className="text-2xl font-bold text-iron-white">3 days</p>
-          </div>
-        </div>
-
         {/* Activities List Section */}
         <div>
           <div className="flex items-center justify-between mb-6">

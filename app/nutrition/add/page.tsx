@@ -37,6 +37,8 @@ export default function AddMealPage() {
         notes: mealData.notes || null
       };
 
+      console.log('Saving meal:', formattedData);
+
       const response = await fetch('/api/nutrition/meals', {
         method: 'POST',
         headers: {
@@ -45,10 +47,14 @@ export default function AddMealPage() {
         body: JSON.stringify(formattedData),
       });
 
+      const responseData = await response.json();
+
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to save meal');
+        console.error('Meal save error:', responseData);
+        throw new Error(responseData.error || 'Failed to save meal');
       }
+
+      console.log('Meal saved successfully:', responseData);
 
       // Redirect to nutrition dashboard on success
       router.push('/nutrition');
