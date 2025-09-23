@@ -44,9 +44,18 @@ export async function POST(request: NextRequest) {
     }
 
     if (action === 'sync') {
+      console.log(`Saving ${activities?.length || 0} activities to database`);
+
       // Save activities to database
       const savedActivities = [];
       const errors = [];
+
+      if (!activities || activities.length === 0) {
+        return NextResponse.json({
+          success: false,
+          error: 'No activities to sync'
+        }, { status: 400 });
+      }
 
       for (const activity of activities) {
         try {
@@ -59,7 +68,7 @@ export async function POST(request: NextRequest) {
             activity_type: activity.activityType?.typeKey || 'other',
             start_time: activity.startTimeLocal || activity.startTimeGMT,
             duration: Math.round(activity.duration || 0),
-            distance: activity.distance || 0,
+            distance: activity.distance || null,
             calories: activity.calories || null,
             avg_heart_rate: activity.averageHR || null,
             max_heart_rate: activity.maxHR || null,
@@ -67,19 +76,37 @@ export async function POST(request: NextRequest) {
             avg_speed: activity.averageSpeed || null,
             max_speed: activity.maxSpeed || null,
             avg_cadence: activity.averageCadence || null,
-            raw_data: activity
+            raw_data: activity,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
           };
 
           const { data, error } = await supabase
             .from('activities')
-            .upsert(activityData, {
-              onConflict: 'user_id,source,external_id'
-            })
+            .insert(activityData)
             .select()
             .single();
 
           if (error) {
-            if (!error.message?.includes('duplicate')) {
+            // Try update if insert fails (for duplicates)
+            if (error.code === '23505' || error.message?.includes('duplicate')) {
+              const { data: updateData, error: updateError } = await supabase
+                .from('activities')
+                .update(activityData)
+                .eq('user_id', user.id)
+                .eq('source', 'garmin')
+                .eq('external_id', String(activity.activityId))
+                .select()
+                .single();
+
+              if (!updateError && updateData) {
+                savedActivities.push(updateData);
+              } else if (updateError) {
+                console.error('Update error:', updateError);
+                errors.push(`Activity ${activity.activityId}: ${updateError.message}`);
+              }
+            } else {
+              console.error('Insert error:', error);
               errors.push(`Activity ${activity.activityId}: ${error.message}`);
             }
           } else {
