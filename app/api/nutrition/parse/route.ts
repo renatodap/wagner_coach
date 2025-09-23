@@ -36,6 +36,7 @@ export async function POST(request: NextRequest) {
 
     // Initialize meal parser with OpenAI API key if available
     const apiKey = process.env.OPENAI_API_KEY;
+    console.log('OpenAI API key available:', !!apiKey);
     const parser = new MealParser(apiKey);
 
     // Parse the meal description

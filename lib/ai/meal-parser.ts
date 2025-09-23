@@ -87,6 +87,9 @@ export class MealParser {
         dangerouslyAllowBrowser: true // Note: In production, use server-side API calls
       });
       this.useOpenAI = true;
+      console.log('MealParser: OpenAI initialized');
+    } else {
+      console.log('MealParser: No API key, using rule-based parsing');
     }
   }
 
@@ -97,13 +100,17 @@ export class MealParser {
     // Try AI parsing first if available
     if (this.useOpenAI && this.openai) {
       try {
-        return await this.parseWithAI(description, currentTime);
+        console.log('Attempting AI parsing for:', description);
+        const result = await this.parseWithAI(description, currentTime);
+        console.log('AI parsing successful');
+        return result;
       } catch (error) {
         console.error('AI parsing failed, falling back to rule-based parsing:', error);
       }
     }
 
     // Fallback to rule-based parsing
+    console.log('Using rule-based parsing for:', description);
     return this.parseWithRules(description, currentTime);
   }
 

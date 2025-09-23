@@ -20,6 +20,88 @@ export interface FoodRecognitionResult {
   error?: string;
 }
 
+// Photo Recognition Types
+export interface PhotoCaptureProps {
+  onPhotoCapture: (imageData: string) => void;
+  onCancel: () => void;
+  isProcessing?: boolean;
+}
+
+export interface AIAnalysisProps {
+  imageData: string;
+  onAnalysisComplete: (mealData: AIAnalysisResult) => void;
+  onError: (error: string) => void;
+}
+
+export interface AIAnalysisResult {
+  foodItems: Array<{
+    name: string;
+    quantity: string;
+    confidence: number;
+    calories: number;
+    protein_g: number;
+    carbs_g: number;
+    fat_g: number;
+    fiber_g: number;
+  }>;
+  totalNutrition: {
+    calories: number;
+    protein_g: number;
+    carbs_g: number;
+    fat_g: number;
+    fiber_g: number;
+  };
+  suggestedMealName: string;
+  confidence: number;
+}
+
+export interface AIReviewProps {
+  aiResult: AIAnalysisResult;
+  originalImage: string;
+  onConfirm: (finalMealData: MealInsert) => void;
+  onReanalyze: () => void;
+  onManualEdit: () => void;
+}
+
+// API Request/Response Types
+export interface AnalyzePhotoRequest {
+  imageData: string; // Base64 encoded image
+  userId: string;
+  mealCategory?: MealType;
+  includePortionHelp?: boolean;
+}
+
+export interface AnalyzePhotoResponse {
+  success: boolean;
+  data?: AIAnalysisResult;
+  error?: string;
+  analysisId: string; // For feedback/correction tracking
+}
+
+export interface AnalysisFeedback {
+  analysisId: string;
+  corrections: Array<{
+    originalItem: string;
+    correctedItem: string;
+    originalNutrition: {
+      calories: number;
+      protein_g: number;
+      carbs_g: number;
+      fat_g: number;
+      fiber_g: number;
+    };
+    correctedNutrition: {
+      calories: number;
+      protein_g: number;
+      carbs_g: number;
+      fat_g: number;
+      fiber_g: number;
+    };
+    correctionType: 'identification' | 'portion' | 'nutrition';
+  }>;
+  userSatisfaction: number; // 1-5 rating
+}
+
 export interface LogMealAPIResponse {
   success: boolean;
   message?: string;
