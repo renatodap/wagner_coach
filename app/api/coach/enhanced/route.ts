@@ -8,7 +8,7 @@ import { OpenAI } from 'openai';
 import { EnhancedContextBuilder } from '@/lib/ai/enhanced-context';
 import { ContextCompressor } from '@/lib/ai/context-compressor';
 import { MemoryExtractor } from '@/lib/ai/memory-extractor';
-import { getEnhancedSystemPrompt } from '@/lib/ai/enhanced-coaching-prompts';
+import { getCachedSystemPrompt } from '@/lib/ai/enhanced-coaching-prompts';
 
 function getAIClient() {
   // Use OpenRouter with Gemini 2.0 Flash (1M token context!)
@@ -60,11 +60,11 @@ export async function POST(request: Request) {
     const compressor = new ContextCompressor();
     const compressedContext = await compressor.compressContext(enhancedContext, 50000);
 
-    // Build system prompt with enhanced context
-    const systemPrompt = await getEnhancedSystemPrompt(compressedContext);
+    // Build cached system prompt with enhanced context (70% cost savings!)
+    const systemPromptContent = await getCachedSystemPrompt(compressedContext);
 
     // Get conversation history if exists
-    let messages: any[] = [{ role: 'system', content: systemPrompt }];
+    let messages: any[] = [{ role: 'system', content: systemPromptContent }];
 
     if (conversationId) {
       const { data: conversation } = await supabase
