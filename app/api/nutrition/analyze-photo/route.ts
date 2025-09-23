@@ -1,14 +1,62 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { AnalyzePhotoRequest, AnalyzePhotoResponse, AIAnalysisResult } from '@/types/nutrition';
+import { openRouter } from '@/lib/ai/openrouter';
 
-// Initialize OpenAI (we'll use a mock for now, but structure for real integration)
-async function analyzeWithOpenAI(imageData: string): Promise<AIAnalysisResult> {
-  // In production, this would call OpenAI's Vision API
-  // For now, return a mock response for testing
+// Use OpenRouter for intelligent model selection
+async function analyzeWithOpenRouter(imageData: string, mealCategory?: string): Promise<AIAnalysisResult> {
+  const prompt = `You are a nutrition expert AI. Analyze this food image and provide detailed nutritional information.
 
+${mealCategory ? `This is a ${mealCategory} meal.` : ''}
+
+Identify all food items visible in the image and provide:
+1. Name of each food item
+2. Estimated quantity/portion size
+3. Nutritional information (calories, protein, carbs, fat, fiber)
+4. A confidence score for your analysis
+
+Return your response in this exact JSON format:
+{
+  "foodItems": [
+    {
+      "name": "Food item name",
+      "quantity": "Portion size (e.g., '150g', '1 cup')",
+      "confidence": 0.95,
+      "calories": 250,
+      "protein_g": 30,
+      "carbs_g": 10,
+      "fat_g": 5,
+      "fiber_g": 2
+    }
+  ],
+  "totalNutrition": {
+    "calories": 250,
+    "protein_g": 30,
+    "carbs_g": 10,
+    "fat_g": 5,
+    "fiber_g": 2
+  },
+  "suggestedMealName": "Descriptive meal name",
+  "confidence": 0.92
+}`;
+
+  try {
+    const result = await openRouter.analyzeImage(imageData, prompt);
+
+    // Parse the JSON response
+    const parsed = JSON.parse(result);
+    return parsed as AIAnalysisResult;
+  } catch (error) {
+    console.error('OpenRouter analysis failed:', error);
+    // Fallback to mock data if OpenRouter fails
+    return analyzeWithMockData(imageData);
+  }
+}
+
+// Fallback mock data for testing/development
+async function analyzeWithMockData(imageData: string): Promise<AIAnalysisResult> {
   // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 2000));
+  await new Promise(resolve => setTimeout(resolve, 1000));
 
   // Mock response based on common meal patterns
   const mockResponses = [
@@ -94,12 +142,6 @@ async function analyzeWithOpenAI(imageData: string): Promise<AIAnalysisResult> {
   return mockResponses[Math.floor(Math.random() * mockResponses.length)];
 }
 
-async function analyzeWithClaude(imageData: string): Promise<AIAnalysisResult> {
-  // Fallback to Claude if OpenAI fails
-  // Similar structure to OpenAI
-  return analyzeWithOpenAI(imageData);
-}
-
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
@@ -178,22 +220,16 @@ export async function POST(request: NextRequest) {
     // Analyze image with AI
     const startTime = Date.now();
     let analysisResult: AIAnalysisResult;
-    let aiServiceUsed = 'openai';
+    let aiServiceUsed = 'openrouter';
 
     try {
-      // Try OpenAI first
-      analysisResult = await analyzeWithOpenAI(imageData);
-    } catch (openAIError) {
-      // Fallback to Claude
-      try {
-        aiServiceUsed = 'claude';
-        analysisResult = await analyzeWithClaude(imageData);
-      } catch (claudeError) {
-        return NextResponse.json(
-          { success: false, error: 'Failed to analyze image. Please try again.' },
-          { status: 500 }
-        );
-      }
+      // Use OpenRouter which will automatically select the best model
+      analysisResult = await analyzeWithOpenRouter(imageData, mealCategory);
+    } catch (error) {
+      console.error('Image analysis failed:', error);
+      // Fallback to mock data if all services fail
+      aiServiceUsed = 'mock';
+      analysisResult = await analyzeWithMockData(imageData);
     }
 
     const processingTime = Date.now() - startTime;

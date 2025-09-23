@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { openRouter } from '@/lib/ai/openrouter';
 
 type EntryType = 'meal' | 'activity' | 'workout' | 'unknown';
 
@@ -14,6 +15,81 @@ interface ParsedEntry {
 const MEAL_KEYWORDS = ['ate', 'meal', 'breakfast', 'lunch', 'dinner', 'snack', 'calories', 'protein', 'carbs', 'food', 'drink', 'consumed'];
 const ACTIVITY_KEYWORDS = ['ran', 'walked', 'cycled', 'swam', 'hiked', 'miles', 'km', 'minutes', 'hours', 'cardio', 'steps'];
 const WORKOUT_KEYWORDS = ['workout', 'exercise', 'sets', 'reps', 'bench press', 'squat', 'deadlift', 'push-ups', 'pull-ups', 'chest', 'back', 'legs', 'arms', 'shoulders', 'gym'];
+
+// Use OpenRouter for intelligent entry analysis
+async function analyzeWithAI(text: string): Promise<ParsedEntry> {
+  const systemPrompt = `You are a fitness and nutrition assistant. Analyze the user's text entry and determine if it's about a meal, activity, workout, or unknown.
+
+Extract relevant information and return a JSON response in this exact format:
+
+For MEALS:
+{
+  "type": "meal",
+  "data": {
+    "name": "meal name",
+    "meal_type": "breakfast|lunch|dinner|snack",
+    "calories": number or null,
+    "protein_g": number or null,
+    "carbs_g": number or null,
+    "fat_g": number or null,
+    "fiber_g": number or null
+  },
+  "confidence": 0.0-1.0,
+  "suggestions": ["array of helpful suggestions"]
+}
+
+For ACTIVITIES:
+{
+  "type": "activity",
+  "data": {
+    "name": "activity name",
+    "type": "running|walking|cycling|swimming|cardio|other",
+    "duration": minutes as number or null,
+    "distance": distance as number or null,
+    "calories": number or null,
+    "notes": "original text"
+  },
+  "confidence": 0.0-1.0,
+  "suggestions": ["array of helpful suggestions"]
+}
+
+For WORKOUTS:
+{
+  "type": "workout",
+  "data": {
+    "name": "workout name",
+    "description": "original text",
+    "exercises": [
+      {
+        "name": "exercise name",
+        "sets": number,
+        "reps": number,
+        "weight": number or null
+      }
+    ]
+  },
+  "confidence": 0.0-1.0,
+  "suggestions": ["array of helpful suggestions"]
+}
+
+If unknown:
+{
+  "type": "unknown",
+  "data": null,
+  "confidence": 0.0,
+  "suggestions": ["Try being more specific", "Include keywords like 'ate', 'ran', 'workout'"]
+}`;
+
+  try {
+    const result = await openRouter.quickAnalysis(text, systemPrompt);
+    const parsed = JSON.parse(result);
+    return parsed as ParsedEntry;
+  } catch (error) {
+    console.error('OpenRouter quick analysis failed:', error);
+    // Fallback to pattern-based analysis
+    return null as any;
+  }
+}
 
 function determineEntryType(text: string): { type: EntryType; confidence: number } {
   const lowerText = text.toLowerCase();
@@ -188,7 +264,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Determine entry type
+    // Try AI analysis first if OpenRouter is configured
+    if (process.env.OPENROUTER_API_KEY) {
+      try {
+        const aiResult = await analyzeWithAI(text);
+        if (aiResult && aiResult.type !== 'unknown') {
+          return NextResponse.json(aiResult);
+        }
+      } catch (error) {
+        console.error('AI analysis failed, falling back to pattern matching:', error);
+      }
+    }
+
+    // Fallback to pattern-based analysis
     const { type, confidence } = determineEntryType(text);
 
     // Parse data based on type

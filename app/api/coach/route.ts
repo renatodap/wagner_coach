@@ -4,6 +4,7 @@ import { openai } from '@ai-sdk/openai';
 import { streamText, StreamingTextResponse } from 'ai';
 import { getSystemPrompt, formatCoachResponse } from '@/lib/ai/coaching-prompts';
 import { getConsolidatedUserContext } from '@/lib/ai/rag';
+import { openRouter } from '@/lib/ai/openrouter';
 
 export async function POST(request: NextRequest) {
   try {
@@ -124,6 +125,8 @@ export async function POST(request: NextRequest) {
     const modelName = process.env.OPENAI_MODEL_NAME || 'gpt-4-turbo';
 
     // PHASE 3: Stream response using StreamingTextResponse
+    // Note: OpenRouter is integrated for photo analysis and quick entry.
+    // To use OpenRouter here, replace the openai() model with custom implementation
     const result = await streamText({
       model: openai(modelName),
       messages,
