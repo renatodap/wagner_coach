@@ -76,6 +76,10 @@ export interface UserContext {
   goals?: GoalContext[];
   capabilities?: CapabilityContext;
   limitations?: LimitationContext;
+  nutritionStats?: any;
+  recentMeals?: any[];
+  nutritionGoals?: any;
+  dietaryPreferences?: any;
 }
 
 export interface ProfileContext {
