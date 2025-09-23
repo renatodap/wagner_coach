@@ -307,10 +307,19 @@ export default function ManualActivityForm({
 
               {/* Workout Linking */}
               <div className="space-y-2 pt-4 border-t border-iron-gray">
-                <Label className="text-iron-gray flex items-center gap-2">
-                  <Link className="w-4 h-4" />
-                  Link to Workout (Optional)
-                </Label>
+                <div className="flex items-center justify-between mb-2">
+                  <Label className="text-iron-gray flex items-center gap-2">
+                    <Link className="w-4 h-4" />
+                    Link to Workout (Optional)
+                  </Label>
+                  <button
+                    type="button"
+                    onClick={() => router.push('/workouts/browse')}
+                    className="text-iron-orange hover:text-orange-600 text-sm underline"
+                  >
+                    Browse Public Workouts
+                  </button>
+                </div>
                 <Select
                   value={linkedWorkoutId ? `${linkedWorkoutType}-${linkedWorkoutId}` : 'none'}
                   onValueChange={(value) => {
@@ -333,7 +342,7 @@ export default function ManualActivityForm({
                     {customWorkouts.length > 0 && (
                       <>
                         <div className="px-2 py-1.5 text-sm font-semibold text-iron-orange">
-                          Your Workouts
+                          Your Private Workouts
                         </div>
                         {customWorkouts.map((workout) => (
                           <SelectItem key={`custom-${workout.id}`} value={`custom-${workout.id}`}>
@@ -345,11 +354,11 @@ export default function ManualActivityForm({
                     {standardWorkouts.length > 0 && (
                       <>
                         <div className="px-2 py-1.5 text-sm font-semibold text-iron-orange">
-                          Standard Workouts
+                          Your Favorited Workouts
                         </div>
                         {standardWorkouts.map((workout) => (
                           <SelectItem key={`standard-${workout.id}`} value={`standard-${workout.id}`}>
-                            {workout.name}
+                            {workout.name} ⭐
                           </SelectItem>
                         ))}
                       </>

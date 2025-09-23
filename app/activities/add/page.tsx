@@ -12,18 +12,33 @@ export default async function AddActivityPage() {
     redirect('/auth');
   }
 
-  // Fetch user's custom workouts for linking
+  // Fetch user's private/custom workouts
   const { data: customWorkouts } = await supabase
     .from('user_custom_workouts')
     .select('id, name, type')
     .eq('user_id', user.id)
     .order('name');
 
-  // Fetch standard workouts
-  const { data: standardWorkouts } = await supabase
-    .from('workouts')
-    .select('id, name, type')
-    .order('name');
+  // Fetch only favorited public workouts
+  const { data: favoritedWorkouts } = await supabase
+    .from('user_workout_favorites')
+    .select(`
+      workout_id,
+      workouts!inner (
+        id,
+        name,
+        type
+      )
+    `)
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false });
+
+  // Transform favorited workouts to expected format
+  const standardWorkouts = favoritedWorkouts?.map(fav => ({
+    id: fav.workouts.id,
+    name: fav.workouts.name,
+    type: fav.workouts.type
+  })) || [];
 
   return (
     <ManualActivityForm

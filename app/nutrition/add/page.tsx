@@ -2,10 +2,19 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { MealLogForm } from '@/components/nutrition/MealLogForm';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import BottomNavigation from '@/app/components/BottomNavigation';
+
+// Dynamic import to avoid SSR issues with browser-specific code
+const MealLogForm = dynamic(
+  () => import('@/components/nutrition/MealLogForm').then(mod => mod.MealLogForm),
+  {
+    ssr: false,
+    loading: () => <div className="text-iron-gray p-6">Loading form...</div>
+  }
+);
 
 export default function AddMealPage() {
   const router = useRouter();
