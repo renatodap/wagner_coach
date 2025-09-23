@@ -50,6 +50,13 @@ const FOOD_DATABASE: Record<string, NutritionEstimate> = {
   'broccoli': { calories: 34, protein_g: 2.8, carbs_g: 7, fat_g: 0.4, fiber_g: 2.6 },
   'spinach': { calories: 23, protein_g: 2.9, carbs_g: 3.6, fat_g: 0.4, fiber_g: 2.2 },
   'carrot': { calories: 41, protein_g: 0.9, carbs_g: 10, fat_g: 0.2, fiber_g: 2.8 },
+
+  // Restaurant items (per serving)
+  'chipotle bowl': { calories: 700, protein_g: 30, carbs_g: 90, fat_g: 25, fiber_g: 15 },
+  'burrito bowl': { calories: 700, protein_g: 30, carbs_g: 90, fat_g: 25, fiber_g: 15 },
+  'burger': { calories: 550, protein_g: 25, carbs_g: 45, fat_g: 30, fiber_g: 2 },
+  'pizza': { calories: 285, protein_g: 12, carbs_g: 36, fat_g: 10, fiber_g: 2 },
+  'sandwich': { calories: 350, protein_g: 20, carbs_g: 40, fat_g: 12, fiber_g: 3 },
 };
 
 // Standard serving sizes in grams
@@ -62,6 +69,11 @@ const SERVING_SIZES: Record<string, number> = {
   'toast': 30, // 1 slice
   'milk': 244, // 1 cup
   'yogurt': 245, // 1 cup
+  'chipotle bowl': 650, // 1 bowl
+  'burrito bowl': 650, // 1 bowl
+  'burger': 200, // 1 burger
+  'pizza': 107, // 1 slice
+  'sandwich': 150, // 1 sandwich
 };
 
 export class MealParser {
@@ -158,6 +170,14 @@ Return ONLY valid JSON, no additional text.`;
     let loggedAt = new Date(currentTime);
     if (lower.includes('yesterday')) {
       loggedAt.setDate(loggedAt.getDate() - 1);
+      // Set appropriate time based on meal type mentioned
+      if (lower.includes('breakfast')) {
+        loggedAt.setHours(8, 0, 0, 0);
+      } else if (lower.includes('lunch')) {
+        loggedAt.setHours(12, 30, 0, 0);
+      } else if (lower.includes('dinner')) {
+        loggedAt.setHours(19, 0, 0, 0);
+      }
     } else if (lower.includes('last night')) {
       loggedAt.setDate(loggedAt.getDate() - 1);
       loggedAt.setHours(19, 0, 0, 0);
@@ -274,7 +294,23 @@ Return ONLY valid JSON, no additional text.`;
     // Generate meal name
     let mealName = foods.map(f => f.name).join(', ');
     if (!mealName) {
-      mealName = description.substring(0, 50);
+      // Try to extract a meal name from the description
+      if (lower.includes('chipotle')) {
+        mealName = 'Chipotle Bowl';
+      } else if (lower.includes('burger')) {
+        mealName = 'Burger';
+      } else if (lower.includes('pizza')) {
+        mealName = 'Pizza';
+      } else if (lower.includes('sandwich')) {
+        mealName = 'Sandwich';
+      } else {
+        mealName = description.substring(0, 50);
+      }
+    } else {
+      // Capitalize the meal name properly
+      mealName = mealName.split(' ').map(word =>
+        word.charAt(0).toUpperCase() + word.slice(1)
+      ).join(' ');
     }
 
     // Determine confidence

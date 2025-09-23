@@ -57,12 +57,25 @@ export function QuickMealEntry({ onMealAdded }: QuickMealEntryProps) {
     try {
       const mealData = isEditing ? editedMeal : parsedMeal;
 
+      // Ensure the data matches the API's expected format
+      const formattedMealData = {
+        meal_name: mealData?.meal_name || 'Meal',
+        meal_category: mealData?.meal_category || 'other',
+        logged_at: mealData?.logged_at || new Date().toISOString(),
+        calories: mealData?.calories,
+        protein_g: mealData?.protein_g,
+        carbs_g: mealData?.carbs_g,
+        fat_g: mealData?.fat_g,
+        fiber_g: mealData?.fiber_g,
+        notes: mealData?.notes
+      };
+
       const response = await fetch('/api/nutrition/meals', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(mealData),
+        body: JSON.stringify(formattedMealData),
       });
 
       if (!response.ok) {
