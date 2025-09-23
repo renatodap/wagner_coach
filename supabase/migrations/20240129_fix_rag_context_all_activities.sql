@@ -1,4 +1,7 @@
--- Enhanced RPC function for getting all RAG context including nutrition data
+-- Drop the existing function first
+DROP FUNCTION IF EXISTS get_rag_context_for_user(UUID);
+
+-- Enhanced RPC function for getting all RAG context including ALL activities (Garmin + Strava + Manual)
 CREATE OR REPLACE FUNCTION get_rag_context_for_user(p_user_id UUID)
 RETURNS TABLE (
   -- Profile information
@@ -23,7 +26,7 @@ RETURNS TABLE (
   -- Workout patterns
   workout_patterns JSONB,
 
-  -- Strava activities
+  -- All activities (was strava_activities, now includes all sources)
   strava_activities JSONB,
 
   -- Favorite workouts
@@ -35,7 +38,7 @@ RETURNS TABLE (
   -- Goals
   user_goals JSONB,
 
-  -- NEW: Nutrition data
+  -- Nutrition data
   nutrition_stats JSONB,
   recent_meals JSONB,
   nutrition_goals JSONB,
@@ -154,25 +157,31 @@ BEGIN
       'consistency_streak', 0
     ) AS workout_patterns,
 
-    -- All activities (Strava + Garmin + Manual) (last 20)
+    -- ALL ACTIVITIES from unified activities table (Garmin + Strava + Manual)
     COALESCE(
       (SELECT jsonb_agg(
         jsonb_build_object(
           'id', a.id,
           'name', a.activity_name,
-          'type', a.activity_type,
+          'activity_type', a.activity_type,
           'source', a.source,
+          'start_date', a.activity_date,
           'distance_meters', a.distance,
           'duration_seconds', a.duration,
           'calories', a.calories_burned,
           'average_heartrate', a.average_heart_rate,
           'max_heartrate', a.max_heart_rate,
-          'date', a.activity_date,
+          'average_speed', CASE
+            WHEN a.distance > 0 AND a.duration > 0
+            THEN (a.distance::FLOAT / 1000) / (a.duration::FLOAT / 3600)
+            ELSE NULL
+          END,
           'notes', a.notes
         ) ORDER BY a.activity_date DESC
       )
       FROM activities a
       WHERE a.user_id = p_user_id
+      AND a.activity_date >= CURRENT_DATE - INTERVAL '30 days'
       LIMIT 20),
       '[]'::JSONB
     ) AS strava_activities,
@@ -235,7 +244,7 @@ BEGIN
       '[]'::JSONB
     ) AS user_goals,
 
-    -- NEW: Nutrition statistics
+    -- Nutrition statistics
     jsonb_build_object(
       'avg_daily_calories', (
         SELECT AVG(daily_calories)::INTEGER
