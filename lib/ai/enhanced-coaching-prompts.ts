@@ -5,6 +5,12 @@
 
 import { EnhancedUserContext, CompressedContext } from '@/types/memory';
 import { ContextCompressor } from './context-compressor';
+import {
+  classifyQuestionIntent,
+  getCoachingFramework,
+  buildIntentInstructions,
+  type QuestionIntent
+} from './coaching-frameworks';
 
 export async function getEnhancedSystemPrompt(
   context: EnhancedUserContext | CompressedContext
@@ -709,4 +715,43 @@ function buildDynamicCompressed(context: CompressedContext): string {
   }
 
   return prompt;
+}
+/**
+ * Build intent-specific coaching instructions based on user's question
+ * This makes the AI provide ACTIONABLE, EXPERT coaching instead of generic responses
+ */
+export function buildIntentSpecificInstructions(
+  userMessage: string,
+  context: EnhancedUserContext | CompressedContext
+): string {
+  // Classify what the user is asking for
+  const intent = classifyQuestionIntent(userMessage);
+
+  // Get coaching framework based on their goal
+  const primaryGoal = context.profile?.primary_goal || context.profile?.primaryGoal || context.profile?.goal || '';
+  const aboutMe = context.profile?.about_me || context.profile?.aboutMe || '';
+  const fullGoal = `${primaryGoal} ${aboutMe}`.toLowerCase();
+
+  const framework = getCoachingFramework(fullGoal);
+
+  // Build specific instructions
+  const instructions = buildIntentInstructions(intent, framework);
+
+  return `
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+RESPONSE INSTRUCTIONS FOR THIS SPECIFIC QUESTION:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+${instructions}
+
+CRITICAL SUCCESS CRITERIA:
+✅ Use ACTUAL data from user's activities (dates, distances, specific numbers)
+✅ Be BRUTALLY HONEST - if something is wrong, SAY IT
+✅ Provide SPECIFIC actions - exact workouts, exact numbers, exact changes
+✅ Explain WHY - connect recommendations to their goal
+✅ Keep it DIRECT - no fluff, no generic advice
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+`;
 }

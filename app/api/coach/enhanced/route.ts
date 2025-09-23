@@ -8,7 +8,7 @@ import { OpenAI } from 'openai';
 import { EnhancedContextBuilder } from '@/lib/ai/enhanced-context';
 import { ContextCompressor } from '@/lib/ai/context-compressor';
 import { MemoryExtractor } from '@/lib/ai/memory-extractor';
-import { getCachedSystemPrompt } from '@/lib/ai/enhanced-coaching-prompts';
+import { getCachedSystemPrompt, buildIntentSpecificInstructions } from '@/lib/ai/enhanced-coaching-prompts';
 
 function getAIClient() {
   // Use OpenRouter with Gemini 2.0 Flash (1M token context!)
@@ -83,8 +83,12 @@ export async function POST(request: Request) {
       }
     }
 
-    // Add new user message
-    messages.push({ role: 'user', content: message });
+    // Add intent-specific coaching instructions to user message
+    const intentInstructions = buildIntentSpecificInstructions(message, compressedContext);
+    const enhancedMessage = message + intentInstructions;
+
+    // Add new user message with coaching instructions
+    messages.push({ role: 'user', content: enhancedMessage });
 
     // Get AI response with streaming
     const aiClient = getAIClient();
