@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/utils/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 import { AnalyzePhotoRequest, AnalyzePhotoResponse, AIAnalysisResult } from '@/types/nutrition';
 
 // Initialize OpenAI (we'll use a mock for now, but structure for real integration)

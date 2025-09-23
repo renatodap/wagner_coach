@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/utils/supabase/client';
+import { createClient } from '@/lib/supabase/client';
 import { Sparkles, Send, X, Check, AlertCircle } from 'lucide-react';
 
 type EntryType = 'meal' | 'activity' | 'workout' | 'unknown';
