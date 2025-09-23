@@ -85,6 +85,7 @@ export default function WorkoutBuilderClient({
   const [difficulty, setDifficulty] = useState<string>('intermediate');
   const [equipment, setEquipment] = useState<string[]>([]);
   const [tags, setTags] = useState<string[]>([]);
+  const [isPublic, setIsPublic] = useState(false);
 
   // Exercise management
   const [workoutExercises, setWorkoutExercises] = useState<WorkoutExercise[]>([]);
@@ -217,7 +218,7 @@ export default function WorkoutBuilderClient({
           estimated_duration_minutes: Math.round(estimatedDuration),
           equipment_required: equipment,
           tags,
-          is_public: false
+          is_public: isPublic
         })
         .select()
         .single();
@@ -355,6 +356,28 @@ export default function WorkoutBuilderClient({
               className="bg-iron-black border-iron-gray text-iron-white"
               rows={3}
             />
+          </div>
+
+          {/* Public/Private Toggle */}
+          <div className="flex items-center justify-between p-4 bg-iron-gray/10 rounded-lg">
+            <div className="flex-1">
+              <Label htmlFor="public" className="text-iron-white font-medium">Make Workout Public</Label>
+              <p className="text-sm text-iron-gray mt-1">Allow other users to discover and use this workout</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsPublic(!isPublic)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                isPublic ? 'bg-iron-orange' : 'bg-iron-gray'
+              }`}
+            >
+              <span className="sr-only">Make workout public</span>
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  isPublic ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
           </div>
         </div>
 

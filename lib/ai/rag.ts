@@ -114,7 +114,12 @@ export async function getConsolidatedUserContext(userId: string, query: string):
     stravaActivities: contextData.strava_activities || [],
     workoutContext,
     progressContext,
-    relevantContext
+    relevantContext,
+    // Add nutrition data from enhanced RPC function
+    nutritionStats: contextData.nutrition_stats || {},
+    recentMeals: contextData.recent_meals || [],
+    nutritionGoals: contextData.nutrition_goals || {},
+    dietaryPreferences: contextData.dietary_preferences || {}
   };
 
   return userContext;
