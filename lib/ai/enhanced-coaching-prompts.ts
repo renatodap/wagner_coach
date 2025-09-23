@@ -11,6 +11,10 @@ export async function getEnhancedSystemPrompt(
 ): Promise<string | Array<{type: string; text: string; cache_control?: {type: string}}>> {
   const isCompressed = 'workoutSummary' in context;
 
+  const primaryGoal = context.profile?.primary_goal || context.profile?.primaryGoal || context.profile?.goal || 'Not specified';
+  const aboutMe = context.profile?.about_me || context.profile?.aboutMe || '';
+  const isDirect = primaryGoal.toLowerCase().includes('fuck') || aboutMe.toLowerCase().includes('fuck');
+
   return `You are Wagner, an elite AI fitness coach for the Iron Discipline app. You embody the intense, no-nonsense philosophy of the brand while being supportive and knowledgeable.
 
 CORE DIRECTIVES:
@@ -21,27 +25,35 @@ CORE DIRECTIVES:
 - Remember and reference past conversations and established preferences
 
 USER PROFILE:
-- Name: ${context.profile?.name || 'User'}
-- Primary Goal: ${context.profile?.primaryGoal || context.profile?.goal || 'Not specified'}
-- About: ${context.profile?.aboutMe || ''}
-- Experience: ${context.profile?.experience || 'Unknown'}
-- Member since: ${context.profile?.createdAt ? new Date(context.profile.createdAt).toLocaleDateString() : 'Unknown'}
+- Name: ${context.profile?.name || context.profile?.full_name || 'User'}
+- Age: ${context.profile?.age || 'Unknown'}
+- Experience Level: ${context.profile?.experience || context.profile?.experience_level || 'Unknown'}
+- Member Since: ${context.profile?.created_at || context.profile?.createdAt ? new Date(context.profile.created_at || context.profile.createdAt).toLocaleDateString() : 'Unknown'}
+
+PRIMARY GOAL: ${primaryGoal}
+${aboutMe ? `TRAINING FOR: ${aboutMe}` : ''}
+
+CRITICAL: ALWAYS reference these specific goals when providing advice! The user is ${aboutMe || primaryGoal} - keep this in mind for ALL recommendations.
 
 ${isCompressed ? buildCompressedPrompt(context as CompressedContext) : buildFullPrompt(context as EnhancedUserContext)}
 
 COACHING APPROACH:
+${isDirect
+  ? '- User prefers DIRECT, NO-BS communication - be straight up, skip fluff, get to the point'
+  : '- Use professional but encouraging tone'}
 ${buildCoachingApproach(context)}
 
 IMPORTANT REMINDERS:
 ${buildReminders(context)}
 
 When providing advice:
-1. Reference specific data from the user's history
+1. Reference specific data from the user's history (especially their PRIMARY GOAL and TRAINING FOR)
 2. Acknowledge their preferences and constraints
 3. Build on previous conversations and commitments
 4. Track progress toward their stated goals
-5. Adapt your tone based on their communication preferences
-6. Always prioritize safety given any injuries or constraints`;
+5. Adapt your tone based on their communication preferences (${isDirect ? 'DIRECT/NO-BS' : 'professional'})
+6. Always prioritize safety given any injuries or constraints
+7. Use ACTUAL activity data - be specific about dates, distances, and performance`;
 }
 
 function buildFullPrompt(context: EnhancedUserContext): string {
@@ -91,9 +103,35 @@ function buildFullPrompt(context: EnhancedUserContext): string {
     }
   }
 
-  // Recent Workouts
+  // Strava/synced activities first for better context
+  if (context.recentActivities?.length > 0) {
+    const totalActivities = context.recentActivities.length;
+    const activityTypes = [...new Set(context.recentActivities.map(a => a.type || 'Unknown'))];
+    const last7Days = context.recentActivities.filter(a =>
+      new Date(a.start_date) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+    );
+
+    prompt += `\nSYNCED ACTIVITIES (Last 30 days, ${totalActivities} total):\n`;
+    prompt += `Activity types: ${activityTypes.join(', ')}\n`;
+
+    if (last7Days.length > 0) {
+      prompt += `\nLast 7 days (${last7Days.length} activities):\n`;
+      for (const activity of last7Days.slice(0, 7)) {
+        const date = new Date(activity.start_date).toLocaleDateString();
+        const distance = activity.distance ? `${(activity.distance / 1000).toFixed(1)}km` : '';
+        const duration = activity.moving_time ? `${Math.round(activity.moving_time / 60)}min` : '';
+        prompt += `- ${date}: ${activity.name} (${activity.type})`;
+        if (distance) prompt += ` - ${distance}`;
+        if (duration) prompt += ` - ${duration}`;
+        prompt += '\n';
+      }
+    }
+    prompt += '\nCRITICAL: Use this actual activity data to provide specific, data-driven coaching!\n';
+  }
+
+  // Manual workouts
   if (context.recentWorkouts?.length > 0) {
-    prompt += '\nRECENT WORKOUTS:\n';
+    prompt += '\nMANUAL WORKOUTS:\n';
     const recent = context.recentWorkouts.slice(0, 5);
     for (const workout of recent) {
       const date = new Date(workout.completed_at).toLocaleDateString();
@@ -362,14 +400,22 @@ CORE DIRECTIVES:
 - Remember and reference past conversations and established preferences`;
 
   // Part 2: User profile and stable preferences (cacheable)
+  const primaryGoal = context.profile?.primary_goal || context.profile?.primaryGoal || context.profile?.goal || 'Not specified';
+  const aboutMe = context.profile?.about_me || context.profile?.aboutMe || '';
+  const isDirect = primaryGoal.toLowerCase().includes('fuck') || aboutMe.toLowerCase().includes('fuck');
+
   let stableContext = `
 
 USER PROFILE:
-- Name: ${context.profile?.name || 'User'}
-- Primary Goal: ${context.profile?.primaryGoal || context.profile?.goal || 'Not specified'}
-- About: ${context.profile?.aboutMe || ''}
-- Experience: ${context.profile?.experience || 'Unknown'}
-- Member since: ${context.profile?.createdAt ? new Date(context.profile.createdAt).toLocaleDateString() : 'Unknown'}
+- Name: ${context.profile?.name || context.profile?.full_name || 'User'}
+- Age: ${context.profile?.age || 'Unknown'}
+- Experience Level: ${context.profile?.experience || context.profile?.experience_level || 'Unknown'}
+- Member Since: ${context.profile?.created_at || context.profile?.createdAt ? new Date(context.profile.created_at || context.profile.createdAt).toLocaleDateString() : 'Unknown'}
+
+PRIMARY GOAL: ${primaryGoal}
+${aboutMe ? `TRAINING FOR: ${aboutMe}` : ''}
+
+CRITICAL: ALWAYS reference these specific goals when providing advice! The user is ${aboutMe || primaryGoal} - keep this in mind for ALL recommendations.
 
 `;
 
@@ -378,6 +424,9 @@ USER PROFILE:
   stableContext += `
 
 COACHING APPROACH:
+${isDirect
+  ? '- User prefers DIRECT, NO-BS communication - be straight up, skip fluff, get to the point'
+  : '- Use professional but encouraging tone'}
 ${buildCoachingApproach(context)}
 
 IMPORTANT REMINDERS:
@@ -507,9 +556,35 @@ function buildStableFull(context: EnhancedUserContext): string {
 function buildDynamicFull(context: EnhancedUserContext): string {
   let prompt = '';
 
-  // Recent workouts (dynamic)
+  // Strava/synced activities (dynamic) - show first for better context
+  if (context.recentActivities?.length > 0) {
+    const totalActivities = context.recentActivities.length;
+    const activityTypes = [...new Set(context.recentActivities.map(a => a.type || 'Unknown'))];
+    const last7Days = context.recentActivities.filter(a =>
+      new Date(a.start_date) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+    );
+
+    prompt += `\nSYNCED ACTIVITIES (Last 30 days, ${totalActivities} total):\n`;
+    prompt += `Activity types: ${activityTypes.join(', ')}\n`;
+
+    if (last7Days.length > 0) {
+      prompt += `\nLast 7 days (${last7Days.length} activities):\n`;
+      for (const activity of last7Days.slice(0, 7)) {
+        const date = new Date(activity.start_date).toLocaleDateString();
+        const distance = activity.distance ? `${(activity.distance / 1000).toFixed(1)}km` : '';
+        const duration = activity.moving_time ? `${Math.round(activity.moving_time / 60)}min` : '';
+        prompt += `- ${date}: ${activity.name} (${activity.type})`;
+        if (distance) prompt += ` - ${distance}`;
+        if (duration) prompt += ` - ${duration}`;
+        prompt += '\n';
+      }
+    }
+    prompt += '\nCRITICAL: Use this actual activity data to provide specific, data-driven coaching!\n';
+  }
+
+  // Manual workouts (dynamic)
   if (context.recentWorkouts?.length > 0) {
-    prompt += '\nRECENT WORKOUTS:\n';
+    prompt += '\nMANUAL WORKOUTS:\n';
     for (const workout of context.recentWorkouts.slice(0, 5)) {
       const date = new Date(workout.completed_at).toLocaleDateString();
       prompt += `- ${workout.workout_name || 'Workout'} (${date}): ${workout.duration_minutes}min`;
