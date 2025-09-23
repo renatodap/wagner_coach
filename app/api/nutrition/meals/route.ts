@@ -58,10 +58,10 @@ export async function GET(request: NextRequest) {
 
       // Filter by date if provided
       if (date) {
-        const startDate = new Date(date);
-        startDate.setHours(0, 0, 0, 0);
-        const endDate = new Date(date);
-        endDate.setHours(23, 59, 59, 999);
+        // Parse the date string (YYYY-MM-DD) and create start/end times
+        const [year, month, day] = date.split('-').map(Number);
+        const startDate = new Date(year, month - 1, day, 0, 0, 0, 0);
+        const endDate = new Date(year, month - 1, day, 23, 59, 59, 999);
 
         query = query
           .gte('logged_at', startDate.toISOString())
@@ -69,13 +69,12 @@ export async function GET(request: NextRequest) {
       } else {
         // Default to today's meals
         const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
+        const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0);
+        const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
 
         query = query
-          .gte('logged_at', today.toISOString())
-          .lt('logged_at', tomorrow.toISOString());
+          .gte('logged_at', startOfDay.toISOString())
+          .lte('logged_at', endOfDay.toISOString());
       }
 
       const { data: meals, error } = await query;
@@ -121,10 +120,10 @@ export async function GET(request: NextRequest) {
         .limit(limit);
 
       if (date) {
-        const startDate = new Date(date);
-        startDate.setHours(0, 0, 0, 0);
-        const endDate = new Date(date);
-        endDate.setHours(23, 59, 59, 999);
+        // Parse the date string (YYYY-MM-DD) and create start/end times
+        const [year, month, day] = date.split('-').map(Number);
+        const startDate = new Date(year, month - 1, day, 0, 0, 0, 0);
+        const endDate = new Date(year, month - 1, day, 23, 59, 59, 999);
 
         query = query
           .gte('logged_at', startDate.toISOString())
@@ -132,13 +131,12 @@ export async function GET(request: NextRequest) {
       } else {
         // Default to today's meals
         const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
+        const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0);
+        const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
 
         query = query
-          .gte('logged_at', today.toISOString())
-          .lt('logged_at', tomorrow.toISOString());
+          .gte('logged_at', startOfDay.toISOString())
+          .lte('logged_at', endOfDay.toISOString());
       }
 
       const { data: meals, error } = await query;

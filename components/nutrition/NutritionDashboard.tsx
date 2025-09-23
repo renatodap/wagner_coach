@@ -7,6 +7,7 @@ import { Meal } from '@/types/nutrition';
 import { Plus, Apple, Trash2, Edit2, Copy, Clock } from 'lucide-react';
 import Link from 'next/link';
 import BottomNavigation from '@/app/components/BottomNavigation';
+import { QuickMealEntry } from './QuickMealEntry';
 
 export function NutritionDashboard() {
   const router = useRouter();
@@ -23,8 +24,12 @@ export function NutritionDashboard() {
 
   const fetchMeals = async () => {
     try {
-      // Fetch today's meals
-      const todayResponse = await fetch('/api/nutrition/meals');
+      // Get today's date in local timezone
+      const today = new Date();
+      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+      // Fetch today's meals with explicit date parameter
+      const todayResponse = await fetch(`/api/nutrition/meals?date=${todayStr}`);
       if (!todayResponse.ok) {
         throw new Error('Failed to fetch today\'s meals');
       }
@@ -34,7 +39,8 @@ export function NutritionDashboard() {
       // Fetch yesterday's meals for copying
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
-      const yesterdayResponse = await fetch(`/api/nutrition/meals?date=${yesterday.toISOString().split('T')[0]}`);
+      const yesterdayStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
+      const yesterdayResponse = await fetch(`/api/nutrition/meals?date=${yesterdayStr}`);
       if (yesterdayResponse.ok) {
         const yesterdayData = await yesterdayResponse.json();
         setYesterdaysMeals(yesterdayData.meals || []);
@@ -78,17 +84,18 @@ export function NutritionDashboard() {
 
   const handleCopyMeal = async (meal: Meal) => {
     try {
-      // Create a copy of the meal for today
+      // Create a copy of the meal for today with current time
+      const now = new Date();
       const mealCopy = {
         meal_name: meal.meal_name,
         meal_category: meal.meal_category,
-        logged_at: new Date().toISOString(),
+        logged_at: now.toISOString(),
         calories: meal.calories,
         protein_g: meal.protein_g,
         carbs_g: meal.carbs_g,
         fat_g: meal.fat_g,
         fiber_g: meal.fiber_g,
-        notes: meal.notes ? `Copy of: ${meal.notes}` : 'Copied meal'
+        notes: meal.notes ? `${meal.notes} (copied)` : 'Copied from previous meal'
       };
 
       const response = await fetch('/api/nutrition/meals', {
@@ -179,6 +186,7 @@ export function NutritionDashboard() {
               >
                 <Clock className="w-6 h-6" />
               </Link>
+              <QuickMealEntry onMealAdded={fetchMeals} />
               <Link
                 href="/nutrition/add"
                 className="bg-iron-orange text-iron-black px-4 py-2 font-heading uppercase tracking-wider hover:bg-orange-600 transition-colors flex items-center gap-2"

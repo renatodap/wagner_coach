@@ -152,8 +152,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
       // Transform for compatibility
       const transformed = {
         id: meal.id,
-        meal_name: meal.meal_name || meal.meal_log_foods?.map((f: any) => f.food.name).join(', '),
-        meal_category: meal.meal_category,
+        meal_name: meal.name || meal.meal_log_foods?.map((f: any) => f.food?.name).filter(Boolean).join(', ') || 'Meal',
+        meal_category: meal.category,
         logged_at: meal.logged_at,
         notes: meal.notes,
         calories: meal.total_calories,
@@ -227,42 +227,91 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       );
     }
 
-    // Verify meal exists and belongs to user
-    const { data: existingMeal, error: fetchError } = await supabase
-      .from('meals')
-      .select('id, user_id')
-      .eq('id', id)
-      .eq('user_id', user.id)
-      .single();
+    // Check which table structure we're using
+    const hasNewSchema = await tableExists(supabase, 'meal_logs');
 
-    if (fetchError || !existingMeal) {
-      return NextResponse.json(
-        { error: 'Meal not found or access denied' },
-        { status: 404 }
-      );
+    if (hasNewSchema) {
+      // New schema - verify meal exists and belongs to user
+      const { data: existingMeal, error: fetchError } = await supabase
+        .from('meal_logs')
+        .select('id, user_id')
+        .eq('id', id)
+        .eq('user_id', user.id)
+        .single();
+
+      if (fetchError || !existingMeal) {
+        return NextResponse.json(
+          { error: 'Meal not found or access denied' },
+          { status: 404 }
+        );
+      }
+
+      // Update the meal in meal_logs table
+      const { data: updatedMeal, error: updateError } = await supabase
+        .from('meal_logs')
+        .update({
+          name: updateData.meal_name,
+          category: updateData.meal_category,
+          notes: updateData.notes,
+          total_calories: updateData.calories,
+          total_protein_g: updateData.protein_g,
+          total_carbs_g: updateData.carbs_g,
+          total_fat_g: updateData.fat_g,
+          total_fiber_g: updateData.fiber_g,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', id)
+        .eq('user_id', user.id)
+        .select()
+        .single();
+
+      if (updateError) {
+        console.error('Error updating meal:', updateError);
+        return NextResponse.json(
+          { error: 'Failed to update meal' },
+          { status: 500 }
+        );
+      }
+
+      return NextResponse.json({ data: updatedMeal });
+    } else {
+      // Old schema - verify meal exists and belongs to user
+      const { data: existingMeal, error: fetchError } = await supabase
+        .from('meals')
+        .select('id, user_id')
+        .eq('id', id)
+        .eq('user_id', user.id)
+        .single();
+
+      if (fetchError || !existingMeal) {
+        return NextResponse.json(
+          { error: 'Meal not found or access denied' },
+          { status: 404 }
+        );
+      }
+
+      // Update the meal
+      const { data: updatedMeal, error: updateError } = await supabase
+        .from('meals')
+        .update({
+          ...updateData,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', id)
+        .eq('user_id', user.id)
+        .select()
+        .single();
+
+      if (updateError) {
+        console.error('Error updating meal:', updateError);
+        return NextResponse.json(
+          { error: 'Failed to update meal' },
+          { status: 500 }
+        );
+      }
+
+      return NextResponse.json({ data: updatedMeal });
     }
-
-    // Update the meal
-    const { data: updatedMeal, error: updateError } = await supabase
-      .from('meals')
-      .update({
-        ...updateData,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', id)
-      .eq('user_id', user.id)
-      .select()
-      .single();
-
-    if (updateError) {
-      console.error('Error updating meal:', updateError);
-      return NextResponse.json(
-        { error: 'Failed to update meal' },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json({ data: updatedMeal });
 
   } catch (error) {
     console.error('Update meal API error:', error);
