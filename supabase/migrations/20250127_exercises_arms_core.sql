@@ -141,8 +141,8 @@ INSERT INTO exercises (name, category_id, equipment_id, primary_muscle_id, movem
 ('L-Sit', get_category_id('Core'), get_equipment_id('Bodyweight'), get_muscle_id('Abs'), 'isometric', 'static', 'seated', true, 4, true),
 ('Dragon Flag', get_category_id('Core'), get_equipment_id('Bodyweight'), get_muscle_id('Abs'), 'compound', 'pull', 'lying_flat', true, 5, true),
 ('Human Flag', get_category_id('Core'), get_equipment_id('Bodyweight'), get_muscle_id('Obliques'), 'isometric', 'static', 'standing', true, 5, true),
-('Ab Wheel Rollout', get_category_id('Core'), get_equipment_id('Ab Wheel'), get_muscle_id('Abs'), 'compound', 'pull', 'kneeling', 3, true),
-('Standing Ab Wheel Rollout', get_category_id('Core'), get_equipment_id('Ab Wheel'), get_muscle_id('Abs'), 'compound', 'pull', 'standing', 5, true);
+('Ab Wheel Rollout', get_category_id('Core'), get_equipment_id('Ab Wheel'), get_muscle_id('Abs'), 'compound', 'pull', 'kneeling', false, 3, true),
+('Standing Ab Wheel Rollout', get_category_id('Core'), get_equipment_id('Ab Wheel'), get_muscle_id('Abs'), 'compound', 'pull', 'standing', false, 5, true);
 
 -- Machine Core Exercises
 INSERT INTO exercises (name, category_id, equipment_id, primary_muscle_id, movement_type, force_type, body_position, difficulty_level, is_public) VALUES
