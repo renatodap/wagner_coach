@@ -227,8 +227,15 @@ export default function IntegrationsSection() {
       }
 
       const syncData = await response.json();
+      console.log('Garmin sync response:', syncData);
+
+      if (!syncData.activities || syncData.activities.length === 0) {
+        alert('No activities found from Garmin');
+        return;
+      }
 
       // Save activities to Supabase
+      console.log(`Saving ${syncData.activities.length} activities to Supabase...`);
       const saveResponse = await fetch('/api/activities/garmin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -238,13 +245,21 @@ export default function IntegrationsSection() {
         })
       });
 
-      if (!saveResponse.ok) {
-        alert('Failed to save activities to database');
+      const saveData = await saveResponse.json();
+      console.log('Save response:', saveData);
+
+      if (!saveResponse.ok || saveData.error) {
+        alert(saveData.error || 'Failed to save activities to database');
         return;
       }
 
-      const saveData = await saveResponse.json();
-      alert(`Successfully synced ${saveData.savedCount} activities from Garmin`);
+      if (saveData.savedCount === 0 && saveData.errors?.length > 0) {
+        console.error('Save errors:', saveData.errors);
+        alert(`Failed to save activities. Errors: ${saveData.errors[0]}`);
+        return;
+      }
+
+      alert(`Successfully synced ${saveData.savedCount || syncData.count} activities from Garmin`);
 
       // Refresh the page to show new activities
       window.location.reload();

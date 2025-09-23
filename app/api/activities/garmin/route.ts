@@ -44,38 +44,44 @@ export async function POST(request: NextRequest) {
     }
 
     if (action === 'sync') {
-      console.log(`Saving ${activities?.length || 0} activities to database`);
+      console.log(`[Garmin Sync] Received request to save ${activities?.length || 0} activities`);
+      console.log(`[Garmin Sync] User ID: ${user.id}`);
 
       // Save activities to database
       const savedActivities = [];
       const errors = [];
 
       if (!activities || activities.length === 0) {
+        console.log('[Garmin Sync] No activities provided in request');
         return NextResponse.json({
           success: false,
           error: 'No activities to sync'
         }, { status: 400 });
       }
 
+      console.log(`[Garmin Sync] Processing ${activities.length} activities...`);
+
       for (const activity of activities) {
         try {
-          // Convert activity to our format
+          // Convert activity to our format - matching the actual database schema
           const activityData = {
             user_id: user.id,
             source: 'garmin',
             external_id: String(activity.activityId),
             name: activity.activityName || 'Unnamed Activity',
             activity_type: activity.activityType?.typeKey || 'other',
-            start_time: activity.startTimeLocal || activity.startTimeGMT,
-            duration: Math.round(activity.duration || 0),
-            distance: activity.distance || null,
-            calories: activity.calories || null,
-            avg_heart_rate: activity.averageHR || null,
-            max_heart_rate: activity.maxHR || null,
-            elevation_gain: activity.elevationGain || null,
-            avg_speed: activity.averageSpeed || null,
-            max_speed: activity.maxSpeed || null,
-            avg_cadence: activity.averageCadence || null,
+            sport_type: activity.activityType?.typeKey || null,
+            start_date: activity.startTimeLocal || activity.startTimeGMT,
+            elapsed_time_seconds: Math.round(activity.duration || 0),
+            moving_time_seconds: Math.round(activity.movingDuration || activity.duration || 0),
+            distance_meters: activity.distance || null,
+            calories_burned: activity.calories || null,
+            average_heartrate: activity.averageHR || null,
+            max_heartrate: activity.maxHR || null,
+            total_elevation_gain: activity.elevationGain || null,
+            average_speed: activity.averageSpeed ? (activity.averageSpeed / 3.6) : null, // Convert km/h to m/s
+            max_speed: activity.maxSpeed ? (activity.maxSpeed / 3.6) : null, // Convert km/h to m/s
+            average_cadence: activity.averageCadence || activity.averageRunningCadenceInStepsPerMinute || null,
             raw_data: activity,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
@@ -88,8 +94,12 @@ export async function POST(request: NextRequest) {
             .single();
 
           if (error) {
+            console.log(`[Garmin Sync] Insert error for activity ${activity.activityId}:`, error.code, error.message);
+
             // Try update if insert fails (for duplicates)
             if (error.code === '23505' || error.message?.includes('duplicate')) {
+              console.log(`[Garmin Sync] Attempting update for duplicate activity ${activity.activityId}`);
+
               const { data: updateData, error: updateError } = await supabase
                 .from('activities')
                 .update(activityData)
@@ -100,16 +110,18 @@ export async function POST(request: NextRequest) {
                 .single();
 
               if (!updateError && updateData) {
+                console.log(`[Garmin Sync] Successfully updated activity ${activity.activityId}`);
                 savedActivities.push(updateData);
               } else if (updateError) {
-                console.error('Update error:', updateError);
+                console.error(`[Garmin Sync] Update failed for activity ${activity.activityId}:`, updateError);
                 errors.push(`Activity ${activity.activityId}: ${updateError.message}`);
               }
             } else {
-              console.error('Insert error:', error);
+              console.error(`[Garmin Sync] Failed to insert activity ${activity.activityId}:`, error);
               errors.push(`Activity ${activity.activityId}: ${error.message}`);
             }
           } else {
+            console.log(`[Garmin Sync] Successfully saved activity ${activity.activityId}`);
             savedActivities.push(data);
           }
         } catch (err) {
@@ -125,6 +137,11 @@ export async function POST(request: NextRequest) {
           last_sync: new Date().toISOString()
         })
         .eq('user_id', user.id);
+
+      console.log(`[Garmin Sync] Sync complete: ${savedActivities.length} saved, ${errors.length} errors out of ${activities.length} total`);
+      if (errors.length > 0) {
+        console.log('[Garmin Sync] First 5 errors:', errors.slice(0, 5));
+      }
 
       return NextResponse.json({
         success: true,
