@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import { Profile, UserGoal } from '@/types/profile';
 import BottomNavigation from '@/app/components/BottomNavigation';
 import IntegrationsSection from '@/components/IntegrationsSection';
+import UnitSystemToggle from '@/components/UnitSystemToggle';
 import {
   Loader2,
   User,
@@ -336,6 +337,9 @@ export default function ProfilePage() {
 
         {/* Integrations */}
         <IntegrationsSection />
+
+        {/* Unit System Preferences */}
+        <UnitSystemToggle />
 
         {/* Sign Out */}
         <button
