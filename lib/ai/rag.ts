@@ -45,6 +45,16 @@ export async function getConsolidatedUserContext(userId: string, query: string):
   // Parse the consolidated data from RPC
   const contextData = data || {};
 
+  // Debug logging to see what activities we're getting
+  if (contextData.strava_activities) {
+    console.log(`[RAG] Found ${contextData.strava_activities.length} activities from database`);
+    if (contextData.strava_activities.length > 0) {
+      console.log('[RAG] Sample activity:', contextData.strava_activities[0]);
+    }
+  } else {
+    console.log('[RAG] No activities found in context data');
+  }
+
   // Build workout context from RPC data
   const workoutContext: WorkoutContext = {
     recentWorkouts: contextData.recent_workouts || [],

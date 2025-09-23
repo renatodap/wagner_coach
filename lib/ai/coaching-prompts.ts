@@ -1,7 +1,13 @@
 import { UserContext } from '@/lib/types/coaching';
 
 export function getSystemPrompt(context: UserContext): string {
-  const { profile, workouts, progress, nutritionStats, recentMeals, nutritionGoals } = context;
+  const { profile, workouts, progress, nutritionStats, recentMeals, nutritionGoals, stravaActivities } = context;
+
+  // Debug logging
+  console.log('[SystemPrompt] Building prompt with:');
+  console.log('- Activities count:', stravaActivities?.length || 0);
+  console.log('- Nutrition stats:', nutritionStats ? 'Present' : 'Missing');
+  console.log('- Profile:', profile ? 'Present' : 'Missing');
 
   return `You are Wagner, an elite AI fitness coach for the Iron Discipline app. You embody the intense, no-nonsense philosophy of the brand while being supportive and knowledgeable.
 
@@ -24,7 +30,7 @@ ${workouts?.recent?.slice(0, 5).map(w =>
 ).join('\n') || 'No recent workouts'}
 
 RECENT ACTIVITIES:
-${workouts?.stravaActivities?.slice(0, 10).map(a => {
+${stravaActivities?.slice(0, 10).map((a: any) => {
   const duration = a.duration_seconds ? Math.round(a.duration_seconds / 60) : 0;
   const distance = a.distance_meters ? (a.distance_meters / 1000).toFixed(1) : null;
   const pace = a.average_speed ? (a.average_speed * 3.6).toFixed(1) : null;

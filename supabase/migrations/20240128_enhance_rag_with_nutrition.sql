@@ -154,26 +154,21 @@ BEGIN
       'consistency_streak', 0
     ) AS workout_patterns,
 
-    -- All activities (Strava + Garmin + Manual) (last 20)
+    -- Strava activities (last 10)
     COALESCE(
       (SELECT jsonb_agg(
         jsonb_build_object(
-          'id', a.id,
-          'name', a.activity_name,
-          'type', a.activity_type,
-          'source', a.source,
-          'distance_meters', a.distance,
-          'duration_seconds', a.duration,
-          'calories', a.calories_burned,
-          'average_heartrate', a.average_heart_rate,
-          'max_heartrate', a.max_heart_rate,
-          'date', a.activity_date,
-          'notes', a.notes
-        ) ORDER BY a.activity_date DESC
+          'id', sa.activity_id,
+          'name', sa.name,
+          'type', sa.type,
+          'distance', sa.distance,
+          'duration', sa.moving_time,
+          'date', sa.start_date
+        ) ORDER BY sa.start_date DESC
       )
-      FROM activities a
-      WHERE a.user_id = p_user_id
-      LIMIT 20),
+      FROM strava_activities sa
+      WHERE sa.user_id = p_user_id
+      LIMIT 10),
       '[]'::JSONB
     ) AS strava_activities,
 

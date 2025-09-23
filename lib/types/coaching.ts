@@ -80,6 +80,7 @@ export interface UserContext {
   recentMeals?: any[];
   nutritionGoals?: any;
   dietaryPreferences?: any;
+  stravaActivities?: any[];
 }
 
 export interface ProfileContext {

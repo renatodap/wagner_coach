@@ -84,6 +84,14 @@ export async function POST(request: NextRequest) {
     // PHASE 2: Get consolidated context using RPC function (single database call)
     const context = await getConsolidatedUserContext(userId, message);
 
+    // Debug logging to check context
+    console.log('[Coach] User context received:');
+    console.log('- Profile:', context.profile ? 'Present' : 'Missing');
+    console.log('- Workouts:', context.workoutStats);
+    console.log('- Activities:', context.stravaActivities?.length || 0);
+    console.log('- Nutrition stats:', context.nutritionStats);
+    console.log('- Recent meals:', context.recentMeals?.length || 0);
+
     // Get conversation history if exists
     let conversationHistory: Array<{ role: string; content: string }> = [];
     let existingConversationId = conversationId;

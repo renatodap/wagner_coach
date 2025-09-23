@@ -162,26 +162,22 @@ BEGIN
       (SELECT jsonb_agg(
         jsonb_build_object(
           'id', a.id,
-          'name', a.activity_name,
+          'name', a.name,
           'activity_type', a.activity_type,
           'source', a.source,
-          'start_date', a.activity_date,
-          'distance_meters', a.distance,
-          'duration_seconds', a.duration,
-          'calories', a.calories_burned,
-          'average_heartrate', a.average_heart_rate,
-          'max_heartrate', a.max_heart_rate,
-          'average_speed', CASE
-            WHEN a.distance > 0 AND a.duration > 0
-            THEN (a.distance::FLOAT / 1000) / (a.duration::FLOAT / 3600)
-            ELSE NULL
-          END,
+          'start_date', a.start_date,
+          'distance_meters', a.distance_meters,
+          'duration_seconds', a.elapsed_time_seconds,
+          'calories', a.calories,
+          'average_heartrate', a.average_heartrate,
+          'max_heartrate', a.max_heartrate,
+          'average_speed', a.average_speed,
           'notes', a.notes
-        ) ORDER BY a.activity_date DESC
+        ) ORDER BY a.start_date DESC
       )
       FROM activities a
       WHERE a.user_id = p_user_id
-      AND a.activity_date >= CURRENT_DATE - INTERVAL '30 days'
+      AND a.start_date >= CURRENT_DATE - INTERVAL '30 days'
       LIMIT 20),
       '[]'::JSONB
     ) AS strava_activities,
