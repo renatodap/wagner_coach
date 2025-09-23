@@ -28,11 +28,6 @@ export default function IntegrationsSection() {
 
   useEffect(() => {
     checkConnections();
-    // Check if we have stored Garmin credentials
-    const storedCreds = localStorage.getItem('garmin_temp_creds');
-    if (storedCreds) {
-      setGarminConnected(true);
-    }
   }, []);
 
   const checkConnections = async () => {
@@ -50,8 +45,8 @@ export default function IntegrationsSection() {
 
         setStravaConnected(!!stravaConnection);
 
-        // Check Garmin connection
-        const garminResponse = await fetch('/api/connections/garmin');
+        // Check Garmin connection from Supabase
+        const garminResponse = await fetch('/api/activities/garmin');
         if (garminResponse.ok) {
           const garminData = await garminResponse.json();
           setGarminConnected(garminData.connected);
@@ -145,12 +140,24 @@ export default function IntegrationsSection() {
         return;
       }
 
+      // Save connection to Supabase
+      const saveResponse = await fetch('/api/activities/garmin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'connect',
+          email: garminCredentials.email,
+          password: garminCredentials.password
+        })
+      });
+
+      if (!saveResponse.ok) {
+        alert('Failed to save Garmin connection');
+        return;
+      }
+
       setGarminConnected(true);
       setShowGarminForm(false);
-      // Store credentials for sync (in production, use secure storage)
-      setStoredGarminCreds({ email: garminCredentials.email, password: garminCredentials.password });
-      // Store in localStorage temporarily (not secure - just for testing)
-      localStorage.setItem('garmin_temp_creds', JSON.stringify({ email: garminCredentials.email, password: garminCredentials.password }));
       setGarminCredentials({ email: '', password: '' });
       alert('Successfully connected to Garmin! You can now sync your activities.');
     } catch (error) {
@@ -161,8 +168,10 @@ export default function IntegrationsSection() {
 
   const disconnectGarmin = async () => {
     try {
-      const response = await fetch('/api/connections/garmin', {
-        method: 'DELETE'
+      const response = await fetch('/api/activities/garmin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'disconnect' })
       });
 
       if (response.ok) {
@@ -177,31 +186,36 @@ export default function IntegrationsSection() {
     try {
       setGarminSyncing(true);
 
-      // Get stored credentials from local storage or state
+      // Get stored credentials from Supabase
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         alert('Please log in first');
         return;
       }
 
-      // Use backend URL from environment or fallback to local
-      const backendUrl = (process.env.NEXT_PUBLIC_GARMIN_BACKEND_URL || 'http://localhost:8000').replace(/\/$/, '');
-
-      // Get stored credentials from localStorage (temporary - use secure storage in production)
-      const storedCreds = localStorage.getItem('garmin_temp_creds');
-      if (!storedCreds) {
+      // Get credentials from our API
+      const credsResponse = await fetch('/api/activities/garmin');
+      if (!credsResponse.ok) {
         alert('Please connect your Garmin account first');
         return;
       }
 
-      const creds = JSON.parse(storedCreds);
+      const credsData = await credsResponse.json();
+      if (!credsData.connected) {
+        alert('Please connect your Garmin account first');
+        return;
+      }
 
+      // Use backend URL from environment or fallback to local
+      const backendUrl = (process.env.NEXT_PUBLIC_GARMIN_BACKEND_URL || 'http://localhost:8000').replace(/\/$/, '');
+
+      // Sync with Garmin backend
       const response = await fetch(`${backendUrl}/api/garmin/sync`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: creds.email,
-          password: creds.password,
+          email: credsData.email,
+          password: credsData.password,
           days_back: 30
         })
       });
@@ -213,17 +227,31 @@ export default function IntegrationsSection() {
       }
 
       const syncData = await response.json();
-      alert(`Successfully synced ${syncData.count} activities from Garmin`);
 
-      // TODO: Save activities to Supabase here
-      // You'll need to create an endpoint to save the activities
+      // Save activities to Supabase
+      const saveResponse = await fetch('/api/activities/garmin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'sync',
+          activities: syncData.activities
+        })
+      });
+
+      if (!saveResponse.ok) {
+        alert('Failed to save activities to database');
+        return;
+      }
+
+      const saveData = await saveResponse.json();
+      alert(`Successfully synced ${saveData.savedCount} activities from Garmin`);
 
       // Refresh the page to show new activities
       window.location.reload();
 
     } catch (error) {
       console.error('Garmin sync error:', error);
-      alert('Failed to sync Garmin activities. Make sure the backend service is running.');
+      alert('Failed to sync Garmin activities.');
     } finally {
       setGarminSyncing(false);
     }
