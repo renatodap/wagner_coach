@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
             elapsed_time_seconds: Math.round(activity.duration || 0),
             moving_time_seconds: Math.round(activity.movingDuration || activity.duration || 0),
             distance_meters: activity.distance || null,
-            calories_burned: activity.calories || null,
+            calories: activity.calories || null,
             average_heartrate: activity.averageHR || null,
             max_heartrate: activity.maxHR || null,
             total_elevation_gain: activity.elevationGain || null,
