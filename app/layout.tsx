@@ -17,6 +17,24 @@ const bebasNeue = Bebas_Neue({
 export const metadata: Metadata = {
   title: "Iron Discipline - Workout Tracker",
   description: "Transform your body with disciplined training",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Iron Discipline",
+  },
+  viewport: {
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
+    viewportFit: "cover",
+  },
+  themeColor: "#ff6b35",
+  icons: {
+    icon: "/icon.svg",
+    apple: "/icon.svg",
+  },
 };
 
 export default function RootLayout({

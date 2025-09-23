@@ -1,0 +1,28 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="512" height="512" fill="#0A0A0B"/>
+
+  <!-- Dumbbell Icon -->
+  <g transform="translate(256, 256)">
+    <!-- Left weight -->
+    <rect x="-200" y="-60" width="60" height="120" fill="#FF4500" stroke="#FF6B35" stroke-width="4"/>
+    <!-- Bar -->
+    <rect x="-160" y="-10" width="320" height="20" fill="#FF4500"/>
+    <!-- Right weight -->
+    <rect x="140" y="-60" width="60" height="120" fill="#FF4500" stroke="#FF6B35" stroke-width="4"/>
+
+    <!-- Center grip lines -->
+    <rect x="-30" y="-10" width="4" height="20" fill="#0A0A0B"/>
+    <rect x="-15" y="-10" width="4" height="20" fill="#0A0A0B"/>
+    <rect x="11" y="-10" width="4" height="20" fill="#0A0A0B"/>
+    <rect x="26" y="-10" width="4" height="20" fill="#0A0A0B"/>
+  </g>
+
+  <!-- Text -->
+  <text x="256" y="400" font-family="Arial, sans-serif" font-size="48" font-weight="bold" text-anchor="middle" fill="#FF4500">
+    IRON
+  </text>
+  <text x="256" y="450" font-family="Arial, sans-serif" font-size="32" font-weight="bold" text-anchor="middle" fill="#4A4A4A">
+    DISCIPLINE
+  </text>
+</svg>
