@@ -26,15 +26,31 @@ CREATE TABLE IF NOT EXISTS meal_log_foods (
 );
 
 -- Create indexes for performance
-CREATE INDEX idx_meal_logs_user_id ON meal_logs(user_id);
-CREATE INDEX idx_meal_logs_logged_at ON meal_logs(logged_at DESC);
-CREATE INDEX idx_meal_logs_category ON meal_logs(category);
-CREATE INDEX idx_meal_log_foods_meal_log_id ON meal_log_foods(meal_log_id);
-CREATE INDEX idx_meal_log_foods_food_id ON meal_log_foods(food_id);
+CREATE INDEX IF NOT EXISTS idx_meal_logs_user_id ON meal_logs(user_id);
+CREATE INDEX IF NOT EXISTS idx_meal_logs_logged_at ON meal_logs(logged_at DESC);
+CREATE INDEX IF NOT EXISTS idx_meal_logs_category ON meal_logs(category);
+CREATE INDEX IF NOT EXISTS idx_meal_log_foods_meal_log_id ON meal_log_foods(meal_log_id);
+CREATE INDEX IF NOT EXISTS idx_meal_log_foods_food_id ON meal_log_foods(food_id);
 
 -- Enable Row Level Security
 ALTER TABLE meal_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE meal_log_foods ENABLE ROW LEVEL SECURITY;
+
+-- Drop existing policies if they exist and recreate
+DO $$
+BEGIN
+  -- Drop existing policies for meal_logs if they exist
+  DROP POLICY IF EXISTS "Users can view own meal logs" ON meal_logs;
+  DROP POLICY IF EXISTS "Users can create own meal logs" ON meal_logs;
+  DROP POLICY IF EXISTS "Users can update own meal logs" ON meal_logs;
+  DROP POLICY IF EXISTS "Users can delete own meal logs" ON meal_logs;
+
+  -- Drop existing policies for meal_log_foods if they exist
+  DROP POLICY IF EXISTS "Users can view own meal log foods" ON meal_log_foods;
+  DROP POLICY IF EXISTS "Users can add foods to own meal logs" ON meal_log_foods;
+  DROP POLICY IF EXISTS "Users can update foods in own meal logs" ON meal_log_foods;
+  DROP POLICY IF EXISTS "Users can delete foods from own meal logs" ON meal_log_foods;
+END $$;
 
 -- RLS Policies for meal_logs
 CREATE POLICY "Users can view own meal logs"
