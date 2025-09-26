@@ -43,58 +43,88 @@ export function NaturalLanguageEntry({ onSubmit, onCancel }: NaturalLanguageEntr
         // Convert parsed foods to selected foods format
         if (result.parsed.foods && result.parsed.foods.length > 0) {
           // Handle foods that might be ParsedFoodItem objects or have nested food objects
-          const convertedFoods = result.parsed.foods.map((item: any) => {
+          const convertedFoods = await Promise.all(result.parsed.foods.map(async (item: any) => {
             let food: Food;
             let quantity: number;
 
             if (item.foodId) {
-              // This is a ParsedFoodItem with a foodId - need to get the full food object
-              food = {
-                id: item.foodId,
-                name: item.name,
-                brand: item.brand,
-                serving_size: 1,
-                serving_unit: item.unit || 'serving',
-                calories: item.nutrition?.calories || 0,
-                protein_g: item.nutrition?.protein_g || 0,
-                carbs_g: item.nutrition?.carbs_g || 0,
-                fat_g: item.nutrition?.fat_g || 0,
-                fiber_g: item.nutrition?.fiber_g || 0,
-                created_at: '',
-                created_by: '',
-                is_public: true,
-                is_verified: true
-              };
+              // This is a ParsedFoodItem with a valid foodId - fetch the full food object
+              try {
+                const response = await fetch(`/api/nutrition/foods/${item.foodId}`);
+                if (response.ok) {
+                  const foodData = await response.json();
+                  food = foodData.food;
+                } else {
+                  throw new Error('Food not found');
+                }
+              } catch (error) {
+                console.error('Failed to fetch food:', item.foodId, error);
+                // Create temporary food object
+                food = {
+                  id: item.foodId,
+                  name: item.name,
+                  brand: item.brand,
+                  serving_size: 1,
+                  serving_unit: item.unit || 'serving',
+                  calories: item.nutrition?.calories || 0,
+                  protein_g: item.nutrition?.protein_g || 0,
+                  carbs_g: item.nutrition?.carbs_g || 0,
+                  fat_g: item.nutrition?.fat_g || 0,
+                  fiber_g: item.nutrition?.fiber_g || 0,
+                  created_at: '',
+                  created_by: '',
+                  is_public: true,
+                  is_verified: false
+                };
+              }
               quantity = item.quantity || 1;
             } else if (item.food) {
               // This has a nested food object
               food = item.food;
               quantity = item.quantity || 1;
             } else {
-              // Fallback - create a food object from the item
-              food = {
-                id: item.id || `temp-${Date.now()}`,
-                name: item.name,
-                brand: item.brand,
-                serving_size: 1,
-                serving_unit: item.unit || 'serving',
-                calories: item.calories || item.nutrition?.calories || 0,
-                protein_g: item.protein_g || item.nutrition?.protein_g || 0,
-                carbs_g: item.carbs_g || item.nutrition?.carbs_g || 0,
-                fat_g: item.fat_g || item.nutrition?.fat_g || 0,
-                fiber_g: item.fiber_g || item.nutrition?.fiber_g || 0,
-                created_at: '',
-                created_by: '',
-                is_public: true,
-                is_verified: true
-              };
+              // No valid foodId - need to save this food to database first
+              console.log('Saving unknown food to database:', item.name);
+              try {
+                const response = await fetch('/api/nutrition/foods', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    name: item.name,
+                    brand: item.brand,
+                    serving_size: 100,
+                    serving_unit: item.unit || 'g',
+                    calories: item.nutrition?.calories || 0,
+                    protein_g: item.nutrition?.protein_g || 0,
+                    carbs_g: item.nutrition?.carbs_g || 0,
+                    fat_g: item.nutrition?.fat_g || 0,
+                    fiber_g: item.nutrition?.fiber_g || 0,
+                    description: `Added via AI parsing: ${item.source || 'unknown source'}`,
+                    is_verified: false
+                  })
+                });
+
+                if (response.ok) {
+                  const newFood = await response.json();
+                  food = newFood.food;
+                  console.log('✅ Successfully saved unknown food:', food.id);
+                } else {
+                  throw new Error('Failed to save food');
+                }
+              } catch (error) {
+                console.error('Failed to save unknown food:', error);
+                setError(`Could not save food "${item.name}" to database. Please try again.`);
+                return null;
+              }
               quantity = item.quantity || 1;
             }
 
             return { food, quantity };
-          });
+          }));
 
-          setSelectedFoods(convertedFoods);
+          // Filter out any null entries (failed food saves)
+          const validFoods = convertedFoods.filter(Boolean);
+          setSelectedFoods(validFoods);
         }
       } else {
         setError('Could not understand your meal description. Please try again with simpler terms.');
