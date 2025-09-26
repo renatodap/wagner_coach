@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Plus } from 'lucide-react';
 import { Food } from '@/types/nutrition-v2';
+import { FoodService } from '@/lib/nutrition/food-service';
 
 interface FoodSearchProps {
   onSelectFood: (food: Food) => void;
@@ -14,6 +15,7 @@ export function FoodSearch({ onSelectFood, placeholder = "Search foods..." }: Fo
   const [foods, setFoods] = useState<Food[]>([]);
   const [loading, setLoading] = useState(false);
   const [showResults, setShowResults] = useState(false);
+  const [foodService] = useState(() => new FoodService());
 
   // Debounced search
   useEffect(() => {
@@ -31,13 +33,11 @@ export function FoodSearch({ onSelectFood, placeholder = "Search foods..." }: Fo
   const loadPopularFoods = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/nutrition/foods/search?limit=10');
-      if (response.ok) {
-        const data = await response.json();
-        setFoods(data.foods || []);
-      }
+      const results = await foodService.searchFoods(undefined, 10);
+      setFoods(results);
     } catch (error) {
       console.error('Error loading foods:', error);
+      setFoods([]);
     } finally {
       setLoading(false);
     }
@@ -46,13 +46,11 @@ export function FoodSearch({ onSelectFood, placeholder = "Search foods..." }: Fo
   const searchFoods = async (searchQuery: string) => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/nutrition/foods/search?q=${encodeURIComponent(searchQuery)}`);
-      if (response.ok) {
-        const data = await response.json();
-        setFoods(data.foods || []);
-      }
+      const results = await foodService.searchFoods(searchQuery, 20);
+      setFoods(results);
     } catch (error) {
       console.error('Error searching foods:', error);
+      setFoods([]);
     } finally {
       setLoading(false);
     }
@@ -75,121 +73,64 @@ export function FoodSearch({ onSelectFood, placeholder = "Search foods..." }: Fo
 
   return (
     <div className="relative">
-      {/* Search Input */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-iron-gray w-5 h-5" />
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-iron-gray" size={20} />
         <input
           type="text"
           value={query}
-          onChange={(e) => {
-            setQuery(e.target.value);
-            setShowResults(true);
-          }}
-          onFocus={() => {
-            setShowResults(true);
-            if (foods.length === 0 && query.length === 0) {
-              loadPopularFoods();
-            }
-          }}
+          onChange={(e) => setQuery(e.target.value)}
+          onFocus={() => setShowResults(true)}
           placeholder={placeholder}
-          className="w-full pl-10 pr-4 py-3 bg-iron-black border border-iron-gray text-iron-white focus:outline-none focus:border-iron-orange transition-colors"
+          className="w-full bg-iron-black border border-iron-gray pl-10 pr-4 py-3 text-iron-white focus:outline-none focus:border-iron-orange transition-colors"
         />
       </div>
 
-      {/* Search Results */}
       {showResults && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-iron-black border border-iron-gray max-h-96 overflow-y-auto z-50">
+        <div className="absolute z-50 w-full mt-1 bg-iron-black border border-iron-gray max-h-96 overflow-y-auto">
           {loading ? (
             <div className="p-4 text-center text-iron-gray">
-              Searching...
+              Searching foods...
             </div>
-          ) : foods.length === 0 ? (
-            <div className="p-4 text-center">
-              {query.length >= 2 ? (
-                <div>
-                  <p className="text-iron-gray mb-3">No foods found</p>
-                  <a
-                    href="/nutrition/foods/create"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-iron-orange hover:text-orange-600 text-sm"
-                  >
-                    Create custom food →
-                  </a>
-                </div>
-              ) : (
-                <p className="text-iron-gray">Start typing to search</p>
-              )}
-            </div>
-          ) : (
-            <>
-              {query.length === 0 && (
-                <div className="px-4 py-2 text-iron-gray text-xs uppercase border-b border-iron-gray">
-                  {foods.some((f: any) => f._personalized) ? 'Your Frequent Foods' : 'Popular Foods'}
-                </div>
-              )}
-              {foods.map((food: any) => (
+          ) : foods.length > 0 ? (
+            <div className="divide-y divide-iron-gray/30">
+              {foods.map((food) => (
                 <button
                   key={food.id}
                   onClick={() => handleSelectFood(food)}
-                  className="w-full px-4 py-3 hover:bg-iron-gray/20 transition-colors text-left group relative"
+                  className="w-full p-4 hover:bg-iron-gray/10 transition-colors text-left group"
                 >
-                  {/* Personalized indicator */}
-                  {food._personalized && (
-                    <div className="absolute left-1 top-1/2 -translate-y-1/2 w-1 h-8 bg-iron-orange rounded-full" />
-                  )}
-
-                  <div className="flex items-center justify-between">
+                  <div className="flex justify-between items-start">
                     <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-iron-white font-medium">
-                          {food.name}
-                        </span>
-                        {food._is_favorite && (
-                          <span className="text-iron-orange text-xs">★</span>
-                        )}
-                        {food._log_count > 5 && (
-                          <span className="text-iron-gray text-xs bg-iron-gray/20 px-1.5 py-0.5 rounded">
-                            {food._log_count}x
-                          </span>
-                        )}
+                      <div className="font-medium text-iron-white group-hover:text-iron-orange transition-colors">
+                        {food.name}
                         {food.brand && (
-                          <span className="text-iron-gray text-sm">
-                            {food.brand}
+                          <span className="text-iron-gray text-sm ml-2">
+                            ({food.brand})
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-3 text-sm">
-                        <span className="text-iron-gray">
-                          {food._last_quantity && food._last_unit ? (
-                            <span className="text-iron-orange">
-                              Last: {food._last_quantity} {food._last_unit}
-                            </span>
-                          ) : (
-                            `${food.serving_size} ${food.serving_unit}`
-                          )}
-                          {food.serving_description && ` (${food.serving_description})`}
-                        </span>
+                      <div className="text-xs text-iron-gray mt-1">
+                        {food.serving_description || `${food.serving_size} ${food.serving_unit}`}
                       </div>
-                      <div className="text-iron-gray text-xs mt-1">
+                      <div className="text-xs text-iron-gray mt-1">
                         {formatNutrition(food)}
                       </div>
                     </div>
-                    <Plus className="w-5 h-5 text-iron-gray group-hover:text-iron-orange transition-colors" />
+                    <Plus className="text-iron-gray group-hover:text-iron-orange transition-colors ml-2" size={20} />
                   </div>
                 </button>
               ))}
-            </>
+            </div>
+          ) : query.length >= 2 ? (
+            <div className="p-4 text-center text-iron-gray">
+              No foods found. Try a different search term.
+            </div>
+          ) : (
+            <div className="p-4 text-center text-iron-gray">
+              Start typing to search foods
+            </div>
           )}
         </div>
-      )}
-
-      {/* Click outside to close */}
-      {showResults && (
-        <div
-          className="fixed inset-0 z-40"
-          onClick={() => setShowResults(false)}
-        />
       )}
     </div>
   );

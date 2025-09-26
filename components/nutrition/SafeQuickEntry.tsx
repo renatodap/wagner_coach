@@ -50,10 +50,16 @@ export function SafeQuickEntry({ onSubmit, onCancel }: SafeQuickEntryProps) {
       const allSuggestions: Food[] = [];
 
       for (const keyword of keywords) {
-        const response = await fetch(`/api/nutrition/foods/search?q=${encodeURIComponent(keyword)}&limit=3`);
-        if (response.ok) {
-          const data = await response.json();
-          allSuggestions.push(...(data.foods || []));
+        try {
+          const response = await fetch(`/api/nutrition/foods/search?q=${encodeURIComponent(keyword)}&limit=3`);
+          if (response.ok) {
+            const data = await response.json();
+            allSuggestions.push(...(data.foods || []));
+          } else {
+            console.error('Food search failed:', response.status, response.statusText);
+          }
+        } catch (err) {
+          console.error('Error searching for keyword:', keyword, err);
         }
       }
 
@@ -102,10 +108,11 @@ export function SafeQuickEntry({ onSubmit, onCancel }: SafeQuickEntryProps) {
       foods: selectedFoods.map(item => ({
         food_id: item.food.id,
         quantity: item.quantity,
-        unit: item.food.serving_unit
+        unit: item.food.serving_unit || 'serving'
       }))
     };
 
+    console.log('Submitting meal from SafeQuickEntry:', mealData);
     onSubmit(mealData);
   };
 

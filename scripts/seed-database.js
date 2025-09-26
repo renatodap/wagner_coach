@@ -1,11 +1,39 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-import { Database } from '@/lib/supabase/database.types.new';
+const { createClient } = require('@supabase/supabase-js');
+const fs = require('fs');
+const path = require('path');
 
-type Food = Database['public']['Tables']['foods']['Insert'];
+// Load environment variables
+require('dotenv').config({ path: path.join(__dirname, '..', '.env.local') });
 
-// Basic food database for seeding
-const SEED_FOODS: Food[] = [
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || (!serviceRoleKey && !anonKey)) {
+  console.error('❌ Missing environment variables:');
+  console.error('NEXT_PUBLIC_SUPABASE_URL:', supabaseUrl ? 'Present' : 'Missing');
+  console.error('SUPABASE_SERVICE_ROLE_KEY:', serviceRoleKey ? 'Present' : 'Missing');
+  console.error('NEXT_PUBLIC_SUPABASE_ANON_KEY:', anonKey ? 'Present' : 'Missing');
+  process.exit(1);
+}
+
+// Try service role key first, fallback to anon key
+const keyToUse = serviceRoleKey || anonKey;
+const keyType = serviceRoleKey ? 'service role' : 'anon';
+
+console.log('🔍 Using Supabase URL:', supabaseUrl);
+console.log('🔍 Using key type:', keyType);
+console.log('🔍 Key length:', keyToUse.length);
+
+// Create Supabase client
+const supabase = createClient(supabaseUrl, keyToUse, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false
+  }
+});
+
+const seedData = [
   {
     name: 'Chicken Breast, Raw',
     brand: null,
@@ -178,113 +206,91 @@ const SEED_FOODS: Food[] = [
   }
 ];
 
-export async function POST(request: NextRequest) {
-  try {
-    // Use anon key client - foods table should allow public inserts for is_public=true foods
-    const supabase = createClient<Database>(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
-    );
+async function seedFoods() {
+  console.log(`🌱 Starting food database seeding with ${seedData.length} foods...`);
 
-    console.log(`🌱 Starting food database seeding with ${SEED_FOODS.length} foods...`);
+  let totalInserted = 0;
+  const insertedFoods = [];
+  const errors = [];
 
-    let totalInserted = 0;
-    const insertedFoods = [];
-    const errors = [];
+  for (let i = 0; i < seedData.length; i++) {
+    const food = seedData[i];
 
-    for (let i = 0; i < SEED_FOODS.length; i++) {
-      const food = SEED_FOODS[i];
+    try {
+      const { data, error } = await supabase
+        .from('foods')
+        .insert([food])
+        .select()
+        .single();
 
-      try {
-        const { data, error } = await supabase
-          .from('foods')
-          .insert([food])
-          .select()
-          .single();
-
-        if (error) {
-          console.error(`❌ Error inserting food "${food.name}":`, error);
-          errors.push({
-            food_name: food.name,
-            error: error.message
-          });
-        } else {
-          totalInserted++;
-          insertedFoods.push(data);
-          console.log(`✅ Inserted food ${i + 1}/${SEED_FOODS.length}: ${food.name}`);
-        }
-      } catch (err) {
-        console.error(`❌ Exception inserting food "${food.name}":`, err);
+      if (error) {
+        console.error(`❌ Error inserting food "${food.name}":`, error);
         errors.push({
           food_name: food.name,
-          error: err instanceof Error ? err.message : 'Unknown error'
+          error: error.message
         });
+      } else {
+        totalInserted++;
+        insertedFoods.push(data);
+        console.log(`✅ Inserted food ${i + 1}/${seedData.length}: ${food.name}`);
       }
+    } catch (err) {
+      console.error(`❌ Exception inserting food "${food.name}":`, err);
+      errors.push({
+        food_name: food.name,
+        error: err instanceof Error ? err.message : 'Unknown error'
+      });
     }
-
-    const response = {
-      success: totalInserted > 0,
-      message: totalInserted > 0 ?
-        `Successfully seeded ${totalInserted} foods` :
-        'No foods were inserted due to errors',
-      total_inserted: totalInserted,
-      errors: errors,
-      sample_foods: insertedFoods.slice(0, 3).map(food => ({
-        id: food.id,
-        name: food.name,
-        calories: food.calories
-      }))
-    };
-
-    console.log(`🎉 Seeding completed: ${totalInserted} foods inserted, ${errors.length} errors`);
-
-    return NextResponse.json(response);
-
-  } catch (error) {
-    console.error('❌ Failed to seed foods:', error);
-    return NextResponse.json({
-      error: 'Failed to seed foods',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
   }
-}
 
-export async function GET() {
-  try {
-    // Use anon key client
-    const supabase = createClient<Database>(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
-    );
+  console.log(`🎉 Seeding completed: ${totalInserted} foods inserted, ${errors.length} errors`);
 
-    const { count } = await supabase
-      .from('foods')
-      .select('*', { count: 'exact', head: true });
-
-    return NextResponse.json({
-      current_food_count: count,
-      seed_foods_available: SEED_FOODS.length,
-      sample_foods: SEED_FOODS.slice(0, 3).map(food => ({
-        name: food.name,
-        calories: food.calories
-      }))
+  if (errors.length > 0) {
+    console.log('\n❌ Errors encountered:');
+    errors.forEach(error => {
+      console.log(`  • ${error.food_name}: ${error.error}`);
     });
-  } catch (error) {
-    return NextResponse.json({
-      error: 'Failed to check food database status',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
   }
+
+  if (totalInserted > 0) {
+    console.log('\n✅ Successfully inserted foods:');
+    insertedFoods.slice(0, 5).forEach(food => {
+      console.log(`  • ${food.name} (${food.calories} cal)`);
+    });
+  }
+
+  // Check final count
+  const { count, error: countError } = await supabase
+    .from('foods')
+    .select('*', { count: 'exact', head: true });
+
+  if (countError) {
+    console.error('❌ Error counting foods:', countError);
+  } else {
+    console.log(`\n📊 Total foods in database: ${count}`);
+  }
+
+  return {
+    success: totalInserted > 0,
+    total_inserted: totalInserted,
+    errors: errors,
+    final_count: count
+  };
 }
+
+// Run the seeding
+seedFoods()
+  .then(result => {
+    console.log('\n🏁 Seeding process completed');
+    if (result.success) {
+      console.log('✅ Food database successfully seeded!');
+      process.exit(0);
+    } else {
+      console.log('❌ Food seeding failed');
+      process.exit(1);
+    }
+  })
+  .catch(error => {
+    console.error('💥 Fatal error during seeding:', error);
+    process.exit(1);
+  });

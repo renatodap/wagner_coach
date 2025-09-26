@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { MealParser } from '@/lib/ai/meal-parser';
+import { IntelligentMealParser } from '@/lib/ai/intelligent-meal-parser';
 
 export async function POST(request: NextRequest) {
   try {
@@ -34,19 +34,36 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Initialize meal parser with OpenAI API key if available
-    const apiKey = process.env.OPENAI_API_KEY;
-    console.log('OpenAI API key available:', !!apiKey);
-    const parser = new MealParser(apiKey);
+    // Initialize intelligent meal parser with OpenRouter API key
+    const openRouterKey = process.env.OPENROUTER_API_KEY;
 
-    // Parse the meal description
-    const parsedMeal = await parser.parseMealDescription(body.description);
+    if (!openRouterKey) {
+      return NextResponse.json(
+        { error: 'OpenRouter API key not configured. Natural language parsing unavailable.' },
+        { status: 503 }
+      );
+    }
+
+    console.log('Using Intelligent Meal Parser with Perplexity fallback');
+    const parser = new IntelligentMealParser(openRouterKey, supabase);
+
+    // Parse the meal description with database search + Perplexity fallback
+    const parsedMeal = await parser.parse(body.description, user.id);
+
+    console.log('Parsed meal result:', {
+      foods: parsedMeal.foods.length,
+      confidence: parsedMeal.confidence,
+      requiresConfirmation: parsedMeal.requiresUserConfirmation,
+      warnings: parsedMeal.warnings.length
+    });
 
     // Return the parsed meal data for user confirmation
     // Note: We don't save it to the database yet - that happens after user confirms
     return NextResponse.json({
       parsed: parsedMeal,
-      originalDescription: body.description
+      originalDescription: body.description,
+      requiresConfirmation: parsedMeal.requiresUserConfirmation,
+      warnings: parsedMeal.warnings
     });
 
   } catch (error) {

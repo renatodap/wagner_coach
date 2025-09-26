@@ -246,7 +246,12 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ data: meal }, { status: 201 });
       } else if (body.foods && Array.isArray(body.foods) && body.foods.length > 0) {
         // Full meal with multiple foods - calculate totals
-        console.log('Creating meal with foods:', body.foods.length);
+        console.log('Creating meal with foods:', {
+          foodCount: body.foods.length,
+          foods: body.foods,
+          name: body.name,
+          category: body.category
+        });
         let totalCalories = 0;
         let totalProtein = 0;
         let totalCarbs = 0;
@@ -263,6 +268,14 @@ export async function POST(request: NextRequest) {
               .single();
 
             if (foodData) {
+              console.log('Processing food:', {
+                foodId: food.food_id,
+                quantity: food.quantity,
+                unit: food.unit,
+                servingSize: foodData.serving_size,
+                servingUnit: foodData.serving_unit
+              });
+
               // Calculate multiplier based on serving size
               const quantity = food.quantity || 1;
               const servingSize = foodData.serving_size || 1;
@@ -303,9 +316,15 @@ export async function POST(request: NextRequest) {
           .single();
 
         if (mealError) {
-          console.error('Error creating meal:', mealError);
+          console.error('Error creating meal:', {
+            error: mealError,
+            message: mealError.message,
+            details: mealError.details,
+            hint: mealError.hint,
+            code: mealError.code
+          });
           return NextResponse.json(
-            { error: 'Failed to create meal' },
+            { error: `Failed to create meal: ${mealError.message || 'Database error'}` },
             { status: 500 }
           );
         }
@@ -323,9 +342,16 @@ export async function POST(request: NextRequest) {
           .insert(foodInserts);
 
         if (foodError) {
-          console.error('Error adding foods to meal:', foodError);
+          console.error('Error adding foods to meal:', {
+            error: foodError,
+            message: foodError.message,
+            details: foodError.details,
+            hint: foodError.hint,
+            code: foodError.code,
+            foodInserts
+          });
           return NextResponse.json(
-            { error: 'Failed to add foods to meal' },
+            { error: `Failed to add foods to meal: ${foodError.message || 'Database error'}` },
             { status: 500 }
           );
         }

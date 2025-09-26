@@ -79,15 +79,30 @@ const SERVING_SIZES: Record<string, number> = {
 export class MealParser {
   private openai: OpenAI | null = null;
   private useOpenAI: boolean = false;
+  private useOpenRouter: boolean = false;
 
-  constructor(apiKey?: string) {
+  constructor(apiKey?: string, useOpenRouter: boolean = false) {
     if (apiKey) {
-      this.openai = new OpenAI({
-        apiKey,
-        dangerouslyAllowBrowser: true // Note: In production, use server-side API calls
-      });
+      if (useOpenRouter) {
+        this.openai = new OpenAI({
+          apiKey,
+          baseURL: 'https://openrouter.ai/api/v1',
+          dangerouslyAllowBrowser: true,
+          defaultHeaders: {
+            'HTTP-Referer': 'https://wagner-coach.vercel.app',
+            'X-Title': 'Wagner Coach Meal Parser'
+          }
+        });
+        this.useOpenRouter = true;
+        console.log('MealParser: OpenRouter initialized');
+      } else {
+        this.openai = new OpenAI({
+          apiKey,
+          dangerouslyAllowBrowser: true
+        });
+      }
       this.useOpenAI = true;
-      console.log('MealParser: OpenAI initialized');
+      console.log('MealParser: AI initialized');
     } else {
       console.log('MealParser: No API key, using rule-based parsing');
     }
@@ -145,8 +160,12 @@ For nutrition estimates:
 
 Return ONLY valid JSON, no additional text.`;
 
+    const model = this.useOpenRouter
+      ? 'openai/gpt-3.5-turbo' // OpenRouter format
+      : 'gpt-3.5-turbo'; // Direct OpenAI format
+
     const completion = await this.openai.chat.completions.create({
-      model: 'gpt-3.5-turbo', // Using cheaper model for simple parsing
+      model,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: description }
