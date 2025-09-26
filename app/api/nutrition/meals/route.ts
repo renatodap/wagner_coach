@@ -244,8 +244,9 @@ export async function POST(request: NextRequest) {
         }
 
         return NextResponse.json({ data: meal }, { status: 201 });
-      } else if (body.foods && Array.isArray(body.foods)) {
+      } else if (body.foods && Array.isArray(body.foods) && body.foods.length > 0) {
         // Full meal with multiple foods - calculate totals
+        console.log('Creating meal with foods:', body.foods.length);
         let totalCalories = 0;
         let totalProtein = 0;
         let totalCarbs = 0;
@@ -257,17 +258,29 @@ export async function POST(request: NextRequest) {
           if (food.food_id) {
             const { data: foodData } = await supabase
               .from('foods')
-              .select('calories, protein_g, carbs_g, fat_g, fiber_g')
+              .select('calories, protein_g, carbs_g, fat_g, fiber_g, serving_size, serving_unit')
               .eq('id', food.food_id)
               .single();
 
             if (foodData) {
+              // Calculate multiplier based on serving size
               const quantity = food.quantity || 1;
-              totalCalories += (foodData.calories || 0) * quantity;
-              totalProtein += (foodData.protein_g || 0) * quantity;
-              totalCarbs += (foodData.carbs_g || 0) * quantity;
-              totalFat += (foodData.fat_g || 0) * quantity;
-              totalFiber += (foodData.fiber_g || 0) * quantity;
+              const servingSize = foodData.serving_size || 1;
+
+              // If units match, calculate direct multiplier
+              // Otherwise, assume quantity is already adjusted
+              let multiplier = quantity / servingSize;
+
+              // If unit is different from serving unit, assume quantity is in servings
+              if (food.unit !== foodData.serving_unit && food.unit === 'serving') {
+                multiplier = quantity;
+              }
+
+              totalCalories += (foodData.calories || 0) * multiplier;
+              totalProtein += (foodData.protein_g || 0) * multiplier;
+              totalCarbs += (foodData.carbs_g || 0) * multiplier;
+              totalFat += (foodData.fat_g || 0) * multiplier;
+              totalFiber += (foodData.fiber_g || 0) * multiplier;
             }
           }
         }
@@ -317,7 +330,51 @@ export async function POST(request: NextRequest) {
           );
         }
 
+        console.log('Meal created successfully:', {
+          mealId: meal.id,
+          foodCount: foodInserts.length,
+          totalCalories: Math.round(totalCalories),
+          totalProtein: Math.round(totalProtein)
+        });
+
         return NextResponse.json({ data: meal }, { status: 201 });
+      } else if (body.foods && Array.isArray(body.foods) && body.foods.length === 0) {
+        // Empty meal - create meal without foods
+        console.log('Creating empty meal (no foods selected)');
+
+        const { data: meal, error: mealError } = await supabase
+          .from('meal_logs')
+          .insert({
+            user_id: user.id,
+            name: body.name || 'Empty Meal',
+            category: body.category || 'other',
+            logged_at: body.logged_at || new Date().toISOString(),
+            notes: body.notes || 'No foods added',
+            total_calories: 0,
+            total_protein_g: 0,
+            total_carbs_g: 0,
+            total_fat_g: 0,
+            total_fiber_g: 0
+          })
+          .select()
+          .single();
+
+        if (mealError) {
+          console.error('Error creating empty meal:', mealError);
+          return NextResponse.json(
+            { error: 'Failed to create meal' },
+            { status: 500 }
+          );
+        }
+
+        return NextResponse.json({ data: meal }, { status: 201 });
+      } else {
+        // No valid meal data format
+        console.error('Invalid meal data format:', body);
+        return NextResponse.json(
+          { error: 'Invalid meal data format. Provide either food_id or foods array.' },
+          { status: 400 }
+        );
       }
     }
 
