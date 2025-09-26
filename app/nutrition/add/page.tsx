@@ -16,11 +16,11 @@ const MealLogForm = dynamic(
   }
 );
 
-const SafeQuickEntry = dynamic(
-  () => import('@/components/nutrition/SafeQuickEntry').then(mod => mod.SafeQuickEntry),
+const NaturalLanguageEntry = dynamic(
+  () => import('@/components/nutrition/NaturalLanguageEntry').then(mod => mod.NaturalLanguageEntry),
   {
     ssr: false,
-    loading: () => <div className="text-iron-gray p-6">Loading quick entry...</div>
+    loading: () => <div className="text-iron-gray p-6">Loading AI parser...</div>
   }
 );
 
@@ -163,7 +163,7 @@ export default function AddMealPage() {
                 : 'bg-iron-black border border-iron-gray text-iron-gray hover:text-iron-white'
             }`}
           >
-Smart Quick Entry
+AI Natural Language
           </button>
         </div>
 
@@ -173,7 +173,7 @@ Smart Quick Entry
             onCancel={handleCancel}
           />
         ) : (
-          <SafeQuickEntry
+          <NaturalLanguageEntry
             onSubmit={handleMealBuilderSubmit}
             onCancel={handleCancel}
           />
