@@ -19,17 +19,36 @@ export function SafeQuickEntry({ onSubmit, onCancel }: SafeQuickEntryProps) {
   // Extract likely food items from description using simple pattern matching
   const extractFoodKeywords = (desc: string): string[] => {
     const text = desc.toLowerCase();
+
+    // First try common food keywords
     const commonFoods = [
       'chicken', 'beef', 'pork', 'salmon', 'tuna', 'egg', 'eggs',
       'rice', 'bread', 'pasta', 'oats', 'quinoa', 'potato',
       'apple', 'banana', 'orange', 'berries', 'avocado',
       'broccoli', 'spinach', 'carrots', 'tomato',
-      'cheese', 'milk', 'yogurt', 'protein', 'shake'
+      'cheese', 'milk', 'yogurt', 'protein', 'shake',
+      'steak', 'fish', 'turkey', 'ham', 'bacon',
+      'cereal', 'pancake', 'waffle', 'toast', 'bagel',
+      'salad', 'soup', 'sandwich', 'burger', 'pizza',
+      'coffee', 'tea', 'juice', 'water', 'soda'
     ];
 
-    return commonFoods.filter(food =>
+    const foundKeywords = commonFoods.filter(food =>
       text.includes(food) || text.includes(food + 's')
     );
+
+    // If no common foods found, extract significant words (3+ chars, not common words)
+    if (foundKeywords.length === 0) {
+      const stopWords = ['the', 'and', 'with', 'for', 'had', 'ate', 'some', 'got', 'was', 'were', 'are', 'has', 'have'];
+      const words = text
+        .split(/\s+/)
+        .filter(word => word.length >= 3 && !stopWords.includes(word))
+        .slice(0, 5); // Limit to 5 words to avoid too many searches
+
+      return words;
+    }
+
+    return foundKeywords;
   };
 
   const handleGetSuggestions = async () => {
@@ -41,7 +60,14 @@ export function SafeQuickEntry({ onSubmit, onCancel }: SafeQuickEntryProps) {
     const keywords = extractFoodKeywords(description);
 
     if (keywords.length === 0) {
-      setSuggestedFoods([]);
+      // If still no keywords, just search for the whole description
+      const response = await fetch(`/api/nutrition/foods/search?q=${encodeURIComponent(description)}&limit=10`);
+      if (response.ok) {
+        const data = await response.json();
+        setSuggestedFoods(data.foods || []);
+      } else {
+        setSuggestedFoods([]);
+      }
       return;
     }
 
@@ -175,7 +201,10 @@ export function SafeQuickEntry({ onSubmit, onCancel }: SafeQuickEntryProps) {
               <div className="text-center py-4">
                 <AlertTriangle className="text-yellow-400 mx-auto mb-2" size={32} />
                 <p className="text-iron-gray">
-                  No matching foods found in database. Try different keywords or use the manual food builder.
+                  No matching foods found in database. Try simpler terms like "chicken", "rice", or "apple".
+                </p>
+                <p className="text-iron-gray text-xs mt-2">
+                  Or switch to "Build from Foods" tab to browse the full database.
                 </p>
               </div>
             ) : (
