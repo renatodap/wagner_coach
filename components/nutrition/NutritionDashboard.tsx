@@ -64,15 +64,18 @@ export function NutritionDashboard() {
         method: 'DELETE',
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error('Failed to delete meal');
+        console.error('Delete failed:', data);
+        throw new Error(data.error || 'Failed to delete meal');
       }
 
       // Remove from local state
       setTodaysMeals(todaysMeals.filter(meal => meal.id !== mealId));
     } catch (error) {
       console.error('Error deleting meal:', error);
-      alert('Failed to delete meal');
+      alert(error instanceof Error ? error.message : 'Failed to delete meal');
     } finally {
       setDeletingId(null);
     }

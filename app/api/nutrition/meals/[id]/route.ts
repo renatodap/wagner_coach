@@ -7,16 +7,7 @@ interface RouteContext {
   };
 }
 
-// Helper to check if a table exists
-async function tableExists(supabase: any, tableName: string): Promise<boolean> {
-  try {
-    const { data, error } = await supabase.from(tableName).select('id').limit(1);
-    return !error;
-  } catch {
-    return false;
-  }
-}
-
+// Simplified DELETE that tries both tables
 export async function DELETE(request: NextRequest, context: RouteContext) {
   try {
     const supabase = await createClient();
@@ -32,7 +23,6 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
       );
     }
 
-    // Validate meal ID
     if (!id) {
       return NextResponse.json(
         { error: 'Meal ID is required' },
@@ -40,103 +30,42 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
       );
     }
 
-    // Check which table structure we're using
-    const hasNewSchema = await tableExists(supabase, 'meal_logs');
-    console.log('Delete request for meal:', id, 'hasNewSchema:', hasNewSchema);
+    console.log('Attempting to delete meal:', id, 'for user:', user.id);
 
-    if (hasNewSchema) {
-      // First check if meal exists in meal_logs
-      const { data: existingMeal, error: checkError } = await supabase
-        .from('meal_logs')
-        .select('id')
-        .eq('id', id)
-        .eq('user_id', user.id)
-        .single();
+    // Try to delete from meals table first (old schema)
+    const { error: mealsError } = await supabase
+      .from('meals')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', user.id);
 
-      console.log('Meal exists in meal_logs?', !!existingMeal, 'Check error:', checkError);
-
-      if (checkError || !existingMeal) {
-        // Maybe it's in the old schema
-        const { data: oldMeal } = await supabase
-          .from('meals')
-          .select('id')
-          .eq('id', id)
-          .eq('user_id', user.id)
-          .single();
-
-        if (oldMeal) {
-          console.log('Meal found in old meals table, deleting from there');
-          const { error: deleteOldError } = await supabase
-            .from('meals')
-            .delete()
-            .eq('id', id)
-            .eq('user_id', user.id);
-
-          if (deleteOldError) {
-            console.error('Error deleting from meals:', deleteOldError);
-            return NextResponse.json(
-              { error: `Failed to delete meal: ${deleteOldError.message}` },
-              { status: 500 }
-            );
-          }
-          return NextResponse.json({ message: 'Meal deleted successfully' }, { status: 200 });
-        }
-
-        return NextResponse.json(
-          { error: 'Meal not found or you do not have permission to delete it' },
-          { status: 404 }
-        );
-      }
-
-      // Delete from meal_logs (cascade will handle meal_log_foods)
-      const { error } = await supabase
-        .from('meal_logs')
-        .delete()
-        .eq('id', id)
-        .eq('user_id', user.id);
-
-      if (error) {
-        console.error('Error deleting meal from meal_logs:', error);
-        return NextResponse.json(
-          { error: `Failed to delete meal: ${error.message}` },
-          { status: 500 }
-        );
-      }
-    } else {
-      // Old schema - verify meal exists and belongs to user
-      const { data: meal, error: fetchError } = await supabase
-        .from('meals')
-        .select('id, user_id')
-        .eq('id', id)
-        .eq('user_id', user.id)
-        .single();
-
-      if (fetchError || !meal) {
-        return NextResponse.json(
-          { error: 'Meal not found or access denied' },
-          { status: 404 }
-        );
-      }
-
-      // Delete from meals table
-      const { error: deleteError } = await supabase
-        .from('meals')
-        .delete()
-        .eq('id', id)
-        .eq('user_id', user.id);
-
-      if (deleteError) {
-        console.error('Error deleting meal from meals table:', deleteError);
-        return NextResponse.json(
-          { error: `Failed to delete meal: ${deleteError.message}` },
-          { status: 500 }
-        );
-      }
+    if (!mealsError) {
+      console.log('Successfully deleted from meals table');
+      return NextResponse.json({ message: 'Meal deleted successfully' }, { status: 200 });
     }
 
+    console.log('Not in meals table, trying meal_logs:', mealsError.message);
+
+    // Try meal_logs table (new schema)
+    const { error: mealLogsError } = await supabase
+      .from('meal_logs')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', user.id);
+
+    if (!mealLogsError) {
+      console.log('Successfully deleted from meal_logs table');
+      return NextResponse.json({ message: 'Meal deleted successfully' }, { status: 200 });
+    }
+
+    console.error('Failed to delete from both tables:', {
+      meals: mealsError.message,
+      meal_logs: mealLogsError.message
+    });
+
     return NextResponse.json(
-      { message: 'Meal deleted successfully' },
-      { status: 200 }
+      { error: `Could not delete meal. It may not exist or you may not have permission.` },
+      { status: 404 }
     );
 
   } catch (error) {
@@ -148,6 +77,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
   }
 }
 
+// GET a single meal
 export async function GET(request: NextRequest, context: RouteContext) {
   try {
     const supabase = await createClient();
@@ -163,7 +93,6 @@ export async function GET(request: NextRequest, context: RouteContext) {
       );
     }
 
-    // Validate meal ID
     if (!id) {
       return NextResponse.json(
         { error: 'Meal ID is required' },
@@ -171,62 +100,54 @@ export async function GET(request: NextRequest, context: RouteContext) {
       );
     }
 
-    // Check which table structure we're using
-    const hasNewSchema = await tableExists(supabase, 'meal_logs');
-
-    if (hasNewSchema) {
-      // New schema - fetch from meal_logs with foods
-      const { data: meal, error } = await supabase
-        .from('meal_logs')
-        .select(`
+    // Try meal_logs first (new schema)
+    const { data: mealLog, error: mealLogError } = await supabase
+      .from('meal_logs')
+      .select(`
+        *,
+        meal_log_foods (
           *,
-          meal_log_foods (
-            *,
-            food:foods (*)
-          )
-        `)
-        .eq('id', id)
-        .eq('user_id', user.id)
-        .single();
+          food:foods (*)
+        )
+      `)
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .single();
 
-      if (error || !meal) {
-        return NextResponse.json({ error: 'Meal not found' }, { status: 404 });
-      }
-
-      // Transform for compatibility
+    if (mealLog && !mealLogError) {
+      // Transform to match old format
       const transformed = {
-        id: meal.id,
-        meal_name: meal.name || meal.meal_log_foods?.map((f: any) => f.food?.name).filter(Boolean).join(', ') || 'Meal',
-        meal_category: meal.category,
-        logged_at: meal.logged_at,
-        notes: meal.notes,
-        calories: meal.total_calories,
-        protein_g: meal.total_protein_g,
-        carbs_g: meal.total_carbs_g,
-        fat_g: meal.total_fat_g,
-        fiber_g: meal.total_fiber_g,
-        foods: meal.meal_log_foods
+        id: mealLog.id,
+        meal_name: mealLog.name || 'Meal',
+        meal_category: mealLog.category,
+        logged_at: mealLog.logged_at,
+        notes: mealLog.notes,
+        calories: mealLog.total_calories,
+        protein_g: mealLog.total_protein_g,
+        carbs_g: mealLog.total_carbs_g,
+        fat_g: mealLog.total_fat_g,
+        fiber_g: mealLog.total_fiber_g,
+        foods: mealLog.meal_log_foods
       };
-
       return NextResponse.json({ meal: transformed });
-    } else {
-      // Old schema - fetch from meals table
-      const { data: meal, error: fetchError } = await supabase
-        .from('meals')
-        .select('*')
-        .eq('id', id)
-        .eq('user_id', user.id)
-        .single();
+    }
 
-      if (fetchError || !meal) {
-        return NextResponse.json(
-          { error: 'Meal not found or access denied' },
-          { status: 404 }
-        );
-      }
+    // Try old meals table
+    const { data: meal, error: mealError } = await supabase
+      .from('meals')
+      .select('*')
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .single();
 
+    if (meal && !mealError) {
       return NextResponse.json({ meal });
     }
+
+    return NextResponse.json(
+      { error: 'Meal not found' },
+      { status: 404 }
+    );
 
   } catch (error) {
     console.error('Get meal API error:', error);
@@ -237,6 +158,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
   }
 }
 
+// UPDATE a meal
 export async function PUT(request: NextRequest, context: RouteContext) {
   try {
     const supabase = await createClient();
@@ -252,7 +174,6 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       );
     }
 
-    // Validate meal ID
     if (!id) {
       return NextResponse.json(
         { error: 'Meal ID is required' },
@@ -260,102 +181,48 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       );
     }
 
-    // Parse request body
-    let updateData;
-    try {
-      updateData = await request.json();
-    } catch {
-      return NextResponse.json(
-        { error: 'Invalid JSON body' },
-        { status: 400 }
-      );
+    const updateData = await request.json();
+
+    // Try to update in meal_logs first
+    const { data: mealLog, error: mealLogError } = await supabase
+      .from('meal_logs')
+      .update({
+        name: updateData.meal_name,
+        category: updateData.meal_category,
+        notes: updateData.notes,
+        total_calories: updateData.calories,
+        total_protein_g: updateData.protein_g,
+        total_carbs_g: updateData.carbs_g,
+        total_fat_g: updateData.fat_g,
+        total_fiber_g: updateData.fiber_g,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .select()
+      .single();
+
+    if (mealLog && !mealLogError) {
+      return NextResponse.json({ data: mealLog });
     }
 
-    // Check which table structure we're using
-    const hasNewSchema = await tableExists(supabase, 'meal_logs');
+    // Try old meals table
+    const { data: meal, error: mealError } = await supabase
+      .from('meals')
+      .update(updateData)
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .select()
+      .single();
 
-    if (hasNewSchema) {
-      // New schema - verify meal exists and belongs to user
-      const { data: existingMeal, error: fetchError } = await supabase
-        .from('meal_logs')
-        .select('id, user_id')
-        .eq('id', id)
-        .eq('user_id', user.id)
-        .single();
-
-      if (fetchError || !existingMeal) {
-        return NextResponse.json(
-          { error: 'Meal not found or access denied' },
-          { status: 404 }
-        );
-      }
-
-      // Update the meal in meal_logs table
-      const { data: updatedMeal, error: updateError } = await supabase
-        .from('meal_logs')
-        .update({
-          name: updateData.meal_name,
-          category: updateData.meal_category,
-          notes: updateData.notes,
-          total_calories: updateData.calories,
-          total_protein_g: updateData.protein_g,
-          total_carbs_g: updateData.carbs_g,
-          total_fat_g: updateData.fat_g,
-          total_fiber_g: updateData.fiber_g,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', id)
-        .eq('user_id', user.id)
-        .select()
-        .single();
-
-      if (updateError) {
-        console.error('Error updating meal:', updateError);
-        return NextResponse.json(
-          { error: 'Failed to update meal' },
-          { status: 500 }
-        );
-      }
-
-      return NextResponse.json({ data: updatedMeal });
-    } else {
-      // Old schema - verify meal exists and belongs to user
-      const { data: existingMeal, error: fetchError } = await supabase
-        .from('meals')
-        .select('id, user_id')
-        .eq('id', id)
-        .eq('user_id', user.id)
-        .single();
-
-      if (fetchError || !existingMeal) {
-        return NextResponse.json(
-          { error: 'Meal not found or access denied' },
-          { status: 404 }
-        );
-      }
-
-      // Update the meal
-      const { data: updatedMeal, error: updateError } = await supabase
-        .from('meals')
-        .update({
-          ...updateData,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', id)
-        .eq('user_id', user.id)
-        .select()
-        .single();
-
-      if (updateError) {
-        console.error('Error updating meal:', updateError);
-        return NextResponse.json(
-          { error: 'Failed to update meal' },
-          { status: 500 }
-        );
-      }
-
-      return NextResponse.json({ data: updatedMeal });
+    if (meal && !mealError) {
+      return NextResponse.json({ data: meal });
     }
+
+    return NextResponse.json(
+      { error: 'Meal not found or update failed' },
+      { status: 404 }
+    );
 
   } catch (error) {
     console.error('Update meal API error:', error);
@@ -366,7 +233,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
   }
 }
 
-// Handle CORS preflight requests
+// Handle CORS preflight
 export async function OPTIONS(request: NextRequest) {
   return new NextResponse(null, { status: 200 });
 }
