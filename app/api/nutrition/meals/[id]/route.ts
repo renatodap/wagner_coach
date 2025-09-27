@@ -42,9 +42,53 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
 
     // Check which table structure we're using
     const hasNewSchema = await tableExists(supabase, 'meal_logs');
+    console.log('Delete request for meal:', id, 'hasNewSchema:', hasNewSchema);
 
     if (hasNewSchema) {
-      // New schema - delete from meal_logs (cascade will handle meal_log_foods)
+      // First check if meal exists in meal_logs
+      const { data: existingMeal, error: checkError } = await supabase
+        .from('meal_logs')
+        .select('id')
+        .eq('id', id)
+        .eq('user_id', user.id)
+        .single();
+
+      console.log('Meal exists in meal_logs?', !!existingMeal, 'Check error:', checkError);
+
+      if (checkError || !existingMeal) {
+        // Maybe it's in the old schema
+        const { data: oldMeal } = await supabase
+          .from('meals')
+          .select('id')
+          .eq('id', id)
+          .eq('user_id', user.id)
+          .single();
+
+        if (oldMeal) {
+          console.log('Meal found in old meals table, deleting from there');
+          const { error: deleteOldError } = await supabase
+            .from('meals')
+            .delete()
+            .eq('id', id)
+            .eq('user_id', user.id);
+
+          if (deleteOldError) {
+            console.error('Error deleting from meals:', deleteOldError);
+            return NextResponse.json(
+              { error: `Failed to delete meal: ${deleteOldError.message}` },
+              { status: 500 }
+            );
+          }
+          return NextResponse.json({ message: 'Meal deleted successfully' }, { status: 200 });
+        }
+
+        return NextResponse.json(
+          { error: 'Meal not found or you do not have permission to delete it' },
+          { status: 404 }
+        );
+      }
+
+      // Delete from meal_logs (cascade will handle meal_log_foods)
       const { error } = await supabase
         .from('meal_logs')
         .delete()
@@ -54,7 +98,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
       if (error) {
         console.error('Error deleting meal from meal_logs:', error);
         return NextResponse.json(
-          { error: 'Failed to delete meal' },
+          { error: `Failed to delete meal: ${error.message}` },
           { status: 500 }
         );
       }
@@ -84,7 +128,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
       if (deleteError) {
         console.error('Error deleting meal from meals table:', deleteError);
         return NextResponse.json(
-          { error: 'Failed to delete meal' },
+          { error: `Failed to delete meal: ${deleteError.message}` },
           { status: 500 }
         );
       }
