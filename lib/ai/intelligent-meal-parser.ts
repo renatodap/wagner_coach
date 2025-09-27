@@ -16,7 +16,7 @@ export interface ParsedFoodItem {
     fiber_g?: number;
   };
   confidence: 'high' | 'medium' | 'low';
-  source: 'database' | 'perplexity' | 'estimate';
+  source: 'database' | 'openai' | 'estimate';
   needsConfirmation: boolean;
   fallbackNutrition?: boolean; // Flag for when we had to use estimates
 }
@@ -37,31 +37,14 @@ export interface IntelligentParsedMeal {
 
 export class IntelligentMealParser {
   private openai: OpenAI;
-  private perplexity: OpenAI;
   private supabase: SupabaseClient;
 
-  constructor(openRouterKey: string, supabase: SupabaseClient) {
+  constructor(openAIKey: string, supabase: SupabaseClient) {
     this.supabase = supabase;
-    // Standard OpenAI-compatible endpoint
+    // Direct OpenAI endpoint
     this.openai = new OpenAI({
-      apiKey: openRouterKey,
-      baseURL: 'https://openrouter.ai/api/v1',
-      dangerouslyAllowBrowser: true,
-      defaultHeaders: {
-        'HTTP-Referer': typeof window !== 'undefined' ? window.location.origin : '',
-        'X-Title': 'Wagner Coach Meal Parser'
-      }
-    });
-
-    // Perplexity for web searches
-    this.perplexity = new OpenAI({
-      apiKey: openRouterKey,
-      baseURL: 'https://openrouter.ai/api/v1',
-      dangerouslyAllowBrowser: true,
-      defaultHeaders: {
-        'HTTP-Referer': typeof window !== 'undefined' ? window.location.origin : '',
-        'X-Title': 'Wagner Coach Nutrition Search'
-      }
+      apiKey: openAIKey,
+      dangerouslyAllowBrowser: false  // Server-side only
     });
   }
 
@@ -72,7 +55,7 @@ export class IntelligentMealParser {
     const extracted = await this.extractFoodItems(description);
     console.log('📋 Extracted items:', extracted);
 
-    // Step 2: Match each food against database, use Perplexity if needed
+    // Step 2: Match each food against database, use OpenAI if needed
     const parsedFoods: ParsedFoodItem[] = [];
     const warnings: string[] = [];
 
@@ -127,7 +110,7 @@ Examples:
 - "handful almonds" → {"name": "almonds", "quantity": 30, "unit": "g"}`;
 
     const completion = await this.openai.chat.completions.create({
-      model: 'openai/gpt-4o-mini',
+      model: 'gpt-4o-mini',
       messages: [
         { role: 'system', content: prompt },
         { role: 'user', content: description }
@@ -162,29 +145,29 @@ Examples:
       return this.createParsedFood(item, dbMatch.food, 'database', 'high', false);
     }
 
-    console.log('❌ Not found in database, trying Perplexity...');
+    console.log('❌ Not found in database, trying OpenAI...');
 
-    // Step 2: Search with Perplexity
+    // Step 2: Search with OpenAI
     try {
-      const perplexityResult = await this.searchWithPerplexity(item);
+      const aiResult = await this.searchWithAI(item);
 
-      if (perplexityResult) {
-        console.log('🌐 Perplexity found:', perplexityResult);
+      if (aiResult) {
+        console.log('🌐 OpenAI found:', aiResult);
 
         // Step 3: Try to add to database for future use
-        const newFood = await this.addToDatabase(perplexityResult, userId);
+        const newFood = await this.addToDatabase(aiResult, userId);
 
         if (newFood) {
-          warnings.push(`Found "${item.name}" via web search and added to your database`);
-          return this.createParsedFood(item, newFood, 'perplexity', 'medium', true);
+          warnings.push(`Found "${item.name}" via AI and added to your database`);
+          return this.createParsedFood(item, newFood, 'openai', 'medium', true);
         } else {
           // Database insert failed, but we still have nutrition data
-          warnings.push(`Found "${item.name}" via web search - could not save to database`);
-          return this.createFallbackFood(item, perplexityResult, 'perplexity', true);
+          warnings.push(`Found "${item.name}" via AI - could not save to database`);
+          return this.createFallbackFood(item, aiResult, 'openai', true);
         }
       }
     } catch (error) {
-      console.error('Perplexity search failed:', error);
+      console.error('AI search failed:', error);
       warnings.push(`Could not find nutrition data for "${item.name}"`);
     }
 
@@ -228,19 +211,19 @@ Examples:
     return { found: false };
   }
 
-  private async searchWithPerplexity(item: any): Promise<any> {
+  private async searchWithAI(item: any): Promise<any> {
     const searchQuery = item.brand
       ? `${item.brand} ${item.name} nutrition facts calories protein carbs fat fiber`
       : `${item.name} nutrition facts calories protein carbs fat per serving`;
 
-    console.log('🔍 Perplexity search:', searchQuery);
+    console.log('🔍 AI search:', searchQuery);
 
-    const completion = await this.perplexity.chat.completions.create({
-      model: 'perplexity/llama-3.1-sonar-large-128k-online',
+    const completion = await this.openai.chat.completions.create({
+      model: 'gpt-4o-mini',
       messages: [
         {
           role: 'system',
-          content: `You are a nutrition researcher. Search for accurate nutrition information and return ONLY a JSON object with this exact format:
+          content: `You are a nutrition researcher. Provide accurate nutrition information based on your training data and return ONLY a JSON object with this exact format:
 {
   "name": "food name",
   "brand": "brand name or null",
@@ -251,10 +234,12 @@ Examples:
   "carbs_g": number,
   "fat_g": number,
   "fiber_g": number,
-  "source": "website or database used"
+  "source": "estimated based on common nutrition data"
 }
 
-If you cannot find reliable nutrition data, return null.
+Provide your best estimate based on similar foods and standard nutrition data.
+For branded items, use typical values for that product category.
+If you cannot provide a reasonable estimate, return null.
 Only return the JSON, no other text.`
         },
         {
@@ -273,10 +258,10 @@ Only return the JSON, no other text.`
 
     try {
       const parsed = JSON.parse(response);
-      console.log('📊 Perplexity result:', parsed);
+      console.log('📊 AI result:', parsed);
       return parsed;
     } catch (error) {
-      console.error('Failed to parse Perplexity response:', response);
+      console.error('Failed to parse AI response:', response);
       return null;
     }
   }
@@ -324,7 +309,7 @@ Only return the JSON, no other text.`
   private createParsedFood(
     item: any,
     food: Food,
-    source: 'database' | 'perplexity',
+    source: 'database' | 'openai',
     confidence: 'high' | 'medium',
     needsConfirmation: boolean
   ): ParsedFoodItem {
@@ -358,7 +343,7 @@ Only return the JSON, no other text.`
   private createFallbackFood(
     item: any,
     nutritionData: any,
-    source: 'perplexity' | 'estimate',
+    source: 'openai' | 'estimate',
     needsConfirmation: boolean
   ): ParsedFoodItem {
     // Create parsed food without database ID (fallback nutrition)
@@ -382,7 +367,7 @@ Only return the JSON, no other text.`
         fat_g: Math.round((nutritionData.fat_g || 0) * multiplier * 10) / 10,
         fiber_g: Math.round((nutritionData.fiber_g || 0) * multiplier * 10) / 10
       },
-      confidence: source === 'perplexity' ? 'medium' : 'low',
+      confidence: source === 'openai' ? 'medium' : 'low',
       source,
       needsConfirmation,
       fallbackNutrition: true
