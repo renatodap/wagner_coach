@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
@@ -12,7 +12,11 @@ import {
   Star,
   Search,
   Plus,
-  PlusCircle
+  PlusCircle,
+  Filter,
+  ChevronDown,
+  Globe,
+  Lock
 } from 'lucide-react';
 import { Profile } from '@/lib/types';
 import BottomNavigation from '@/app/components/BottomNavigation';
@@ -27,6 +31,8 @@ interface Workout {
   description: string;
   estimated_duration_minutes: number;
   is_favorite: boolean;
+  is_public?: boolean;
+  user_id?: string;
 }
 
 interface WorkoutsClientProps {
@@ -40,42 +46,48 @@ export default function WorkoutsClient({
   userId,
   profile
 }: WorkoutsClientProps) {
-  const [signingOut, setSigningOut] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedType, setSelectedType] = useState('');
+  const [selectedDifficulty, setSelectedDifficulty] = useState('');
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [workouts, setWorkouts] = useState(initialWorkouts);
-  const [selectedWorkout, setSelectedWorkout] = useState<Workout | null>(null);
+  const [viewMode, setViewMode] = useState<'public' | 'my'>('public');
+  const [sortBy, setSortBy] = useState<'name' | 'difficulty' | 'duration' | 'type'>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [showFilters, setShowFilters] = useState(false);
 
-  interface WorkoutExercise {
-    id: number;
-    workout_id: number;
-    exercise_id: number;
-    sets: number;
-    reps: string;
-    rest_seconds: number;
-    order_index: number;
-    notes?: string;
-    exercises?: {
-      id: number;
-      name: string;
-      category: string;
-      muscle_group: string;
-      equipment?: string;
-      difficulty?: string;
-    };
-  }
-
-  const [workoutExercises, setWorkoutExercises] = useState<WorkoutExercise[]>([]);
-  const [loadingExercises, setLoadingExercises] = useState(false);
   const router = useRouter();
   const supabase = createClient();
 
-  const handleSignOut = async () => {
-    setSigningOut(true);
-    await supabase.auth.signOut();
-    router.push('/');
-  };
+  // Fetch public workouts when switching to public view
+  useEffect(() => {
+    const fetchPublicWorkouts = async () => {
+      if (viewMode === 'public') {
+        const { data, error } = await supabase
+          .from('workouts')
+          .select('*')
+          .eq('is_public', true)
+          .order('popularity_score', { ascending: false });
+
+        if (data && !error) {
+          setWorkouts(data);
+        }
+      } else {
+        // Fetch user's workouts
+        const { data, error } = await supabase
+          .from('workouts')
+          .select('*')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false });
+
+        if (data && !error) {
+          setWorkouts(data);
+        }
+      }
+    };
+
+    fetchPublicWorkouts();
+  }, [viewMode, userId, supabase]);
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -86,413 +98,313 @@ export default function WorkoutsClient({
     return 'MIDNIGHT BEAST';
   };
 
-  // Filter workouts based on search and filters
-  const filteredWorkouts = workouts.filter(workout => {
-    const matchesSearch = searchTerm === '' ||
-      workout.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (workout.description && workout.description.toLowerCase().includes(searchTerm.toLowerCase()));
+  // Filter and sort workouts
+  const filteredAndSortedWorkouts = workouts
+    .filter(workout => {
+      const matchesSearch = searchTerm === '' ||
+        workout.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (workout.description && workout.description.toLowerCase().includes(searchTerm.toLowerCase()));
 
-    const matchesType = selectedType === '' || workout.type === selectedType;
-    const matchesFavorites = !showFavoritesOnly || workout.is_favorite;
+      const matchesType = selectedType === '' || workout.type === selectedType;
+      const matchesDifficulty = selectedDifficulty === '' || workout.difficulty === selectedDifficulty;
+      const matchesFavorites = !showFavoritesOnly || workout.is_favorite;
 
-    return matchesSearch && matchesType && matchesFavorites;
-  });
+      return matchesSearch && matchesType && matchesDifficulty && matchesFavorites;
+    })
+    .sort((a, b) => {
+      let comparison = 0;
 
-  const toggleFavorite = async (workoutId: number, e: React.MouseEvent) => {
-    e.stopPropagation();
-
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data } = await (supabase as any).rpc('toggle_favorite_workout', {
-        p_user_id: userId,
-        p_workout_id: workoutId
-      });
-
-      // Update local state
-      setWorkouts(workouts.map(w =>
-        w.id === workoutId ? { ...w, is_favorite: data } : w
-      ));
-    } catch (error) {
-      console.error('Error toggling favorite:', error);
-    }
-  };
-
-  const loadWorkoutDetails = async (workout: Workout) => {
-    setSelectedWorkout(workout);
-    setLoadingExercises(true);
-
-    try {
-      // Load workout exercises
-      const { data: exercises } = await supabase
-        .from('workout_exercises')
-        .select(`
-          *,
-          exercises (
-            id,
-            name,
-            category,
-            muscle_group,
-            equipment,
-            difficulty
-          )
-        `)
-        .eq('workout_id', workout.id)
-        .order('order_index');
-
-      setWorkoutExercises(exercises || []);
-    } catch (error) {
-      console.error('Error loading workout exercises:', error);
-    } finally {
-      setLoadingExercises(false);
-    }
-  };
-
-  const startWorkout = async () => {
-    if (!selectedWorkout) return;
-
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: sessionId } = await (supabase as any).rpc('start_workout_session', {
-        p_user_id: userId,
-        p_workout_id: selectedWorkout.id
-      });
-
-      if (sessionId) {
-        router.push(`/workout/active/${sessionId}`);
+      switch(sortBy) {
+        case 'name':
+          comparison = a.name.localeCompare(b.name);
+          break;
+        case 'difficulty':
+          const difficultyOrder = { 'beginner': 1, 'intermediate': 2, 'advanced': 3 };
+          comparison = (difficultyOrder[a.difficulty] || 0) - (difficultyOrder[b.difficulty] || 0);
+          break;
+        case 'duration':
+          comparison = a.estimated_duration_minutes - b.estimated_duration_minutes;
+          break;
+        case 'type':
+          comparison = (a.type || '').localeCompare(b.type || '');
+          break;
       }
-    } catch (error) {
-      console.error('Error starting workout:', error);
-    }
-  };
+
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
+
+  const workoutTypes = [
+    'push', 'pull', 'legs', 'upper', 'lower',
+    'full_body', 'chest', 'back', 'shoulders', 'arms', 'core', 'cardio'
+  ];
+
+  const difficultyLevels = ['beginner', 'intermediate', 'advanced'];
 
   const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty) {
-      case 'beginner': return 'text-green-500 border-green-500';
-      case 'intermediate': return 'text-iron-orange border-iron-orange';
-      case 'advanced': return 'text-red-500 border-red-500';
-      default: return 'text-iron-gray border-iron-gray';
+    switch(difficulty) {
+      case 'beginner': return 'text-green-500';
+      case 'intermediate': return 'text-yellow-500';
+      case 'advanced': return 'text-red-500';
+      default: return 'text-iron-gray';
     }
+  };
+
+  const formatDuration = (minutes: number) => {
+    if (minutes < 60) return `${minutes} min`;
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+  };
+
+  const handleToggleFavorite = async (workoutId: number, isFavorite: boolean) => {
+    if (isFavorite) {
+      await supabase
+        .from('favorite_workouts')
+        .delete()
+        .eq('user_id', userId)
+        .eq('workout_id', workoutId);
+    } else {
+      await supabase
+        .from('favorite_workouts')
+        .insert({ user_id: userId, workout_id: workoutId });
+    }
+
+    // Update local state
+    setWorkouts(workouts.map(w =>
+      w.id === workoutId ? { ...w, is_favorite: !isFavorite } : w
+    ));
   };
 
   return (
-    <div className="min-h-screen bg-iron-black text-iron-white">
+    <div className="min-h-screen bg-gradient-to-br from-iron-black to-neutral-900">
       {/* Header */}
-      <header className="border-b border-iron-gray">
+      <div className="bg-iron-black/50 backdrop-blur-sm border-b border-iron-gray/20 sticky top-0 z-30">
         <div className="max-w-4xl mx-auto px-4 py-4">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="font-heading text-2xl text-iron-orange">IRON DISCIPLINE</h1>
-              <p className="text-iron-gray text-sm">
-                {getGreeting()}, {profile?.full_name?.toUpperCase() || 'WARRIOR'}
-              </p>
-            </div>
-            <div className="flex gap-4">
-              <Link
-                href="/settings"
-                className="text-iron-gray hover:text-iron-orange transition-colors"
-              >
-                <Settings className="w-5 h-5" />
-              </Link>
-              <button
-                onClick={handleSignOut}
-                disabled={signingOut}
-                className="text-iron-gray hover:text-iron-orange transition-colors"
-              >
-                <LogOut className="w-5 h-5" />
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-7xl mx-auto px-4 py-8 space-y-8">
-
-
-        {/* Custom Workout Builder Card */}
-        <div className="mb-8">
-          <Link href="/workouts/builder">
-            <div className="bg-gradient-to-r from-iron-orange/20 to-orange-900/20 border-2 border-iron-orange p-6 hover:border-orange-400 transition-all cursor-pointer group">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="bg-iron-orange/30 p-3 group-hover:bg-iron-orange/50 transition-colors">
-                    <PlusCircle className="w-8 h-8 text-iron-orange" />
-                  </div>
-                  <div>
-                    <h3 className="font-heading text-xl text-iron-white mb-1">
-                      CREATE CUSTOM WORKOUT
-                    </h3>
-                    <p className="text-iron-gray text-sm">
-                      Build your own personalized workout with drag-and-drop exercises
-                    </p>
-                  </div>
-                </div>
-                <Plus className="w-6 h-6 text-iron-orange group-hover:translate-x-1 transition-transform" />
-              </div>
-            </div>
-          </Link>
-        </div>
-
-        {/* Workout Library */}
-        <div>
           <div className="flex justify-between items-center mb-4">
-            <h3 className="font-heading text-2xl text-iron-white">
-              WORKOUT LIBRARY
-            </h3>
+            <h1 className="text-2xl font-bold text-white">{getGreeting()}</h1>
+            <Link href="/workouts/builder">
+              <Button className="bg-iron-orange hover:bg-orange-600">
+                <PlusCircle className="w-4 h-4 mr-2" />
+                Create
+              </Button>
+            </Link>
           </div>
 
-          {/* Search and Filters */}
-          <div className="mb-4 space-y-3">
-            <div className="flex gap-2">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-iron-gray" />
+          {/* Search Bar */}
+          <div className="relative mb-4">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-iron-gray" />
+            <input
+              type="text"
+              placeholder="Search workouts..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 bg-iron-gray/20 border border-iron-gray/30 rounded-xl text-white placeholder-iron-gray focus:outline-none focus:border-iron-orange transition-colors"
+            />
+          </div>
+
+          {/* View Toggle */}
+          <div className="bg-iron-gray/20 border border-iron-gray/30 rounded-xl p-1 flex mb-4">
+            <button
+              onClick={() => setViewMode('public')}
+              className={`flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-lg transition-all ${
+                viewMode === 'public'
+                  ? 'bg-iron-orange text-white'
+                  : 'text-iron-gray hover:text-white'
+              }`}
+            >
+              <Globe className="w-4 h-4" />
+              <span className="font-medium">Public</span>
+            </button>
+            <button
+              onClick={() => setViewMode('my')}
+              className={`flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-lg transition-all ${
+                viewMode === 'my'
+                  ? 'bg-iron-orange text-white'
+                  : 'text-iron-gray hover:text-white'
+              }`}
+            >
+              <Lock className="w-4 h-4" />
+              <span className="font-medium">My Workouts</span>
+            </button>
+          </div>
+
+          {/* Filter Toggle Button */}
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className="flex items-center gap-2 text-iron-gray hover:text-iron-orange transition-colors mb-2"
+          >
+            <Filter className="w-4 h-4" />
+            <span className="text-sm">Filters</span>
+            <ChevronDown className={`w-4 h-4 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
+          </button>
+
+          {/* Filters */}
+          {showFilters && (
+            <div className="bg-iron-gray/10 border border-iron-gray/20 rounded-xl p-4 mb-4 space-y-4">
+              {/* Type Filter */}
+              <div>
+                <label className="text-sm text-iron-gray mb-2 block">Type</label>
+                <select
+                  value={selectedType}
+                  onChange={(e) => setSelectedType(e.target.value)}
+                  className="w-full px-3 py-2 bg-iron-black/50 border border-iron-gray/30 rounded-lg text-white focus:outline-none focus:border-iron-orange"
+                >
+                  <option value="">All Types</option>
+                  {workoutTypes.map(type => (
+                    <option key={type} value={type}>
+                      {type.replace('_', ' ').toUpperCase()}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Difficulty Filter */}
+              <div>
+                <label className="text-sm text-iron-gray mb-2 block">Difficulty</label>
+                <select
+                  value={selectedDifficulty}
+                  onChange={(e) => setSelectedDifficulty(e.target.value)}
+                  className="w-full px-3 py-2 bg-iron-black/50 border border-iron-gray/30 rounded-lg text-white focus:outline-none focus:border-iron-orange"
+                >
+                  <option value="">All Levels</option>
+                  {difficultyLevels.map(level => (
+                    <option key={level} value={level}>
+                      {level.charAt(0).toUpperCase() + level.slice(1)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Sort Options */}
+              <div>
+                <label className="text-sm text-iron-gray mb-2 block">Sort By</label>
+                <div className="flex gap-2">
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as any)}
+                    className="flex-1 px-3 py-2 bg-iron-black/50 border border-iron-gray/30 rounded-lg text-white focus:outline-none focus:border-iron-orange"
+                  >
+                    <option value="name">Name</option>
+                    <option value="difficulty">Difficulty</option>
+                    <option value="duration">Duration</option>
+                    <option value="type">Type</option>
+                  </select>
+                  <button
+                    onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                    className="px-3 py-2 bg-iron-black/50 border border-iron-gray/30 rounded-lg text-white hover:border-iron-orange transition-colors"
+                  >
+                    {sortOrder === 'asc' ? '↑' : '↓'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Favorites Toggle */}
+              <label className="flex items-center gap-2 cursor-pointer">
                 <input
-                  type="text"
-                  placeholder="Search workouts..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full bg-iron-gray/10 border border-iron-gray pl-10 pr-4 py-2 text-iron-white placeholder-iron-gray focus:border-iron-orange focus:outline-none"
+                  type="checkbox"
+                  checked={showFavoritesOnly}
+                  onChange={(e) => setShowFavoritesOnly(e.target.checked)}
+                  className="w-4 h-4 rounded border-iron-gray/30 bg-iron-black/50 text-iron-orange focus:ring-iron-orange"
                 />
-              </div>
-              <button
-                onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
-                className={`px-4 py-2 border ${showFavoritesOnly ? 'bg-yellow-500/20 border-yellow-500 text-yellow-500' : 'border-iron-gray text-iron-gray'} flex items-center gap-2 hover:border-yellow-500 transition-colors`}
-              >
-                <Star className={`w-5 h-5 ${showFavoritesOnly ? 'fill-current' : ''}`} />
-              </button>
-            </div>
-
-            <div className="flex gap-2 overflow-x-auto">
-              <button
-                onClick={() => setSelectedType('')}
-                className={`px-3 py-1 border ${selectedType === '' ? 'bg-iron-orange text-iron-black border-iron-orange' : 'border-iron-gray text-iron-gray'} text-sm whitespace-nowrap`}
-              >
-                All
-              </button>
-              {['push', 'pull', 'legs', 'upper', 'lower', 'full_body', 'core'].map(type => (
-                <button
-                  key={type}
-                  onClick={() => setSelectedType(type)}
-                  className={`px-3 py-1 border ${selectedType === type ? 'bg-iron-orange text-iron-black border-iron-orange' : 'border-iron-gray text-iron-gray'} text-sm whitespace-nowrap`}
-                >
-                  {type.replace('_', ' ').toUpperCase()}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Workouts Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-20">
-            {filteredWorkouts.map((workout) => (
-              <div
-                key={workout.id}
-                data-testid={`workout-card-${workout.id}`}
-                onClick={() => loadWorkoutDetails(workout)}
-                className="border border-iron-gray p-4 hover:border-iron-orange transition-colors cursor-pointer relative"
-              >
-                {/* Favorite Star */}
-                <button
-                  onClick={(e) => toggleFavorite(workout.id, e)}
-                  className="absolute top-3 right-3 z-10"
-                >
-                  <Star
-                    className={`w-5 h-5 ${workout.is_favorite ? 'text-yellow-500 fill-current' : 'text-iron-gray'} hover:text-yellow-500 transition-colors`}
-                  />
-                </button>
-
-                {/* Workout Info */}
-                <h4 className="font-heading text-lg text-iron-white mb-2 pr-8">
-                  {workout.name}
-                </h4>
-
-                <p className="text-iron-gray text-sm mb-3 line-clamp-2">
-                  {workout.description || 'No description available'}
-                </p>
-
-                <div className="flex items-center gap-3 mb-2">
-                  <span className={`text-xs px-2 py-1 border uppercase ${getDifficultyColor(workout.difficulty)}`}>
-                    {workout.difficulty}
-                  </span>
-                  <span className="text-iron-gray text-xs uppercase">
-                    {workout.type.replace('_', ' ')}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-1 text-iron-gray text-sm">
-                  <Clock className="w-4 h-4" />
-                  <span>{workout.estimated_duration_minutes || 45} min</span>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {filteredWorkouts.length === 0 && (
-            <div className="text-center py-8">
-              <Dumbbell className="w-16 h-16 text-iron-gray mx-auto mb-4" />
-              <p className="text-iron-gray">No workouts found</p>
+                <span className="text-sm text-white">Show Favorites Only</span>
+              </label>
             </div>
           )}
         </div>
+      </div>
 
-        {/* Bottom Navigation */}
-        <BottomNavigation />
-      </main>
-
-      {/* Workout Details Modal */}
-      {selectedWorkout && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div data-testid="workout-modal" className="bg-iron-black border border-iron-orange max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              {/* Header */}
-              <div className="flex justify-between items-start mb-4">
-                <div className="flex-1">
-                  <h2 className="font-heading text-3xl text-iron-orange mb-2">
-                    {selectedWorkout.name}
-                  </h2>
-                  <p className="text-iron-white">
-                    {selectedWorkout.description}
-                  </p>
-                </div>
-                <button
-                  onClick={() => {
-                    setSelectedWorkout(null);
-                    setWorkoutExercises([]);
-                  }}
-                  className="text-iron-gray hover:text-iron-white text-2xl"
-                >
-                  ✕
-                </button>
-              </div>
-
-              {/* Workout Info */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <div className="border border-iron-gray p-3">
-                  <p className="text-iron-gray text-xs uppercase mb-1">Type</p>
-                  <p className="text-iron-white capitalize">
-                    {selectedWorkout.type.replace('_', ' ')}
-                  </p>
-                </div>
-                <div className="border border-iron-gray p-3">
-                  <p className="text-iron-gray text-xs uppercase mb-1">Difficulty</p>
-                  <p className={`capitalize ${getDifficultyColor(selectedWorkout.difficulty).split(' ')[0]}`}>
-                    {selectedWorkout.difficulty}
-                  </p>
-                </div>
-                <div className="border border-iron-gray p-3">
-                  <p className="text-iron-gray text-xs uppercase mb-1">Duration</p>
-                  <p className="text-iron-white">
-                    {selectedWorkout.estimated_duration_minutes} min
-                  </p>
-                </div>
-                <div className="border border-iron-gray p-3">
-                  <p className="text-iron-gray text-xs uppercase mb-1">Goal</p>
-                  <p className="text-iron-white capitalize">
-                    {selectedWorkout.goal?.replace('_', ' ') || 'All'}
-                  </p>
-                </div>
-              </div>
-
-              {/* Exercises List */}
-              <div className="mb-6">
-                <h3 className="font-heading text-xl text-iron-white mb-3">
-                  EXERCISES ({workoutExercises.length})
-                </h3>
-
-                {loadingExercises ? (
-                  <p className="text-iron-gray">Loading exercises...</p>
-                ) : workoutExercises.length > 0 ? (
-                  <div className="space-y-3">
-                    {workoutExercises.map((exercise, index) => (
-                      <div
-                        key={exercise.id}
-                        className="border border-iron-gray p-4 hover:border-iron-orange transition-colors"
-                      >
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3">
-                              <span className="text-iron-orange font-heading text-lg">
-                                {index + 1}.
-                              </span>
-                              <h4 className="font-heading text-lg text-iron-white">
-                                {exercise.exercises?.name || 'Unknown Exercise'}
-                              </h4>
-                            </div>
-
-                            <div className="flex gap-4 mt-2 text-sm">
-                              <span className="text-iron-gray">
-                                <span className="text-iron-white">{exercise.sets}</span> sets
-                              </span>
-                              <span className="text-iron-gray">
-                                <span className="text-iron-white">{exercise.reps}</span> reps
-                              </span>
-                              <span className="text-iron-gray">
-                                <span className="text-iron-white">{exercise.rest_seconds || 90}s</span> rest
-                              </span>
-                            </div>
-
-                            {exercise.notes && (
-                              <p className="text-iron-gray text-sm mt-2 italic">
-                                {exercise.notes}
-                              </p>
-                            )}
-
-                            {exercise.exercises && (
-                              <div className="flex gap-2 mt-2">
-                                <span className="text-xs px-2 py-1 border border-iron-gray text-iron-gray">
-                                  {exercise.exercises.muscle_group}
-                                </span>
-                                {exercise.exercises.equipment && (
-                                  <span className="text-xs px-2 py-1 border border-iron-gray text-iron-gray">
-                                    {exercise.exercises.equipment}
-                                  </span>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-iron-gray">No exercises found for this workout</p>
-                )}
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex gap-3">
-                <button
-                  onClick={startWorkout}
-                  disabled={workoutExercises.length === 0}
-                  className="flex-1 bg-iron-orange text-iron-black font-heading text-xl py-4 hover:bg-iron-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  START WORKOUT
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleFavorite(selectedWorkout.id, e);
-                  }}
-                  className={`px-6 py-4 border ${
-                    selectedWorkout.is_favorite
-                      ? 'bg-yellow-500/20 border-yellow-500 text-yellow-500'
-                      : 'border-iron-gray text-iron-gray hover:border-yellow-500 hover:text-yellow-500'
-                  } transition-colors`}
-                >
-                  <Star className={`w-6 h-6 ${selectedWorkout.is_favorite ? 'fill-current' : ''}`} />
-                </button>
-                <button
-                  onClick={() => {
-                    setSelectedWorkout(null);
-                    setWorkoutExercises([]);
-                  }}
-                  className="px-6 py-4 border border-iron-gray text-iron-gray hover:border-iron-white hover:text-iron-white transition-colors"
-                >
-                  CANCEL
-                </button>
-              </div>
-            </div>
+      {/* Workouts List */}
+      <div className="max-w-4xl mx-auto px-4 py-6 pb-24">
+        {filteredAndSortedWorkouts.length === 0 ? (
+          <div className="text-center py-12">
+            <Dumbbell className="w-16 h-16 text-iron-gray mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-white mb-2">No workouts found</h3>
+            <p className="text-iron-gray mb-6">
+              {viewMode === 'my'
+                ? "You haven't created any workouts yet"
+                : "No public workouts match your filters"}
+            </p>
+            <Link href="/workouts/builder">
+              <Button className="bg-iron-orange hover:bg-orange-600">
+                <Plus className="w-4 h-4 mr-2" />
+                Create Your First Workout
+              </Button>
+            </Link>
           </div>
-        </div>
-      )}
+        ) : (
+          <div className="grid gap-4">
+            {filteredAndSortedWorkouts.map((workout) => (
+              <Link
+                key={workout.id}
+                href={`/workout/${workout.id}`}
+                className="group bg-iron-gray/20 border border-iron-gray/30 rounded-xl p-5 hover:border-iron-orange/50 transition-all"
+              >
+                <div className="flex justify-between items-start mb-3">
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-white group-hover:text-iron-orange transition-colors">
+                      {workout.name}
+                    </h3>
+                    {workout.description && (
+                      <p className="text-sm text-iron-gray mt-1 line-clamp-2">
+                        {workout.description}
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleToggleFavorite(workout.id, workout.is_favorite);
+                    }}
+                    className="ml-3 p-2 hover:bg-iron-gray/30 rounded-lg transition-colors"
+                  >
+                    <Star
+                      className={`w-5 h-5 ${
+                        workout.is_favorite
+                          ? 'fill-iron-orange text-iron-orange'
+                          : 'text-iron-gray'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-4 text-sm">
+                  <div className="flex items-center gap-1">
+                    <span className="text-iron-gray">Type:</span>
+                    <span className="text-white font-medium">
+                      {workout.type?.replace('_', ' ').toUpperCase()}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-1">
+                    <span className="text-iron-gray">Level:</span>
+                    <span className={`font-medium ${getDifficultyColor(workout.difficulty)}`}>
+                      {workout.difficulty?.charAt(0).toUpperCase() + workout.difficulty?.slice(1)}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-1">
+                    <Clock className="w-4 h-4 text-iron-gray" />
+                    <span className="text-white">
+                      {formatDuration(workout.estimated_duration_minutes)}
+                    </span>
+                  </div>
+
+                  {workout.goal && (
+                    <div className="flex items-center gap-1">
+                      <span className="text-iron-gray">Goal:</span>
+                      <span className="text-white font-medium">
+                        {workout.goal.replace('_', ' ').toUpperCase()}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <BottomNavigation />
     </div>
   );
 }

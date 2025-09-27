@@ -3,10 +3,10 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
-  Activity,
+  LayoutDashboard,
   MessageSquare,
   User,
-  Apple,
+  Dumbbell,
   Sparkles
 } from 'lucide-react'
 
@@ -15,16 +15,16 @@ export default function BottomNavigation() {
 
   const navigation = [
     {
-      name: 'Activities',
-      href: '/activities',
-      icon: Activity,
-      current: pathname === '/activities'
+      name: 'Dashboard',
+      href: '/dashboard',
+      icon: LayoutDashboard,
+      current: pathname === '/dashboard'
     },
     {
-      name: 'Nutrition',
-      href: '/nutrition',
-      icon: Apple,
-      current: pathname === '/nutrition' || pathname.startsWith('/nutrition/')
+      name: 'Workouts',
+      href: '/workouts',
+      icon: Dumbbell,
+      current: pathname === '/workouts' || pathname.startsWith('/workout')
     },
     {
       name: 'Quick',
