@@ -1,0 +1,21 @@
+{
+  "name": "Wagner Coach",
+  "short_name": "Wagner",
+  "description": "Professional fitness training with Wagner's 172 workout programs",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "32x32",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ],
+  "theme_color": "#FF6B35",
+  "background_color": "#0A0A0A",
+  "display": "standalone",
+  "start_url": "/"
+}

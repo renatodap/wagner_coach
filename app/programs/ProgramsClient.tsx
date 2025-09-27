@@ -359,14 +359,15 @@ export default function ProgramsClient({
         ) : (
           <div className="grid gap-4">
             {filteredAndSortedPrograms.map((program) => (
-              <div
+              <Link
                 key={program.id}
-                className="bg-iron-gray/20 border border-iron-gray/30 rounded-xl p-5 hover:border-iron-orange/50 transition-all"
+                href={`/programs/${program.id}`}
+                className="block bg-iron-gray/20 border border-iron-gray/30 rounded-xl p-5 hover:border-iron-orange/50 transition-all group cursor-pointer"
               >
                 <div className="flex justify-between items-start mb-3">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <h3 className="text-lg font-semibold text-white">
+                      <h3 className="text-lg font-semibold text-white group-hover:text-iron-orange transition-colors">
                         {program.name}
                       </h3>
                       {program.enrollment && (
@@ -383,15 +384,16 @@ export default function ProgramsClient({
                   {/* Enroll/Start Button */}
                   <div className="ml-3">
                     {program.enrollment ? (
-                      <Link href={`/programs/${program.id}`}>
-                        <Button className="bg-green-600 hover:bg-green-700">
-                          <PlayCircle className="w-4 h-4 mr-2" />
-                          Continue
-                        </Button>
-                      </Link>
+                      <Button className="bg-green-600 hover:bg-green-700" onClick={(e) => e.preventDefault()}>
+                        <PlayCircle className="w-4 h-4 mr-2" />
+                        Continue
+                      </Button>
                     ) : (
                       <Button
-                        onClick={() => handleEnrollToggle(program.id, program.enrollment)}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleEnrollToggle(program.id, program.enrollment);
+                        }}
                         className="bg-iron-orange hover:bg-orange-600"
                       >
                         Enroll
@@ -467,7 +469,7 @@ export default function ProgramsClient({
                     <span className="text-iron-gray">{getCategoryDisplay(program.wagner_category)}</span>
                   </div>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         )}

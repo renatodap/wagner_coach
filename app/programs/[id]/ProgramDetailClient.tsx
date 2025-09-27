@@ -247,6 +247,32 @@ export default function ProgramDetailClient({
           </div>
         </div>
 
+        {/* Quick Exercise Overview */}
+        <div className="bg-iron-gray/20 border border-iron-gray/30 rounded-xl p-5 mb-6">
+          <h3 className="text-lg font-bold text-white mb-3">Program Overview</h3>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div>
+              <p className="text-iron-gray text-sm">Total Exercises</p>
+              <p className="text-2xl font-bold text-white">
+                {program.program_days.reduce((sum, day) => sum + day.day_exercises.length, 0)}
+              </p>
+            </div>
+            <div>
+              <p className="text-iron-gray text-sm">Training Days</p>
+              <p className="text-2xl font-bold text-white">{program.total_days}</p>
+            </div>
+            <div>
+              <p className="text-iron-gray text-sm">Avg Per Day</p>
+              <p className="text-2xl font-bold text-white">
+                {Math.round(
+                  program.program_days.reduce((sum, day) => sum + day.day_exercises.length, 0) /
+                  program.total_days
+                )}
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* Enrollment Status */}
         {!isEnrolled ? (
           <div className="bg-gradient-to-r from-iron-orange/20 to-orange-600/20 border border-iron-orange/30 rounded-xl p-5 mb-6">
@@ -362,32 +388,55 @@ export default function ProgramDetailClient({
 
             {/* Exercises List */}
             <div className="space-y-3">
-              {currentDay.day_exercises
-                .sort((a, b) => a.order_index - b.order_index)
-                .map((exercise, index) => (
-                  <div
-                    key={exercise.id}
-                    className="flex items-center justify-between p-3 bg-iron-black/50 rounded-lg"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-iron-gray/30 rounded-full flex items-center justify-center text-sm font-bold text-iron-orange">
+              <h4 className="text-sm font-semibold text-iron-orange uppercase tracking-wide mb-3">
+                Exercises ({currentDay.day_exercises.length})
+              </h4>
+              {currentDay.day_exercises.length === 0 ? (
+                <div className="text-center py-8">
+                  <Dumbbell className="w-12 h-12 text-iron-gray mx-auto mb-2" />
+                  <p className="text-iron-gray">No exercises added yet</p>
+                </div>
+              ) : (
+                currentDay.day_exercises
+                  .sort((a, b) => a.order_index - b.order_index)
+                  .map((exercise, index) => (
+                    <div
+                      key={exercise.id}
+                      className="flex items-start gap-4 p-4 bg-iron-black/50 rounded-lg hover:bg-iron-black/70 transition-colors"
+                    >
+                      <div className="w-10 h-10 bg-gradient-to-br from-iron-orange to-orange-600 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0">
                         {index + 1}
                       </div>
-                      <div>
-                        <p className="text-white font-medium">
+                      <div className="flex-1">
+                        <h5 className="text-white font-semibold mb-1">
                           {exercise.exercises?.name || 'Exercise'}
-                        </p>
-                        <p className="text-xs text-iron-gray">
-                          {exercise.sets} sets × {exercise.reps} reps
-                          {exercise.rest_display && ` • ${exercise.rest_display} rest`}
-                        </p>
+                        </h5>
+                        <div className="flex flex-wrap gap-3 text-sm">
+                          <div className="flex items-center gap-1">
+                            <span className="text-iron-gray">Sets:</span>
+                            <span className="text-iron-orange font-medium">{exercise.sets}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <span className="text-iron-gray">Reps:</span>
+                            <span className="text-iron-orange font-medium">{exercise.reps}</span>
+                          </div>
+                          {exercise.rest_display && (
+                            <div className="flex items-center gap-1">
+                              <Clock className="w-3 h-3 text-iron-gray" />
+                              <span className="text-iron-gray">Rest:</span>
+                              <span className="text-iron-orange font-medium">{exercise.rest_display}</span>
+                            </div>
+                          )}
+                        </div>
+                        {exercise.notes && (
+                          <p className="text-xs text-iron-gray italic mt-2 p-2 bg-iron-gray/10 rounded">
+                            💡 {exercise.notes}
+                          </p>
+                        )}
                       </div>
                     </div>
-                    {exercise.notes && (
-                      <p className="text-xs text-iron-gray italic">{exercise.notes}</p>
-                    )}
-                  </div>
-                ))}
+                  ))
+              )}
             </div>
           </div>
         )}
