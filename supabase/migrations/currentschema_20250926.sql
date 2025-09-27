@@ -193,7 +193,7 @@ CREATE TABLE public.activity_streams (
   original_size integer,
   series_type text CHECK (series_type = ANY (ARRAY['time'::text, 'distance'::text])),
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
-  CONSTRAINT activity_streams_pkey PRIMARY KEY (stream_type, activity_id),
+  CONSTRAINT activity_streams_pkey PRIMARY KEY (activity_id, stream_type),
   CONSTRAINT activity_streams_activity_id_fkey FOREIGN KEY (activity_id) REFERENCES public.activities(id)
 );
 CREATE TABLE public.activity_workout_links (
@@ -581,6 +581,22 @@ CREATE TABLE public.user_context_embeddings (
   CONSTRAINT user_context_embeddings_pkey PRIMARY KEY (id),
   CONSTRAINT user_context_embeddings_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
+CREATE TABLE public.user_context_summaries (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid,
+  period_type text NOT NULL CHECK (period_type = ANY (ARRAY['weekly'::text, 'monthly'::text, 'quarterly'::text, 'yearly'::text])),
+  period_start date NOT NULL,
+  period_end date NOT NULL,
+  activity_summary jsonb DEFAULT '{}'::jsonb,
+  nutrition_summary jsonb DEFAULT '{}'::jsonb,
+  key_achievements ARRAY DEFAULT ARRAY[]::text[],
+  challenges_faced ARRAY DEFAULT ARRAY[]::text[],
+  body_composition_change jsonb,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT user_context_summaries_pkey PRIMARY KEY (id),
+  CONSTRAINT user_context_summaries_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
 CREATE TABLE public.user_custom_workouts (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL,
@@ -671,6 +687,19 @@ CREATE TABLE public.user_memory_facts (
   is_active boolean DEFAULT true,
   CONSTRAINT user_memory_facts_pkey PRIMARY KEY (id),
   CONSTRAINT user_memory_facts_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+CREATE TABLE public.user_milestones (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid,
+  milestone_type text NOT NULL CHECK (milestone_type = ANY (ARRAY['achievement'::text, 'injury'::text, 'goal_completed'::text, 'pr'::text, 'life_event'::text, 'setback'::text])),
+  title text NOT NULL,
+  description text,
+  occurred_at date NOT NULL,
+  impact_level text CHECK (impact_level = ANY (ARRAY['high'::text, 'medium'::text, 'low'::text])),
+  metadata jsonb DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT user_milestones_pkey PRIMARY KEY (id),
+  CONSTRAINT user_milestones_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
 CREATE TABLE public.user_nutrition_preferences (
   id uuid NOT NULL DEFAULT gen_random_uuid(),

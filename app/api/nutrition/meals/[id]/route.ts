@@ -2,16 +2,19 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
 interface RouteContext {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 // Simplified DELETE that tries both tables
-export async function DELETE(request: NextRequest, context: RouteContext) {
+export async function DELETE(
+  request: NextRequest,
+  { params }: RouteContext
+) {
   try {
     const supabase = await createClient();
-    const { id } = context.params;
+    const { id } = await params;
 
     // Get authenticated user
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -78,10 +81,13 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
 }
 
 // GET a single meal
-export async function GET(request: NextRequest, context: RouteContext) {
+export async function GET(
+  request: NextRequest,
+  { params }: RouteContext
+) {
   try {
     const supabase = await createClient();
-    const { id } = context.params;
+    const { id } = await params;
 
     // Get authenticated user
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -159,10 +165,13 @@ export async function GET(request: NextRequest, context: RouteContext) {
 }
 
 // UPDATE a meal
-export async function PUT(request: NextRequest, context: RouteContext) {
+export async function PUT(
+  request: NextRequest,
+  { params }: RouteContext
+) {
   try {
     const supabase = await createClient();
-    const { id } = context.params;
+    const { id } = await params;
 
     // Get authenticated user
     const { data: { user }, error: authError } = await supabase.auth.getUser();
