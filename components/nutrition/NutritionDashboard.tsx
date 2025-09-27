@@ -64,7 +64,15 @@ export function NutritionDashboard() {
         method: 'DELETE',
       });
 
-      const data = await response.json();
+      let data;
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+        console.error('Non-JSON response:', text);
+        data = { error: `Server returned ${response.status}: ${text || response.statusText}` };
+      }
 
       if (!response.ok) {
         console.error('Delete failed:', data);

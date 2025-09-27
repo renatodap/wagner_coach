@@ -192,40 +192,119 @@ export async function PUT(
 
     const updateData = await request.json();
 
-    // Try to update in meal_logs first
-    const { data: mealLog, error: mealLogError } = await supabase
-      .from('meal_logs')
-      .update({
-        name: updateData.meal_name,
-        category: updateData.meal_category,
-        notes: updateData.notes,
-        total_calories: updateData.calories,
-        total_protein_g: updateData.protein_g,
-        total_carbs_g: updateData.carbs_g,
-        total_fat_g: updateData.fat_g,
-        total_fiber_g: updateData.fiber_g,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', id)
-      .eq('user_id', user.id)
-      .select()
-      .single();
+    // If foods array is provided, handle the update differently
+    if (updateData.foods && Array.isArray(updateData.foods)) {
+      // First try meal_logs table
+      const { data: existingMealLog } = await supabase
+        .from('meal_logs')
+        .select('*')
+        .eq('id', id)
+        .eq('user_id', user.id)
+        .single();
 
-    if (mealLog && !mealLogError) {
-      return NextResponse.json({ data: mealLog });
-    }
+      if (existingMealLog) {
+        // Delete existing meal_log_foods entries
+        await supabase
+          .from('meal_log_foods')
+          .delete()
+          .eq('meal_log_id', id);
 
-    // Try old meals table
-    const { data: meal, error: mealError } = await supabase
-      .from('meals')
-      .update(updateData)
-      .eq('id', id)
-      .eq('user_id', user.id)
-      .select()
-      .single();
+        // Insert new meal_log_foods entries
+        if (updateData.foods.length > 0) {
+          const mealLogFoods = updateData.foods.map((food: any) => ({
+            meal_log_id: id,
+            food_id: food.food_id || food.food?.id || food.id,
+            quantity: food.quantity || 100,
+            unit: food.unit || 'g'
+          }));
 
-    if (meal && !mealError) {
-      return NextResponse.json({ data: meal });
+          await supabase
+            .from('meal_log_foods')
+            .insert(mealLogFoods);
+        }
+
+        // Update meal_logs with new totals
+        const { data: updatedMealLog, error: updateError } = await supabase
+          .from('meal_logs')
+          .update({
+            name: updateData.meal_name,
+            category: updateData.meal_category,
+            notes: updateData.notes,
+            total_calories: updateData.calories,
+            total_protein_g: updateData.protein_g,
+            total_carbs_g: updateData.carbs_g,
+            total_fat_g: updateData.fat_g,
+            total_fiber_g: updateData.fiber_g,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', id)
+          .eq('user_id', user.id)
+          .select()
+          .single();
+
+        if (!updateError) {
+          return NextResponse.json({ data: updatedMealLog });
+        }
+      }
+
+      // Try old meals table - just update normally
+      const { data: meal, error: mealError } = await supabase
+        .from('meals')
+        .update({
+          meal_name: updateData.meal_name,
+          meal_category: updateData.meal_category,
+          notes: updateData.notes,
+          calories: updateData.calories,
+          protein_g: updateData.protein_g,
+          carbs_g: updateData.carbs_g,
+          fat_g: updateData.fat_g,
+          fiber_g: updateData.fiber_g,
+        })
+        .eq('id', id)
+        .eq('user_id', user.id)
+        .select()
+        .single();
+
+      if (meal && !mealError) {
+        return NextResponse.json({ data: meal });
+      }
+    } else {
+      // Normal update without foods array
+      // Try to update in meal_logs first
+      const { data: mealLog, error: mealLogError } = await supabase
+        .from('meal_logs')
+        .update({
+          name: updateData.meal_name,
+          category: updateData.meal_category,
+          notes: updateData.notes,
+          total_calories: updateData.calories,
+          total_protein_g: updateData.protein_g,
+          total_carbs_g: updateData.carbs_g,
+          total_fat_g: updateData.fat_g,
+          total_fiber_g: updateData.fiber_g,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', id)
+        .eq('user_id', user.id)
+        .select()
+        .single();
+
+      if (mealLog && !mealLogError) {
+        return NextResponse.json({ data: mealLog });
+      }
+
+      // Try old meals table
+      const { data: meal, error: mealError } = await supabase
+        .from('meals')
+        .update(updateData)
+        .eq('id', id)
+        .eq('user_id', user.id)
+        .select()
+        .single();
+
+      if (meal && !mealError) {
+        return NextResponse.json({ data: meal });
+      }
     }
 
     return NextResponse.json(

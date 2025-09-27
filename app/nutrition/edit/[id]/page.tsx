@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, X, Plus } from 'lucide-react';
 import BottomNavigation from '@/app/components/BottomNavigation';
 
 export default function EditMealPage() {
@@ -14,6 +14,7 @@ export default function EditMealPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [meal, setMeal] = useState<any>(null);
+  const [foods, setFoods] = useState<any[]>([]);
   const [error, setError] = useState<string>('');
 
   // Form fields
@@ -50,6 +51,11 @@ export default function EditMealPage() {
       setFat(mealData.fat_g?.toString() || '');
       setFiber(mealData.fiber_g?.toString() || '');
 
+      // Set foods if available
+      if (mealData.foods) {
+        setFoods(mealData.foods);
+      }
+
       setMeal(mealData);
     } catch (err) {
       console.error('Error fetching meal:', err);
@@ -57,6 +63,37 @@ export default function EditMealPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleRemoveFood = (indexToRemove: number) => {
+    const updatedFoods = foods.filter((_, index) => index !== indexToRemove);
+    setFoods(updatedFoods);
+    recalculateTotals(updatedFoods);
+  };
+
+  const recalculateTotals = (foodList: any[]) => {
+    const totals = foodList.reduce(
+      (acc, food) => {
+        const foodData = food.food || food;
+        const quantity = food.quantity || 1;
+        const multiplier = quantity / (foodData.serving_size || 100);
+
+        return {
+          calories: acc.calories + (foodData.calories || 0) * multiplier,
+          protein: acc.protein + (foodData.protein_g || 0) * multiplier,
+          carbs: acc.carbs + (foodData.carbs_g || 0) * multiplier,
+          fat: acc.fat + (foodData.fat_g || 0) * multiplier,
+          fiber: acc.fiber + (foodData.fiber_g || 0) * multiplier,
+        };
+      },
+      { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 }
+    );
+
+    setCalories(Math.round(totals.calories).toString());
+    setProtein(totals.protein.toFixed(1));
+    setCarbs(totals.carbs.toFixed(1));
+    setFat(totals.fat.toFixed(1));
+    setFiber(totals.fiber.toFixed(1));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -73,6 +110,7 @@ export default function EditMealPage() {
         carbs_g: carbs ? parseFloat(carbs) : null,
         fat_g: fat ? parseFloat(fat) : null,
         fiber_g: fiber ? parseFloat(fiber) : null,
+        foods: foods,
       };
 
       const response = await fetch(`/api/nutrition/meals/${mealId}`, {
@@ -183,6 +221,59 @@ export default function EditMealPage() {
               </select>
             </div>
 
+            {/* Foods in Meal */}
+            <div>
+              <label className="block text-iron-gray text-xs uppercase mb-2">
+                Foods in Meal
+              </label>
+              {foods.length > 0 ? (
+                <div className="space-y-2">
+                  {foods.map((food, index) => {
+                    const foodData = food.food || food;
+                    const quantity = food.quantity || foodData.serving_size || 100;
+                    const multiplier = quantity / (foodData.serving_size || 100);
+                    const cals = Math.round((foodData.calories || 0) * multiplier);
+                    const protein = ((foodData.protein_g || 0) * multiplier).toFixed(1);
+                    const carbs = ((foodData.carbs_g || 0) * multiplier).toFixed(1);
+                    const fat = ((foodData.fat_g || 0) * multiplier).toFixed(1);
+
+                    return (
+                      <div key={index} className="border border-iron-gray p-3 flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="font-medium">{foodData.name}</div>
+                          <div className="text-sm text-iron-gray mt-1">
+                            {quantity}g
+                          </div>
+                          <div className="text-xs text-iron-gray mt-1">
+                            {cals} cal • {protein}g protein • {carbs}g carbs • {fat}g fat
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveFood(index)}
+                          className="text-red-500 hover:text-red-400 transition-colors ml-2 p-1"
+                          title="Remove food"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="border border-iron-gray border-dashed p-4 text-center text-iron-gray">
+                  No foods in this meal
+                </div>
+              )}
+              <Link
+                href={`/nutrition/add-food/${mealId}`}
+                className="mt-3 flex items-center justify-center gap-2 border border-iron-orange text-iron-orange px-4 py-2 hover:bg-iron-orange hover:text-iron-black transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Add Food to Meal</span>
+              </Link>
+            </div>
+
             {/* Nutrition Values */}
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               <div>
@@ -197,6 +288,8 @@ export default function EditMealPage() {
                   placeholder="0"
                   step="0.1"
                   min="0"
+                  readOnly={foods.length > 0}
+                  title={foods.length > 0 ? "Calculated from foods" : ""}
                 />
               </div>
 
@@ -212,6 +305,8 @@ export default function EditMealPage() {
                   placeholder="0"
                   step="0.1"
                   min="0"
+                  readOnly={foods.length > 0}
+                  title={foods.length > 0 ? "Calculated from foods" : ""}
                 />
               </div>
 
@@ -227,6 +322,8 @@ export default function EditMealPage() {
                   placeholder="0"
                   step="0.1"
                   min="0"
+                  readOnly={foods.length > 0}
+                  title={foods.length > 0 ? "Calculated from foods" : ""}
                 />
               </div>
 
@@ -242,6 +339,8 @@ export default function EditMealPage() {
                   placeholder="0"
                   step="0.1"
                   min="0"
+                  readOnly={foods.length > 0}
+                  title={foods.length > 0 ? "Calculated from foods" : ""}
                 />
               </div>
 
@@ -257,6 +356,8 @@ export default function EditMealPage() {
                   placeholder="0"
                   step="0.1"
                   min="0"
+                  readOnly={foods.length > 0}
+                  title={foods.length > 0 ? "Calculated from foods" : ""}
                 />
               </div>
             </div>
