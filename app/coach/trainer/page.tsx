@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
-import { CoachNav } from '@/components/coach/CoachNav'
+import { CoachNav } from '@/components/Coach/CoachNav'
 
 interface Message {
   id: string
