@@ -134,19 +134,85 @@ export default function DashboardClient({
 
       {/* Main Content */}
       <div className="max-w-4xl mx-auto px-4 pb-24">
-        {/* Quick Actions */}
+        {/* AI COACH - PRIMARY FEATURE */}
         <div className="mt-6 mb-8">
-          <div className="flex gap-3 overflow-x-auto pb-2">
-            {quickActions.map((action, index) => (
-              <button
-                key={index}
-                onClick={action.action}
-                className="flex items-center gap-2 px-4 py-2 bg-iron-gray/20 border border-iron-gray/30 rounded-lg hover:bg-iron-gray/30 transition-colors whitespace-nowrap"
-              >
-                <action.icon className="w-4 h-4 text-iron-orange" />
-                <span className="text-sm text-white">{action.label}</span>
-              </button>
-            ))}
+          <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+            <Users className="w-5 h-5 text-iron-orange" />
+            AI Coach
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Trainer Card */}
+            <button
+              onClick={() => router.push('/coach/trainer')}
+              className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-blue-600/20 to-blue-500/10 border-2 border-blue-500/50 hover:border-blue-400 p-6 text-left transition-all duration-300 hover:scale-[1.02]"
+            >
+              <div className="flex items-start justify-between mb-4">
+                <div className="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center">
+                  <span className="text-2xl">🏋️</span>
+                </div>
+                <ArrowRight className="w-5 h-5 text-blue-400 group-hover:translate-x-1 transition-transform" />
+              </div>
+              <h3 className="text-xl font-bold text-white mb-2">Chat with Trainer</h3>
+              <p className="text-blue-200 text-sm mb-3">Get workout advice, form tips, and training guidance from Coach Alex</p>
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-500/20 rounded-full">
+                <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
+                <span className="text-xs text-blue-300 font-semibold">Available Now</span>
+              </div>
+            </button>
+
+            {/* Nutritionist Card */}
+            <button
+              onClick={() => router.push('/coach/nutritionist')}
+              className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-green-600/20 to-green-500/10 border-2 border-green-500/50 hover:border-green-400 p-6 text-left transition-all duration-300 hover:scale-[1.02]"
+            >
+              <div className="flex items-start justify-between mb-4">
+                <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center">
+                  <span className="text-2xl">🥗</span>
+                </div>
+                <ArrowRight className="w-5 h-5 text-green-400 group-hover:translate-x-1 transition-transform" />
+              </div>
+              <h3 className="text-xl font-bold text-white mb-2">Chat with Nutritionist</h3>
+              <p className="text-green-200 text-sm mb-3">Get meal planning, nutrition tips, and diet guidance from Coach Maria</p>
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-green-500/20 rounded-full">
+                <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                <span className="text-xs text-green-300 font-semibold">Available Now</span>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="mb-8">
+          <h2 className="text-lg font-bold text-white mb-4">Quick Actions</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <button
+              onClick={() => router.push('/workouts/log')}
+              className="flex flex-col items-center gap-2 p-4 bg-iron-gray/20 border border-iron-gray/30 rounded-lg hover:bg-iron-gray/30 hover:border-iron-orange/50 transition-all"
+            >
+              <Dumbbell className="w-6 h-6 text-iron-orange" />
+              <span className="text-xs text-white text-center">Log Workout</span>
+            </button>
+            <button
+              onClick={() => router.push('/nutrition/log')}
+              className="flex flex-col items-center gap-2 p-4 bg-iron-gray/20 border border-iron-gray/30 rounded-lg hover:bg-iron-gray/30 hover:border-iron-orange/50 transition-all"
+            >
+              <Apple className="w-6 h-6 text-iron-orange" />
+              <span className="text-xs text-white text-center">Log Meal</span>
+            </button>
+            <button
+              onClick={() => router.push('/activities/sync-status')}
+              className="flex flex-col items-center gap-2 p-4 bg-iron-gray/20 border border-iron-gray/30 rounded-lg hover:bg-iron-gray/30 hover:border-iron-orange/50 transition-all"
+            >
+              <Activity className="w-6 h-6 text-iron-orange" />
+              <span className="text-xs text-white text-center">Sync Activities</span>
+            </button>
+            <button
+              onClick={() => router.push('/profile')}
+              className="flex flex-col items-center gap-2 p-4 bg-iron-gray/20 border border-iron-gray/30 rounded-lg hover:bg-iron-gray/30 hover:border-iron-orange/50 transition-all"
+            >
+              <TrendingUp className="w-6 h-6 text-iron-orange" />
+              <span className="text-xs text-white text-center">View Progress</span>
+            </button>
           </div>
         </div>
 
