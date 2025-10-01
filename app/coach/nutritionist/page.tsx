@@ -12,14 +12,13 @@ interface Message {
   timestamp: Date
 }
 
-export default function TrainerChatPage() {
+export default function NutritionistChatPage() {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   
-  // Auto-scroll to bottom when new messages arrive
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
@@ -38,7 +37,6 @@ export default function TrainerChatPage() {
       timestamp: new Date()
     }
 
-    // Optimistic UI update
     setMessages(prev => [...prev, userMessage])
     setInput('')
     setLoading(true)
@@ -49,7 +47,7 @@ export default function TrainerChatPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          coach_type: 'trainer',
+          coach_type: 'nutritionist',
           message: userMessage.content
         })
       })
@@ -73,9 +71,7 @@ export default function TrainerChatPage() {
     } catch (err) {
       console.error('Chat error:', err)
       setError(err instanceof Error ? err.message : 'Failed to send message')
-      // Remove the optimistic message on error
       setMessages(prev => prev.filter(m => m.id !== userMessage.id))
-      // Restore the input
       setInput(userMessage.content)
     } finally {
       setLoading(false)
@@ -92,19 +88,17 @@ export default function TrainerChatPage() {
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] max-w-2xl mx-auto p-4">
       <CoachNav />
-
-      {/* Header */}
+      
       <div className="mb-4">
-        <h1 className="text-2xl font-bold">Chat with Coach Alex</h1>
-        <p className="text-sm text-gray-600">Your AI fitness trainer</p>
+        <h1 className="text-2xl font-bold">Chat with Coach Maria</h1>
+        <p className="text-sm text-gray-600">Your AI nutritionist</p>
       </div>
 
-      {/* Messages */}
       <div className="flex-1 overflow-y-auto space-y-4 mb-4 p-4 border rounded-lg bg-gray-50">
         {messages.length === 0 && (
           <div className="text-center text-gray-500 py-8">
-            <p className="text-lg mb-2">Welcome! I'm Coach Alex, your AI trainer.</p>
-            <p className="text-sm">Ask me anything about your workouts, form, or training plan!</p>
+            <p className="text-lg mb-2">Welcome! I'm Coach Maria, your AI nutritionist.</p>
+            <p className="text-sm">Ask me anything about nutrition, meal planning, or dietary goals!</p>
           </div>
         )}
         
@@ -116,12 +110,12 @@ export default function TrainerChatPage() {
             <div
               className={`inline-block max-w-[80%] p-3 rounded-lg ${
                 msg.role === 'user'
-                  ? 'bg-blue-500 text-white'
+                  ? 'bg-green-500 text-white'
                   : 'bg-gray-200 text-gray-900'
               }`}
             >
               <p className="whitespace-pre-wrap break-words">{msg.content}</p>
-              <p className={`text-xs mt-1 ${msg.role === 'user' ? 'text-blue-100' : 'text-gray-500'}`}>
+              <p className={`text-xs mt-1 ${msg.role === 'user' ? 'text-green-100' : 'text-gray-500'}`}>
                 {msg.timestamp.toLocaleTimeString()}
               </p>
             </div>
@@ -143,20 +137,18 @@ export default function TrainerChatPage() {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Error message */}
       {error && (
         <div className="mb-2 p-2 bg-red-100 border border-red-400 text-red-700 rounded">
           {error}
         </div>
       )}
 
-      {/* Input */}
       <div className="flex gap-2">
         <Textarea
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Ask your trainer..."
+          placeholder="Ask your nutritionist..."
           className="flex-1 resize-none"
           rows={2}
           disabled={loading}
@@ -165,13 +157,12 @@ export default function TrainerChatPage() {
         <Button
           onClick={sendMessage}
           disabled={loading || !input.trim()}
-          className="px-6"
+          className="px-6 bg-green-600 hover:bg-green-700"
         >
           {loading ? 'Sending...' : 'Send'}
         </Button>
       </div>
       
-      {/* Character count */}
       <div className="text-xs text-gray-500 mt-1 text-right">
         {input.length}/1000
       </div>
