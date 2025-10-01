@@ -12,6 +12,22 @@ const nextConfig: NextConfig = {
     // your project has type errors.
     ignoreBuildErrors: true,
   },
+  async redirects() {
+    return [
+      // Redirect non-www to www
+      {
+        source: '/:path*',
+        has: [
+          {
+            type: 'host',
+            value: 'sharpened.me',
+          },
+        ],
+        destination: 'https://www.sharpened.me/:path*',
+        permanent: true,
+      },
+    ]
+  },
 };
 
 export default nextConfig;
