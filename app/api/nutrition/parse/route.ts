@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { API_BASE_URL } from '@/lib/api-config';
 import { IntelligentMealParser, IntelligentParsedMeal, ParsedFoodItem } from '@/lib/ai/intelligent-meal-parser';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
@@ -144,14 +145,46 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Initialize intelligent meal parser with OpenAI API key
+    // Try Python backend first
+    console.log('Attempting to use Python backend meal parser');
+    try {
+      const backendResponse = await fetch(`${API_BASE_URL}/api/v1/nutrition/meal/parse`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: body.description,
+          user_id: user.id
+        }),
+      });
+
+      if (backendResponse.ok) {
+        const backendData = await backendResponse.json();
+        console.log('Successfully parsed meal using Python backend');
+
+        // Transform backend response to match frontend expectations
+        return NextResponse.json({
+          parsed: backendData,
+          originalDescription: body.description,
+          requiresConfirmation: true,
+          warnings: [],
+          source: 'python-backend'
+        });
+      } else {
+        console.log('Backend parser failed, falling back to local parser');
+      }
+    } catch (backendError) {
+      console.error('Backend parsing error, falling back to local parser:', backendError);
+    }
+
+    // Fallback to local parsing
     const openAIKey = process.env.OPENAI_API_KEY;
 
     if (!openAIKey || openAIKey.trim() === '') {
       // Fallback: Simple parsing without AI
       console.log('No OpenAI API key, using simple fallback parser');
 
-      // Try to parse basic patterns like "1 egg white" or "egg white"
       const simpleResult = await parseSimpleMeal(body.description, supabase);
 
       if (simpleResult) {
@@ -159,7 +192,8 @@ export async function POST(request: NextRequest) {
           parsed: simpleResult,
           originalDescription: body.description,
           requiresConfirmation: true,
-          warnings: ['AI parsing unavailable - using simple pattern matching']
+          warnings: ['AI parsing unavailable - using simple pattern matching'],
+          source: 'simple-fallback'
         });
       }
 
@@ -169,7 +203,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('Using Intelligent Meal Parser with OpenAI');
+    console.log('Using local Intelligent Meal Parser with OpenAI');
     const parser = new IntelligentMealParser(openAIKey, supabase);
 
     // Parse the meal description with database search + Perplexity fallback
@@ -182,13 +216,12 @@ export async function POST(request: NextRequest) {
       warnings: parsedMeal.warnings.length
     });
 
-    // Return the parsed meal data for user confirmation
-    // Note: We don't save it to the database yet - that happens after user confirms
     return NextResponse.json({
       parsed: parsedMeal,
       originalDescription: body.description,
       requiresConfirmation: parsedMeal.requiresUserConfirmation,
-      warnings: parsedMeal.warnings
+      warnings: parsedMeal.warnings,
+      source: 'local-openai'
     });
 
   } catch (error) {
