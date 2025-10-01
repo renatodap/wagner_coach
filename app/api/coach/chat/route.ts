@@ -27,6 +27,10 @@ export async function POST(req: NextRequest) {
     }
 
     // Call Python backend
+    console.log('[Coach API] Calling backend:', `${BACKEND_URL}/api/v1/coach/chat`)
+    console.log('[Coach API] User ID:', user.id)
+    console.log('[Coach API] Coach type:', body.coach_type)
+
     const response = await fetch(`${BACKEND_URL}/api/v1/coach/chat`, {
       method: 'POST',
       headers: {
@@ -40,12 +44,29 @@ export async function POST(req: NextRequest) {
       })
     })
 
+    console.log('[Coach API] Backend response status:', response.status)
+
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ detail: 'Backend error' }))
+      console.error('[Coach API] Backend error:', errorData)
+
+      // Provide helpful error messages
+      let userMessage = errorData.detail || 'Failed to get coach response'
+      if (response.status === 404 || !BACKEND_URL) {
+        userMessage = 'Backend server not configured. Please set NEXT_PUBLIC_BACKEND_URL environment variable.'
+      } else if (response.status >= 500) {
+        userMessage = 'Backend server error. Please check backend logs.'
+      }
+
       return NextResponse.json(
-        { 
-          error: errorData.detail || 'Failed to get coach response',
-          success: false
+        {
+          error: userMessage,
+          success: false,
+          debug: {
+            backendUrl: BACKEND_URL,
+            status: response.status,
+            detail: errorData.detail
+          }
         },
         { status: response.status }
       )
@@ -55,11 +76,25 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(data)
     
   } catch (error) {
-    console.error('Chat API error:', error)
+    console.error('[Coach API] Unexpected error:', error)
+
+    // Check if backend is unreachable
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    let userMessage = 'Chat failed'
+
+    if (errorMessage.includes('fetch') || errorMessage.includes('ECONNREFUSED')) {
+      userMessage = 'Cannot reach backend server. Please ensure backend is running at ' + BACKEND_URL
+    }
+
     return NextResponse.json(
-      { 
-        error: 'Chat failed',
-        success: false
+      {
+        error: userMessage,
+        success: false,
+        debug: {
+          backendUrl: BACKEND_URL,
+          errorMessage,
+          hint: 'Start backend: cd fitness-backend && uvicorn app.main:app --reload'
+        }
       },
       { status: 500 }
     )

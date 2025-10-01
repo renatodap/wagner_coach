@@ -82,14 +82,29 @@ export default function DashboardClient({
 
   const quickActions = [
     {
-      label: 'Start Workout',
+      label: 'Chat with Trainer',
+      icon: Users,
+      action: () => router.push('/coach/trainer')
+    },
+    {
+      label: 'Chat with Nutritionist',
+      icon: Users,
+      action: () => router.push('/coach/nutritionist')
+    },
+    {
+      label: 'Log Workout',
       icon: Dumbbell,
-      action: () => router.push('/workouts')
+      action: () => router.push('/workouts/log')
     },
     {
       label: 'Log Meal',
       icon: Apple,
-      action: () => router.push('/quick-entry')
+      action: () => router.push('/nutrition/log')
+    },
+    {
+      label: 'Sync Activities',
+      icon: Activity,
+      action: () => router.push('/activities/sync-status')
     },
     {
       label: 'View Progress',
