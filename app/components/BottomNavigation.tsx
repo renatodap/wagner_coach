@@ -6,7 +6,7 @@ import {
   LayoutDashboard,
   MessageSquare,
   User,
-  Dumbbell,
+  Calendar,
   Sparkles
 } from 'lucide-react'
 
@@ -21,10 +21,10 @@ export default function BottomNavigation() {
       current: pathname === '/dashboard'
     },
     {
-      name: 'Workouts',
-      href: '/workouts',
-      icon: Dumbbell,
-      current: pathname === '/workouts' || pathname.startsWith('/workout')
+      name: 'Programs',
+      href: '/programs',
+      icon: Calendar,
+      current: pathname === '/programs' || pathname.startsWith('/program')
     },
     {
       name: 'Quick',
