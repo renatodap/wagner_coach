@@ -82,14 +82,9 @@ export default function DashboardClient({
 
   const quickActions = [
     {
-      label: 'Chat with Trainer',
+      label: 'Chat with Coach',
       icon: Users,
-      action: () => router.push('/coach/trainer')
-    },
-    {
-      label: 'Chat with Nutritionist',
-      icon: Users,
-      action: () => router.push('/coach/nutritionist')
+      action: () => router.push('/coach')
     },
     {
       label: 'Log Workout',
@@ -140,45 +135,23 @@ export default function DashboardClient({
             <Users className="w-5 h-5 text-iron-orange" />
             AI Coach
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Trainer Card */}
-            <button
-              onClick={() => router.push('/coach/trainer')}
-              className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-blue-600/20 to-blue-500/10 border-2 border-blue-500/50 hover:border-blue-400 p-6 text-left transition-all duration-300 hover:scale-[1.02]"
-            >
-              <div className="flex items-start justify-between mb-4">
-                <div className="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center">
-                  <span className="text-2xl">🏋️</span>
-                </div>
-                <ArrowRight className="w-5 h-5 text-blue-400 group-hover:translate-x-1 transition-transform" />
+          <button
+            onClick={() => router.push('/coach')}
+            className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-iron-orange/20 to-orange-500/10 border-2 border-iron-orange/50 hover:border-iron-orange p-6 text-left transition-all duration-300 hover:scale-[1.02] w-full"
+          >
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-12 h-12 rounded-full bg-iron-orange/20 flex items-center justify-center">
+                <Users className="w-6 h-6 text-iron-orange" />
               </div>
-              <h3 className="text-xl font-bold text-white mb-2">Chat with Trainer</h3>
-              <p className="text-blue-200 text-sm mb-3">Get workout advice, form tips, and training guidance from Coach Alex</p>
-              <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-500/20 rounded-full">
-                <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
-                <span className="text-xs text-blue-300 font-semibold">Available Now</span>
-              </div>
-            </button>
-
-            {/* Nutritionist Card */}
-            <button
-              onClick={() => router.push('/coach/nutritionist')}
-              className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-green-600/20 to-green-500/10 border-2 border-green-500/50 hover:border-green-400 p-6 text-left transition-all duration-300 hover:scale-[1.02]"
-            >
-              <div className="flex items-start justify-between mb-4">
-                <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center">
-                  <span className="text-2xl">🥗</span>
-                </div>
-                <ArrowRight className="w-5 h-5 text-green-400 group-hover:translate-x-1 transition-transform" />
-              </div>
-              <h3 className="text-xl font-bold text-white mb-2">Chat with Nutritionist</h3>
-              <p className="text-green-200 text-sm mb-3">Get meal planning, nutrition tips, and diet guidance from Coach Maria</p>
-              <div className="inline-flex items-center gap-2 px-3 py-1 bg-green-500/20 rounded-full">
-                <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-                <span className="text-xs text-green-300 font-semibold">Available Now</span>
-              </div>
-            </button>
-          </div>
+              <ArrowRight className="w-5 h-5 text-iron-orange group-hover:translate-x-1 transition-transform" />
+            </div>
+            <h3 className="text-xl font-bold text-white mb-2">Chat with AI Coach</h3>
+            <p className="text-orange-200 text-sm mb-3">Get personalized fitness and nutrition guidance, workout advice, and meal planning support</p>
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-iron-orange/20 rounded-full">
+              <div className="w-2 h-2 rounded-full bg-iron-orange animate-pulse" />
+              <span className="text-xs text-orange-300 font-semibold">Available Now</span>
+            </div>
+          </button>
         </div>
 
         {/* Quick Actions */}

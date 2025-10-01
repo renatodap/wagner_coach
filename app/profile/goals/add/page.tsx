@@ -2,60 +2,24 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useToast } from '@/components/ui/use-toast';
-import { Loader2, Save, ArrowLeft, Target } from 'lucide-react';
-import { GoalType } from '@/types/profile';
-
-const goalTypeOptions = [
-  { value: 'weight_loss', label: 'Weight Loss', unit: 'kg' },
-  { value: 'muscle_gain', label: 'Muscle Gain', unit: 'kg' },
-  { value: 'run_distance', label: 'Running Distance', unit: 'km' },
-  { value: 'run_time', label: 'Running Time', unit: 'minutes' },
-  { value: 'strength', label: 'Strength Training', unit: 'reps' },
-  { value: 'consistency', label: 'Workout Consistency', unit: 'days/week' },
-  { value: 'flexibility', label: 'Flexibility', unit: 'cm' },
-  { value: 'endurance', label: 'Endurance', unit: 'minutes' },
-  { value: 'custom', label: 'Custom Goal', unit: '' },
-];
+import { Loader2, ArrowLeft, Target, Plus } from 'lucide-react';
 
 export default function AddGoalPage() {
   const router = useRouter();
-  const { toast } = useToast();
 
   const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState('');
   const [goal, setGoal] = useState({
-    goal_type: 'custom' as GoalType,
     description: '',
-    target_value: '',
-    target_unit: '',
     target_date: '',
-    priority: 3,
   });
-
-  const handleGoalTypeChange = (value: GoalType) => {
-    const selected = goalTypeOptions.find(opt => opt.value === value);
-    setGoal({
-      ...goal,
-      goal_type: value,
-      target_unit: selected?.unit || '',
-    });
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
 
-    if (!goal.description || goal.description.length < 10) {
-      toast({
-        title: 'Error',
-        description: 'Please provide a detailed goal description (at least 10 characters)',
-        variant: 'destructive',
-      });
+    if (!goal.description || goal.description.length < 3) {
+      setError('Please describe your goal (at least 3 characters)');
       return;
     }
 
@@ -68,9 +32,11 @@ export default function AddGoalPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          ...goal,
-          target_value: goal.target_value ? parseFloat(goal.target_value) : null,
+          goal_type: 'custom',
+          description: goal.description,
           target_date: goal.target_date || null,
+          priority: 3,
+          status: 'active',
         }),
       });
 
@@ -79,169 +45,113 @@ export default function AddGoalPage() {
         throw new Error(error.details?.join(', ') || error.error || 'Failed to create goal');
       }
 
-      toast({
-        title: 'Success',
-        description: 'Your goal has been created',
-      });
-
       router.push('/profile');
     } catch (error) {
       console.error('Goal creation error:', error);
-      toast({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to create goal',
-        variant: 'destructive',
-      });
+      setError(error instanceof Error ? error.message : 'Failed to create goal');
     } finally {
       setIsSaving(false);
     }
   };
 
   return (
-    <main className="container mx-auto p-6 max-w-2xl">
-      <div className="flex items-center mb-6">
-        <Button
-          variant="ghost"
-          onClick={() => router.push('/profile')}
-          className="mr-4"
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Profile
-        </Button>
-        <h1 className="text-3xl font-bold flex items-center">
-          <Target className="mr-2 h-8 w-8" />
-          Add New Goal
-        </h1>
-      </div>
-
-      <form onSubmit={handleSubmit}>
-        <Card>
-          <CardHeader>
-            <CardTitle>Goal Details</CardTitle>
-            <CardDescription>
-              Set a clear, measurable goal to track your progress
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label htmlFor="goal_type">Goal Type</Label>
-              <Select
-                value={goal.goal_type}
-                onValueChange={handleGoalTypeChange}
-              >
-                <SelectTrigger id="goal_type">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {goalTypeOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="description">Goal Description *</Label>
-              <Textarea
-                id="description"
-                value={goal.description}
-                onChange={(e) => setGoal({ ...goal, description: e.target.value })}
-                placeholder="Describe your goal in detail. Be specific about what you want to achieve..."
-                rows={3}
-                required
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                Be specific. Instead of "lose weight", try "lose 10kg by running 3x per week"
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="target_value">Target Value</Label>
-                <Input
-                  id="target_value"
-                  type="number"
-                  step="0.1"
-                  value={goal.target_value}
-                  onChange={(e) => setGoal({ ...goal, target_value: e.target.value })}
-                  placeholder="e.g., 10"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="target_unit">Unit</Label>
-                <Input
-                  id="target_unit"
-                  value={goal.target_unit}
-                  onChange={(e) => setGoal({ ...goal, target_unit: e.target.value })}
-                  placeholder="e.g., kg, km, minutes"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="target_date">Target Date</Label>
-                <Input
-                  id="target_date"
-                  type="date"
-                  value={goal.target_date}
-                  onChange={(e) => setGoal({ ...goal, target_date: e.target.value })}
-                  min={new Date().toISOString().split('T')[0]}
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  When do you want to achieve this goal?
-                </p>
-              </div>
-
-              <div>
-                <Label htmlFor="priority">Priority</Label>
-                <Select
-                  value={goal.priority.toString()}
-                  onValueChange={(value) => setGoal({ ...goal, priority: parseInt(value) })}
-                >
-                  <SelectTrigger id="priority">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">1 - Highest</SelectItem>
-                    <SelectItem value="2">2 - High</SelectItem>
-                    <SelectItem value="3">3 - Medium</SelectItem>
-                    <SelectItem value="4">4 - Low</SelectItem>
-                    <SelectItem value="5">5 - Lowest</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <div className="flex justify-end space-x-4 mt-6">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => router.push('/profile')}
-            disabled={isSaving}
-          >
-            Cancel
-          </Button>
-          <Button type="submit" disabled={isSaving}>
-            {isSaving ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Creating...
-              </>
-            ) : (
-              <>
-                <Save className="mr-2 h-4 w-4" />
-                Create Goal
-              </>
-            )}
-          </Button>
+    <div className="min-h-screen bg-iron-black text-iron-white">
+      {/* Header */}
+      <header className="border-b border-iron-gray">
+        <div className="max-w-4xl mx-auto px-4 py-4">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => router.push('/profile')}
+              className="text-iron-gray hover:text-iron-orange transition-colors"
+            >
+              <ArrowLeft className="w-6 h-6" />
+            </button>
+            <h1 className="font-heading text-2xl text-iron-orange uppercase tracking-wider flex items-center gap-2">
+              <Target className="w-6 h-6" />
+              Add Goal
+            </h1>
+          </div>
         </div>
-      </form>
-    </main>
+      </header>
+
+      <main className="max-w-4xl mx-auto px-4 py-6 pb-24">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Goal Description */}
+          <div className="border border-iron-gray p-6">
+            <label htmlFor="description" className="block font-heading text-lg text-iron-white mb-2 uppercase">
+              What's your goal?
+            </label>
+            <p className="text-iron-gray text-sm mb-4">
+              Be specific. Examples: "Weigh 75kg", "Run 5k in 22 minutes", "Squat 315 lbs"
+            </p>
+            <input
+              id="description"
+              type="text"
+              value={goal.description}
+              onChange={(e) => setGoal({ ...goal, description: e.target.value })}
+              placeholder="e.g., Squat 315 lbs"
+              className="w-full bg-iron-black border-2 border-iron-gray text-iron-white px-4 py-3 focus:outline-none focus:border-iron-orange transition-colors text-lg"
+              required
+              maxLength={200}
+            />
+            <p className="text-iron-gray text-xs mt-2">{goal.description.length}/200 characters</p>
+          </div>
+
+          {/* Target Date */}
+          <div className="border border-iron-gray p-6">
+            <label htmlFor="target_date" className="block font-heading text-lg text-iron-white mb-2 uppercase">
+              Target Date (Optional)
+            </label>
+            <p className="text-iron-gray text-sm mb-4">
+              When do you want to achieve this goal?
+            </p>
+            <input
+              id="target_date"
+              type="date"
+              value={goal.target_date}
+              onChange={(e) => setGoal({ ...goal, target_date: e.target.value })}
+              min={new Date().toISOString().split('T')[0]}
+              className="w-full bg-iron-black border-2 border-iron-gray text-iron-white px-4 py-3 focus:outline-none focus:border-iron-orange transition-colors text-lg"
+            />
+          </div>
+
+          {/* Error Message */}
+          {error && (
+            <div className="border-2 border-red-600 bg-red-600/10 p-4">
+              <p className="text-red-500">{error}</p>
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div className="flex flex-col sm:flex-row gap-4">
+            <button
+              type="button"
+              onClick={() => router.push('/profile')}
+              disabled={isSaving}
+              className="flex-1 border-2 border-iron-gray text-iron-white font-heading py-4 uppercase tracking-wider hover:bg-iron-gray/20 transition-colors disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSaving || !goal.description}
+              className="flex-1 bg-iron-orange text-iron-black font-heading py-4 uppercase tracking-wider hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {isSaving ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                <>
+                  <Plus className="w-5 h-5" />
+                  Create Goal
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </main>
+    </div>
   );
 }

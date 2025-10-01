@@ -57,14 +57,16 @@ export default function CoachClient({
       const welcomeMessage: CoachMessage = {
         id: 'welcome',
         role: 'assistant',
-        content: `Welcome to your AI fitness coach! 👋
+        content: `Welcome to your AI fitness & nutrition coach! 👋
 
-I'm here to help you achieve your fitness goals. I can:
-- Analyze your workout performance
+I'm here to help you achieve your fitness and health goals. I can:
+- Analyze your workout performance and training patterns
 - Provide personalized training recommendations
+- Guide you on nutrition, meal planning, and macro tracking
 - Help you track progress towards your goals
-- Answer questions about exercises and techniques
+- Answer questions about exercises, form, and nutrition
 - Offer motivation and accountability
+- Show you how training and nutrition work together for optimal results
 
 What would you like to work on today?`,
         timestamp: new Date()
@@ -234,7 +236,9 @@ What would you like to work on today?`,
     const welcomeMessage: CoachMessage = {
       id: 'welcome-new',
       role: 'assistant',
-      content: `Welcome back! I've cleared our previous conversation. What would you like to work on today?`,
+      content: `Welcome back! I've cleared our previous conversation.
+
+Ready to discuss your training, nutrition, or anything else related to your fitness journey. What would you like to work on today?`,
       timestamp: new Date()
     };
     setMessages([welcomeMessage]);
@@ -260,7 +264,7 @@ What would you like to work on today?`,
               >
                 <ChevronLeft className="w-6 h-6" />
               </Link>
-              <h1 className="font-heading text-2xl text-iron-orange">AI COACH</h1>
+              <h1 className="font-heading text-2xl text-iron-orange">FITNESS & NUTRITION COACH</h1>
             </div>
             <div className="flex items-center gap-3">
               <button

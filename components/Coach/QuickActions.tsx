@@ -4,7 +4,9 @@ import {
   Target,
   Dumbbell,
   Activity,
-  HelpCircle
+  HelpCircle,
+  Apple,
+  Utensils
 } from 'lucide-react';
 
 interface QuickActionsProps {
@@ -24,24 +26,24 @@ export default function QuickActions({ onAction }: QuickActionsProps) {
       prompt: 'What should I do for my next workout based on my recent training?'
     },
     {
+      icon: Apple,
+      label: 'Review Nutrition',
+      prompt: 'How is my nutrition looking based on my recent meals?'
+    },
+    {
       icon: Target,
       label: 'Check Progress',
       prompt: 'How am I progressing towards my fitness goals?'
     },
     {
-      icon: Dumbbell,
-      label: 'Exercise Form',
-      prompt: 'Can you give me tips on proper form for compound exercises?'
+      icon: Utensils,
+      label: 'Meal Planning',
+      prompt: 'Can you help me plan my meals for my training goals?'
     },
     {
       icon: Activity,
       label: 'Recovery Advice',
-      prompt: 'How should I optimize my recovery between workouts?'
-    },
-    {
-      icon: HelpCircle,
-      label: 'Training Tips',
-      prompt: 'What are some tips to maximize my muscle building progress?'
+      prompt: 'How should I optimize my recovery and nutrition between workouts?'
     }
   ];
 

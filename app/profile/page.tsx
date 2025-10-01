@@ -226,41 +226,6 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="border border-iron-gray p-4 text-center">
-            <Activity className="w-8 h-8 mx-auto mb-2 text-iron-orange" />
-            <div className="font-heading text-2xl text-iron-white">
-              {(stats.totalWorkouts || 0).toLocaleString()}
-            </div>
-            <p className="text-iron-gray text-xs uppercase">Workouts</p>
-          </div>
-
-          <div className="border border-iron-gray p-4 text-center">
-            <Flame className="w-8 h-8 mx-auto mb-2 text-iron-orange" />
-            <div className="font-heading text-2xl text-iron-white">
-              {stats.currentStreak || 0}
-            </div>
-            <p className="text-iron-gray text-xs uppercase">Day Streak</p>
-          </div>
-
-          <div className="border border-iron-gray p-4 text-center">
-            <Trophy className="w-8 h-8 mx-auto mb-2 text-iron-orange" />
-            <div className="font-heading text-2xl text-iron-white">
-              {stats.goalsCompleted || 0}
-            </div>
-            <p className="text-iron-gray text-xs uppercase">Goals Won</p>
-          </div>
-
-          <div className="border border-iron-gray p-4 text-center">
-            <Clock className="w-8 h-8 mx-auto mb-2 text-iron-orange" />
-            <div className="font-heading text-2xl text-iron-white">
-              {(stats.totalMinutes || 0).toLocaleString()}
-            </div>
-            <p className="text-iron-gray text-xs uppercase">Minutes</p>
-          </div>
-        </div>
-
         {/* Goals Section */}
         <div className="border border-iron-gray p-6">
           <div className="flex items-center justify-between mb-4">
@@ -302,15 +267,15 @@ export default function ProfilePage() {
                   className="p-4 border border-iron-gray hover:border-iron-orange transition-colors cursor-pointer"
                 >
                   <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-iron-white">{goal.goal_description || goal.description}</p>
-                      {goal.target_value && goal.target_unit && (
-                        <p className="text-sm text-iron-gray mt-1">
-                          Target: {goal.target_value} {goal.target_unit}
+                    <div className="flex-1">
+                      <p className="text-iron-white mb-2">{goal.goal_description || goal.description}</p>
+                      {goal.target_date && (
+                        <p className="text-sm text-iron-gray">
+                          Target Date: {new Date(goal.target_date).toLocaleDateString()}
                         </p>
                       )}
                     </div>
-                    <ChevronRight className="w-5 h-5 text-iron-gray" />
+                    <ChevronRight className="w-5 h-5 text-iron-gray flex-shrink-0 ml-2" />
                   </div>
                 </div>
               ))}

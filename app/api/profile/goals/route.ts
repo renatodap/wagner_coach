@@ -10,8 +10,8 @@ function validateGoalData(data: any): { isValid: boolean; errors: string[] } {
     errors.push('Invalid or missing goal type');
   }
 
-  if (!data.description || data.description.trim().length < 10) {
-    errors.push('Goal description must be at least 10 characters');
+  if (!data.description || data.description.trim().length < 3) {
+    errors.push('Goal description must be at least 3 characters');
   }
 
   if (data.description && data.description.length > 500) {
@@ -22,8 +22,13 @@ function validateGoalData(data: any): { isValid: boolean; errors: string[] } {
     errors.push('Target value must be positive');
   }
 
-  if (data.target_date && new Date(data.target_date) <= new Date()) {
-    errors.push('Target date must be in the future');
+  if (data.target_date) {
+    const targetDate = new Date(data.target_date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (targetDate < today) {
+      errors.push('Target date must be today or in the future');
+    }
   }
 
   if (data.priority !== undefined && (data.priority < 1 || data.priority > 5)) {
@@ -175,12 +180,18 @@ export async function POST(request: NextRequest) {
       goalData.priority = (activeGoalsCount || 0) + 1;
     }
 
-    // Create goal
+    // Create goal - map 'description' to 'goal_description' for database
     const { data: newGoal, error: createError } = await supabase
       .from('user_goals')
       .insert({
         user_id: user.id,
-        ...goalData,
+        goal_type: goalData.goal_type,
+        goal_description: goalData.description, // Map to goal_description
+        target_value: goalData.target_value,
+        target_unit: goalData.target_unit,
+        target_date: goalData.target_date,
+        priority: goalData.priority,
+        status: goalData.status,
         is_active: true
       })
       .select()
