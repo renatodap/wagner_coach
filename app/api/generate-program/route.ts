@@ -2,14 +2,14 @@ import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
-// Use OpenRouter with Claude 3.5 Sonnet
+// Use OpenRouter with DeepSeek V3 (FREE)
 const openai = new OpenAI({
   apiKey: process.env.OPENROUTER_API_KEY || process.env.OPENAI_API_KEY,
   baseURL: process.env.OPENROUTER_API_KEY ? "https://openrouter.ai/api/v1" : undefined,
 });
 
 const MODEL = process.env.OPENROUTER_API_KEY
-  ? "anthropic/claude-3.5-sonnet"
+  ? "deepseek/deepseek-chat:free"
   : "gpt-4-turbo-preview";
 
 export async function POST(request: Request) {

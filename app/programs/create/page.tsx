@@ -97,9 +97,9 @@ export default function CreateProgramPage() {
 
       setGenerationStatus('complete');
 
-      // Redirect to dashboard to see new program
+      // Redirect to programs page to see new program
       setTimeout(() => {
-        router.push('/dashboard');
+        router.push('/programs');
       }, 2000);
 
     } catch (err) {
