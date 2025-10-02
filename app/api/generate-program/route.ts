@@ -2,9 +2,15 @@ import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
+// Use OpenRouter with Claude 3.5 Sonnet
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: process.env.OPENROUTER_API_KEY || process.env.OPENAI_API_KEY,
+  baseURL: process.env.OPENROUTER_API_KEY ? "https://openrouter.ai/api/v1" : undefined,
 });
+
+const MODEL = process.env.OPENROUTER_API_KEY
+  ? "anthropic/claude-3.5-sonnet"
+  : "gpt-4-turbo-preview";
 
 export async function POST(request: Request) {
   try {
@@ -65,7 +71,7 @@ export async function POST(request: Request) {
       .single();
 
     // Build context for AI
-    const context = `
+    const userContext = `
 User Profile:
 ${embedding?.profile_text || 'No profile data available'}
 
@@ -78,70 +84,109 @@ Additional Request Details:
 - Additional Context: ${genRequest.additional_context || 'None'}
 `;
 
-    // Generate program using AI
+    console.log(`Generating ${duration_weeks}-week program with ${onboarding.desired_training_frequency} workouts/week and ${onboarding.daily_meal_preference} meals/day`);
+
+    // Generate program using Claude 3.5 Sonnet
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4-turbo-preview',
+      model: MODEL,
       messages: [
         {
           role: 'system',
-          content: `You are an expert fitness coach creating personalized training and nutrition programs. Generate a ${duration_weeks}-week program with ${onboarding.desired_training_frequency} workouts per week and ${onboarding.daily_meal_preference} meals per day.
+          content: `You are an expert fitness and nutrition coach creating a complete ${duration_weeks}-week personalized training and nutrition program.
+
+CRITICAL REQUIREMENTS:
+1. Generate ${duration_weeks} weeks with 7 days each (${duration_weeks * 7} total days)
+2. Include ${onboarding.desired_training_frequency} workout days per week
+3. Each day must have ${onboarding.daily_meal_preference} complete meals
+4. Workouts should vary day-to-day and show progressive overload
+5. Meals must vary EVERY DAY - no repeating meals
+6. Rest days should still have complete meal plans
+7. Include specific exercises with sets, reps, and form cues
+8. Include specific foods with quantities and calories
 
 Return a JSON object with this EXACT structure:
 {
-  "program_name": "Descriptive program name",
-  "program_description": "Brief description of the program approach",
-  "weekly_schedule": [
+  "program_name": "Descriptive program name based on user goals",
+  "program_description": "2-3 sentence overview of the program approach and what makes it effective",
+  "weeks": [
     {
       "week_number": 1,
-      "focus": "Week focus/theme",
-      "workouts": [
+      "week_focus": "Week 1 focus/theme (e.g., 'Foundation Building', 'Strength Base')",
+      "days": [
         {
-          "day_of_week": 1-7,
-          "workout_name": "Workout name",
-          "workout_type": "strength|cardio|hiit|flexibility",
-          "duration_minutes": 30-90,
-          "exercises": [
+          "day_number": 1,
+          "day_of_week": "monday",
+          "is_rest_day": false,
+          "day_focus": "Brief description of day focus",
+          "workouts": [
             {
-              "name": "Exercise name",
-              "sets": 3,
-              "reps": "8-12",
-              "rest_seconds": 60,
-              "notes": "Form cues"
+              "name": "Workout name",
+              "type": "strength",
+              "duration_minutes": 60,
+              "exercises": [
+                {
+                  "name": "Exercise name",
+                  "sets": 4,
+                  "reps": "8-10",
+                  "rest_seconds": 90,
+                  "notes": "Form cues and technique tips"
+                }
+              ]
             }
-          ]
-        }
-      ],
-      "daily_meals": [
-        {
-          "meal_number": 1-6,
-          "meal_name": "Breakfast|Snack|Lunch|Dinner",
-          "calories": 400-800,
-          "protein_g": 20-50,
-          "carbs_g": 30-80,
-          "fat_g": 10-30,
-          "foods": [
+          ],
+          "meals": [
             {
-              "item": "Food item",
-              "quantity": "Amount",
-              "calories": 100-500
+              "meal_number": 1,
+              "meal_type": "breakfast",
+              "meal_time": "07:00",
+              "name": "Meal name",
+              "calories": 500,
+              "protein_g": 35,
+              "carbs_g": 50,
+              "fat_g": 18,
+              "foods": [
+                {
+                  "item": "Food item",
+                  "quantity": "Amount with unit",
+                  "calories": 210
+                }
+              ]
             }
           ]
         }
       ]
     }
   ]
-}`
+}
+
+IMPORTANT RULES:
+- Each week must have exactly 7 days
+- Day numbers should be absolute (1-${duration_weeks * 7})
+- Meals must be DIFFERENT every single day
+- Progressive overload: gradually increase weight/reps/intensity across weeks
+- Vary exercises to prevent boredom and overuse
+- Meal times should be spread throughout the day
+- Total daily calories should match user's goals (bulking/cutting/maintenance)
+- Include warmup exercises for workout days
+`
         },
         {
           role: 'user',
-          content: context
+          content: userContext
         }
       ],
       response_format: { type: 'json_object' },
-      temperature: 0.8,
+      temperature: 0.7,
+      max_tokens: 16000,
     });
 
     const programData = JSON.parse(completion.choices[0].message.content || '{}');
+
+    console.log('Program generated:', {
+      name: programData.program_name,
+      weeks: programData.weeks?.length,
+      totalDays: programData.weeks?.reduce((sum: number, w: any) => sum + (w.days?.length || 0), 0)
+    });
 
     // Deactivate all existing programs for this user
     await supabase
@@ -180,95 +225,100 @@ Return a JSON object with this EXACT structure:
       throw programError;
     }
 
-    // Insert program days, workouts, and meals
+    console.log('AI Program created:', aiProgram.id);
+
+    // Insert all program days, workouts, and meals from the structured output
     const startDate = new Date();
-    const totalDays = duration_weeks * 7;
+    let dayInsertCount = 0;
+    let workoutInsertCount = 0;
+    let mealInsertCount = 0;
 
-    // Create all program days first
-    const dayInserts = [];
-    for (let i = 1; i <= totalDays; i++) {
-      const dayDate = new Date(startDate);
-      dayDate.setDate(dayDate.getDate() + i - 1);
-      const daysOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-      const dayOfWeek = daysOfWeek[dayDate.getDay()];
+    for (const week of programData.weeks || []) {
+      for (const day of week.days || []) {
+        const dayNumber = day.day_number;
+        const dayDate = new Date(startDate);
+        dayDate.setDate(dayDate.getDate() + dayNumber - 1);
 
-      dayInserts.push({
-        program_id: aiProgram.id,
-        day_number: i,
-        day_date: dayDate.toISOString().split('T')[0],
-        day_of_week: dayOfWeek,
-        day_name: dayOfWeek.charAt(0).toUpperCase() + dayOfWeek.slice(1),
-        day_focus: ''
-      });
-    }
-
-    const { data: programDays, error: daysError } = await supabase
-      .from('ai_program_days')
-      .insert(dayInserts)
-      .select();
-
-    if (daysError) {
-      console.error('Days creation error:', daysError);
-      throw daysError;
-    }
-
-    // Create a map of day_number to day id for quick lookup
-    const dayMap = new Map();
-    programDays.forEach(day => {
-      dayMap.set(day.day_number, day.id);
-    });
-
-    // Insert workouts and meals for each week
-    for (const week of programData.weekly_schedule || []) {
-      const weekNumber = week.week_number;
-
-      // Insert workouts
-      for (const workout of week.workouts || []) {
-        const dayNumber = (weekNumber - 1) * 7 + workout.day_of_week;
-        const programDayId = dayMap.get(dayNumber);
-
-        if (!programDayId) continue;
-
-        await supabase
-          .from('ai_program_workouts')
+        // Insert day
+        const { data: programDay, error: dayError } = await supabase
+          .from('ai_program_days')
           .insert({
-            program_day_id: programDayId,
             program_id: aiProgram.id,
-            workout_type: workout.workout_type || 'strength',
-            name: workout.workout_name || 'Workout',
-            duration_minutes: workout.duration_minutes || 60,
-            exercises: workout.exercises || [],
-            workout_details: workout
-          });
-      }
+            day_number: dayNumber,
+            day_date: dayDate.toISOString().split('T')[0],
+            day_of_week: day.day_of_week || '',
+            day_name: (day.day_of_week || '').charAt(0).toUpperCase() + (day.day_of_week || '').slice(1),
+            day_focus: day.day_focus || '',
+            is_completed: false
+          })
+          .select()
+          .single();
 
-      // Insert meals for each day of the week
-      for (let dayOfWeek = 1; dayOfWeek <= 7; dayOfWeek++) {
-        const dayNumber = (weekNumber - 1) * 7 + dayOfWeek;
-        const programDayId = dayMap.get(dayNumber);
+        if (dayError) {
+          console.error(`Error creating day ${dayNumber}:`, dayError);
+          throw dayError;
+        }
 
-        if (!programDayId) continue;
+        dayInsertCount++;
 
-        for (const meal of week.daily_meals || []) {
-          await supabase
-            .from('ai_program_meals')
-            .insert({
-              program_day_id: programDayId,
-              program_id: aiProgram.id,
-              meal_type: meal.meal_name?.toLowerCase() === 'breakfast' ? 'breakfast' :
-                        meal.meal_name?.toLowerCase() === 'lunch' ? 'lunch' :
-                        meal.meal_name?.toLowerCase() === 'dinner' ? 'dinner' : 'snack',
-              meal_order: meal.meal_number || 0,
-              name: meal.meal_name || 'Meal',
-              total_calories: meal.calories || 0,
-              total_protein_g: meal.protein_g || 0,
-              total_carbs_g: meal.carbs_g || 0,
-              total_fat_g: meal.fat_g || 0,
-              foods: meal.foods || []
-            });
+        // Insert workouts for this day
+        if (!day.is_rest_day && day.workouts && day.workouts.length > 0) {
+          for (let i = 0; i < day.workouts.length; i++) {
+            const workout = day.workouts[i];
+
+            const { error: workoutError } = await supabase
+              .from('ai_program_workouts')
+              .insert({
+                program_day_id: programDay.id,
+                program_id: aiProgram.id,
+                workout_type: workout.type || 'strength',
+                workout_order: i,
+                name: workout.name || 'Workout',
+                duration_minutes: workout.duration_minutes || 60,
+                exercises: workout.exercises || [],
+                workout_details: workout
+              });
+
+            if (workoutError) {
+              console.error(`Error creating workout for day ${dayNumber}:`, workoutError);
+              throw workoutError;
+            }
+
+            workoutInsertCount++;
+          }
+        }
+
+        // Insert meals for this day
+        if (day.meals && day.meals.length > 0) {
+          for (const meal of day.meals) {
+            const { error: mealError } = await supabase
+              .from('ai_program_meals')
+              .insert({
+                program_day_id: programDay.id,
+                program_id: aiProgram.id,
+                meal_type: meal.meal_type || 'other',
+                meal_time: meal.meal_time || null,
+                meal_order: meal.meal_number || 0,
+                name: meal.name || 'Meal',
+                total_calories: meal.calories || 0,
+                total_protein_g: meal.protein_g || 0,
+                total_carbs_g: meal.carbs_g || 0,
+                total_fat_g: meal.fat_g || 0,
+                foods: meal.foods || []
+              });
+
+            if (mealError) {
+              console.error(`Error creating meal for day ${dayNumber}:`, mealError);
+              throw mealError;
+            }
+
+            mealInsertCount++;
+          }
         }
       }
     }
+
+    console.log(`Inserted ${dayInsertCount} days, ${workoutInsertCount} workouts, ${mealInsertCount} meals`);
 
     // Update request status
     await supabase
@@ -283,12 +333,17 @@ Return a JSON object with this EXACT structure:
     return NextResponse.json({
       success: true,
       program_id: aiProgram.id,
-      message: 'Program generated successfully'
+      message: 'Program generated successfully',
+      stats: {
+        days: dayInsertCount,
+        workouts: workoutInsertCount,
+        meals: mealInsertCount
+      }
     });
   } catch (error) {
     console.error('Program generation error:', error);
     return NextResponse.json(
-      { error: 'Failed to generate program' },
+      { error: 'Failed to generate program', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

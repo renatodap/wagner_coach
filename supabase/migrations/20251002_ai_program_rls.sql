@@ -4,6 +4,33 @@
 -- Adds Row Level Security policies for AI program tables
 -- ============================================================
 
+-- Enable RLS on all AI program tables
+ALTER TABLE ai_generated_programs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ai_program_days ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ai_program_workouts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ai_program_meals ENABLE ROW LEVEL SECURITY;
+
+-- Drop existing policies if they exist
+DROP POLICY IF EXISTS "Users can view their own programs" ON ai_generated_programs;
+DROP POLICY IF EXISTS "Users can insert their own programs" ON ai_generated_programs;
+DROP POLICY IF EXISTS "Users can update their own programs" ON ai_generated_programs;
+DROP POLICY IF EXISTS "Users can delete their own programs" ON ai_generated_programs;
+
+DROP POLICY IF EXISTS "Users can view days from their programs" ON ai_program_days;
+DROP POLICY IF EXISTS "Users can insert days for their programs" ON ai_program_days;
+DROP POLICY IF EXISTS "Users can update days from their programs" ON ai_program_days;
+DROP POLICY IF EXISTS "Users can delete days from their programs" ON ai_program_days;
+
+DROP POLICY IF EXISTS "Users can view workouts from their programs" ON ai_program_workouts;
+DROP POLICY IF EXISTS "Users can insert workouts for their programs" ON ai_program_workouts;
+DROP POLICY IF EXISTS "Users can update workouts from their programs" ON ai_program_workouts;
+DROP POLICY IF EXISTS "Users can delete workouts from their programs" ON ai_program_workouts;
+
+DROP POLICY IF EXISTS "Users can view meals from their programs" ON ai_program_meals;
+DROP POLICY IF EXISTS "Users can insert meals for their programs" ON ai_program_meals;
+DROP POLICY IF EXISTS "Users can update meals from their programs" ON ai_program_meals;
+DROP POLICY IF EXISTS "Users can delete meals from their programs" ON ai_program_meals;
+
 -- ai_generated_programs policies
 CREATE POLICY "Users can view their own programs"
 ON ai_generated_programs FOR SELECT

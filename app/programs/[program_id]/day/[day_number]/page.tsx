@@ -3,184 +3,201 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { ArrowLeft, Utensils, Dumbbell, CheckCircle2, Circle } from 'lucide-react';
+import { ArrowLeft, Dumbbell, UtensilsCrossed, CheckCircle2, ChevronDown, ChevronUp } from 'lucide-react';
 
-interface Food {
+interface Workout {
+  id: string;
   name: string;
-  quantity: string;
-  calories?: number;
-  protein?: number;
-  carbs?: number;
-  fats?: number;
+  workout_type: string;
+  duration_minutes: number;
+  exercises: Exercise[];
+  is_completed: boolean;
 }
 
 interface Exercise {
   name: string;
-  sets?: number;
-  reps?: string;
-  weight?: string;
-  duration?: string;
-  distance?: string;
+  sets: number;
+  reps: string;
+  rest_seconds: number;
   notes?: string;
+  weight_guidance?: string;
 }
 
 interface Meal {
   id: string;
+  name: string;
   meal_type: string;
-  meal_name: string;
+  meal_time: string | null;
+  meal_order: number;
+  total_calories: number;
+  total_protein_g: number;
+  total_carbs_g: number;
+  total_fat_g: number;
   foods: Food[];
-  calories?: number;
-  protein?: number;
-  carbs?: number;
-  fats?: number;
-  instructions?: string;
-  prep_time_minutes?: number;
   is_completed: boolean;
 }
 
-interface Workout {
-  id: string;
-  workout_type: string;
-  workout_name: string;
-  exercises: Exercise[];
-  duration_minutes?: number;
-  intensity?: string;
-  notes?: string;
-  is_completed: boolean;
+interface Food {
+  item: string;
+  quantity: string;
+  calories: number;
 }
 
-interface DayInfo {
+interface DayData {
   day_number: number;
   day_date: string;
   day_name: string;
-  notes?: string;
+  day_focus: string;
   is_completed: boolean;
-  meals: Meal[];
-  workouts: Workout[];
 }
 
-export default function ProgramDayPage() {
+export default function DayDetailPage() {
   const router = useRouter();
   const params = useParams();
-  const programId = params.program_id as string;
-  const dayNumber = parseInt(params.day_number as string);
+  const program_id = params.program_id as string;
+  const day_number = parseInt(params.day_number as string);
 
   const [loading, setLoading] = useState(true);
-  const [dayInfo, setDayInfo] = useState<DayInfo | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [dayData, setDayData] = useState<DayData | null>(null);
+  const [workouts, setWorkouts] = useState<Workout[]>([]);
+  const [meals, setMeals] = useState<Meal[]>([]);
+  const [expandedWorkouts, setExpandedWorkouts] = useState<Set<string>>(new Set());
+  const [expandedMeals, setExpandedMeals] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    fetchDayInfo();
-  }, [programId, dayNumber]);
+    fetchDayDetails();
+  }, [program_id, day_number]);
 
-  async function fetchDayInfo() {
+  async function fetchDayDetails() {
     try {
-      setLoading(true);
-      setError(null);
-
       const supabase = createClient();
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { user } } = await supabase.auth.getUser();
 
-      if (!session) {
+      if (!user) {
         router.push('/login');
         return;
       }
 
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/v1/programs/${programId}/day/${dayNumber}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-          },
-        }
-      );
+      // Fetch day data
+      const { data: day, error: dayError } = await supabase
+        .from('ai_program_days')
+        .select('*')
+        .eq('program_id', program_id)
+        .eq('day_number', day_number)
+        .single();
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch day info');
+      if (dayError || !day) {
+        console.error('Error fetching day:', dayError);
+        setLoading(false);
+        return;
       }
 
-      const data = await response.json();
-      setDayInfo(data);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load day information');
+      setDayData({
+        day_number: day.day_number,
+        day_date: day.day_date,
+        day_name: day.day_name || '',
+        day_focus: day.day_focus || '',
+        is_completed: day.is_completed || false
+      });
+
+      // Fetch workouts
+      const { data: workoutsData, error: workoutsError } = await supabase
+        .from('ai_program_workouts')
+        .select('*')
+        .eq('program_day_id', day.id)
+        .order('workout_order', { ascending: true });
+
+      if (!workoutsError && workoutsData) {
+        setWorkouts(workoutsData.map(w => ({
+          id: w.id,
+          name: w.name,
+          workout_type: w.workout_type,
+          duration_minutes: w.duration_minutes,
+          exercises: w.exercises || [],
+          is_completed: w.is_completed || false
+        })));
+      }
+
+      // Fetch meals
+      const { data: mealsData, error: mealsError } = await supabase
+        .from('ai_program_meals')
+        .select('*')
+        .eq('program_day_id', day.id)
+        .order('meal_order', { ascending: true });
+
+      if (!mealsError && mealsData) {
+        setMeals(mealsData.map(m => ({
+          id: m.id,
+          name: m.name,
+          meal_type: m.meal_type,
+          meal_time: m.meal_time,
+          meal_order: m.meal_order,
+          total_calories: m.total_calories || 0,
+          total_protein_g: m.total_protein_g || 0,
+          total_carbs_g: m.total_carbs_g || 0,
+          total_fat_g: m.total_fat_g || 0,
+          foods: m.foods || [],
+          is_completed: m.is_completed || false
+        })));
+      }
+
+    } catch (error) {
+      console.error('Error fetching day details:', error);
     } finally {
       setLoading(false);
     }
   }
 
-  async function toggleMealCompletion(mealId: string, currentStatus: boolean) {
-    try {
-      const supabase = createClient();
-      const { data: { session } } = await supabase.auth.getSession();
-
-      if (!session) return;
-
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/v1/programs/meals/${mealId}/complete`,
-        {
-          method: 'PATCH',
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            is_completed: !currentStatus,
-          }),
-        }
-      );
-
-      if (response.ok) {
-        // Update local state
-        setDayInfo((prev) => {
-          if (!prev) return prev;
-          return {
-            ...prev,
-            meals: prev.meals.map((meal) =>
-              meal.id === mealId ? { ...meal, is_completed: !currentStatus } : meal
-            ),
-          };
-        });
+  function toggleWorkout(workoutId: string) {
+    setExpandedWorkouts(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(workoutId)) {
+        newSet.delete(workoutId);
+      } else {
+        newSet.add(workoutId);
       }
-    } catch (err) {
-      console.error('Error toggling meal completion:', err);
-    }
+      return newSet;
+    });
   }
 
-  async function toggleWorkoutCompletion(workoutId: string, currentStatus: boolean) {
+  function toggleMeal(mealId: string) {
+    setExpandedMeals(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(mealId)) {
+        newSet.delete(mealId);
+      } else {
+        newSet.add(mealId);
+      }
+      return newSet;
+    });
+  }
+
+  async function markDayComplete() {
+    if (!dayData) return;
+
     try {
       const supabase = createClient();
-      const { data: { session } } = await supabase.auth.getSession();
 
-      if (!session) return;
+      const { data: day } = await supabase
+        .from('ai_program_days')
+        .select('id')
+        .eq('program_id', program_id)
+        .eq('day_number', day_number)
+        .single();
 
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/v1/programs/workouts/${workoutId}/complete`,
-        {
-          method: 'PATCH',
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            is_completed: !currentStatus,
-          }),
-        }
-      );
+      if (day) {
+        await supabase
+          .from('ai_program_days')
+          .update({
+            is_completed: true,
+            completed_at: new Date().toISOString()
+          })
+          .eq('id', day.id);
 
-      if (response.ok) {
-        // Update local state
-        setDayInfo((prev) => {
-          if (!prev) return prev;
-          return {
-            ...prev,
-            workouts: prev.workouts.map((workout) =>
-              workout.id === workoutId ? { ...workout, is_completed: !currentStatus } : workout
-            ),
-          };
-        });
+        setDayData({ ...dayData, is_completed: true });
       }
-    } catch (err) {
-      console.error('Error toggling workout completion:', err);
+    } catch (error) {
+      console.error('Error marking day complete:', error);
     }
   }
 
@@ -192,229 +209,238 @@ export default function ProgramDayPage() {
     );
   }
 
-  if (error || !dayInfo) {
+  if (!dayData) {
     return (
-      <div className="min-h-screen bg-iron-black p-4">
-        <button
-          onClick={() => router.push('/programs')}
-          className="flex items-center gap-2 text-iron-white hover:text-iron-orange mb-6"
-        >
-          <ArrowLeft className="w-5 h-5" />
-          <span>Back to Programs</span>
-        </button>
-        <div className="text-red-500">{error || 'Day not found'}</div>
+      <div className="min-h-screen bg-iron-black flex items-center justify-center">
+        <div className="text-iron-white">Day not found</div>
       </div>
     );
   }
+
+  const totalCalories = meals.reduce((sum, m) => sum + m.total_calories, 0);
+  const totalProtein = meals.reduce((sum, m) => sum + m.total_protein_g, 0);
 
   return (
     <div className="min-h-screen bg-iron-black p-4 pb-24">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <button
-          onClick={() => router.push('/programs')}
-          className="flex items-center gap-2 text-iron-white hover:text-iron-orange mb-6"
-        >
-          <ArrowLeft className="w-5 h-5" />
-          <span>Back to Programs</span>
-        </button>
-
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-2">
-            <h1 className="font-heading text-3xl text-iron-white">
-              Day {dayInfo.day_number} - {dayInfo.day_name}
-            </h1>
-            {dayInfo.is_completed && (
-              <CheckCircle2 className="w-8 h-8 text-green-500" />
-            )}
-          </div>
-          <p className="text-iron-gray">
-            {new Date(dayInfo.day_date).toLocaleDateString('en-US', {
-              weekday: 'long',
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
-            })}
-          </p>
-          {dayInfo.notes && (
-            <p className="text-iron-white mt-2 p-4 bg-iron-black border-2 border-iron-gray">
-              {dayInfo.notes}
-            </p>
+        <div className="flex items-center justify-between mb-6">
+          <button
+            onClick={() => router.push(`/programs`)}
+            className="flex items-center gap-2 text-iron-gray hover:text-iron-orange transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            <span>Back to Program</span>
+          </button>
+          {dayData.is_completed && (
+            <div className="flex items-center gap-2 text-green-500">
+              <CheckCircle2 className="w-5 h-5" />
+              <span className="text-sm">Completed</span>
+            </div>
           )}
         </div>
 
-        {/* Meals Section */}
-        {dayInfo.meals.length > 0 && (
-          <div className="mb-12">
-            <div className="flex items-center gap-3 mb-6">
-              <Utensils className="w-6 h-6 text-iron-orange" />
-              <h2 className="font-heading text-2xl text-iron-white">MEALS</h2>
+        {/* Day Info */}
+        <div className="bg-iron-black border-2 border-iron-gray p-6 mb-6">
+          <div className="flex items-center justify-between mb-2">
+            <h1 className="font-heading text-3xl text-iron-white">
+              DAY {dayData.day_number}
+            </h1>
+            <span className="text-iron-gray text-sm">
+              {new Date(dayData.day_date).toLocaleDateString('en-US', {
+                weekday: 'long',
+                month: 'short',
+                day: 'numeric'
+              })}
+            </span>
+          </div>
+          {dayData.day_focus && (
+            <p className="text-iron-gray mb-4">{dayData.day_focus}</p>
+          )}
+          <div className="flex gap-4 text-sm">
+            <div className="text-iron-white">
+              <span className="text-iron-gray">Workouts:</span> {workouts.length}
             </div>
+            <div className="text-iron-white">
+              <span className="text-iron-gray">Meals:</span> {meals.length}
+            </div>
+            <div className="text-iron-white">
+              <span className="text-iron-gray">Total Calories:</span> {totalCalories}
+            </div>
+            <div className="text-iron-white">
+              <span className="text-iron-gray">Protein:</span> {totalProtein}g
+            </div>
+          </div>
+        </div>
 
+        {/* Workouts Section */}
+        {workouts.length > 0 && (
+          <div className="mb-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Dumbbell className="w-6 h-6 text-iron-orange" />
+              <h2 className="font-heading text-2xl text-iron-white">WORKOUTS</h2>
+            </div>
             <div className="space-y-4">
-              {dayInfo.meals.map((meal) => (
-                <div
-                  key={meal.id}
-                  className={`border-2 p-6 ${
-                    meal.is_completed
-                      ? 'border-green-600 bg-green-600/5'
-                      : 'border-iron-gray bg-iron-black'
-                  }`}
-                >
-                  <div className="flex items-start justify-between mb-4">
-                    <div>
-                      <div className="text-xs text-iron-gray uppercase mb-1">
-                        {meal.meal_type.replace('_', ' ')}
-                      </div>
-                      <h3 className="text-xl font-bold text-iron-white">{meal.meal_name}</h3>
-                      {meal.prep_time_minutes && (
-                        <p className="text-sm text-iron-gray mt-1">Prep time: {meal.prep_time_minutes} min</p>
-                      )}
-                    </div>
+              {workouts.map((workout) => {
+                const isExpanded = expandedWorkouts.has(workout.id);
+                return (
+                  <div key={workout.id} className="bg-iron-black border-2 border-iron-gray">
                     <button
-                      onClick={() => toggleMealCompletion(meal.id, meal.is_completed)}
-                      className="text-iron-gray hover:text-iron-orange"
+                      onClick={() => toggleWorkout(workout.id)}
+                      className="w-full p-4 flex items-center justify-between hover:bg-iron-gray/10 transition-colors"
                     >
-                      {meal.is_completed ? (
-                        <CheckCircle2 className="w-6 h-6 text-green-500" />
+                      <div className="flex items-center gap-4">
+                        <div className="text-left">
+                          <div className="font-bold text-iron-white text-lg">{workout.name}</div>
+                          <div className="text-iron-gray text-sm">
+                            {workout.duration_minutes} min • {workout.exercises.length} exercises • {workout.workout_type}
+                          </div>
+                        </div>
+                      </div>
+                      {isExpanded ? (
+                        <ChevronUp className="w-5 h-5 text-iron-gray" />
                       ) : (
-                        <Circle className="w-6 h-6" />
+                        <ChevronDown className="w-5 h-5 text-iron-gray" />
                       )}
                     </button>
+
+                    {isExpanded && (
+                      <div className="border-t-2 border-iron-gray p-4">
+                        <div className="space-y-4">
+                          {workout.exercises.map((exercise, idx) => (
+                            <div key={idx} className="bg-iron-gray/5 p-4 border-l-4 border-iron-orange">
+                              <div className="flex justify-between items-start mb-2">
+                                <div className="font-bold text-iron-white">{exercise.name}</div>
+                                <div className="text-iron-orange text-sm font-mono">
+                                  {exercise.sets} × {exercise.reps}
+                                </div>
+                              </div>
+                              {exercise.weight_guidance && (
+                                <div className="text-sm text-iron-gray mb-1">
+                                  Weight: {exercise.weight_guidance}
+                                </div>
+                              )}
+                              <div className="text-sm text-iron-gray mb-1">
+                                Rest: {exercise.rest_seconds}s
+                              </div>
+                              {exercise.notes && (
+                                <div className="text-sm text-iron-gray italic mt-2">
+                                  💡 {exercise.notes}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
-
-                  {/* Nutrition Summary */}
-                  {(meal.calories || meal.protein || meal.carbs || meal.fats) && (
-                    <div className="grid grid-cols-4 gap-4 mb-4 p-4 bg-iron-black border border-iron-gray">
-                      {meal.calories && (
-                        <div>
-                          <div className="text-xs text-iron-gray">Calories</div>
-                          <div className="text-lg font-bold text-iron-white">{Math.round(meal.calories)}</div>
-                        </div>
-                      )}
-                      {meal.protein && (
-                        <div>
-                          <div className="text-xs text-iron-gray">Protein</div>
-                          <div className="text-lg font-bold text-iron-white">{Math.round(meal.protein)}g</div>
-                        </div>
-                      )}
-                      {meal.carbs && (
-                        <div>
-                          <div className="text-xs text-iron-gray">Carbs</div>
-                          <div className="text-lg font-bold text-iron-white">{Math.round(meal.carbs)}g</div>
-                        </div>
-                      )}
-                      {meal.fats && (
-                        <div>
-                          <div className="text-xs text-iron-gray">Fats</div>
-                          <div className="text-lg font-bold text-iron-white">{Math.round(meal.fats)}g</div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Foods */}
-                  <div className="mb-4">
-                    <h4 className="text-sm font-bold text-iron-gray mb-2">INGREDIENTS</h4>
-                    <ul className="space-y-1">
-                      {meal.foods.map((food, index) => (
-                        <li key={index} className="text-iron-white">
-                          • {food.name} - {food.quantity}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  {/* Instructions */}
-                  {meal.instructions && (
-                    <div>
-                      <h4 className="text-sm font-bold text-iron-gray mb-2">INSTRUCTIONS</h4>
-                      <p className="text-iron-white">{meal.instructions}</p>
-                    </div>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
 
-        {/* Workouts Section */}
-        {dayInfo.workouts.length > 0 && (
-          <div>
-            <div className="flex items-center gap-3 mb-6">
-              <Dumbbell className="w-6 h-6 text-iron-orange" />
-              <h2 className="font-heading text-2xl text-iron-white">WORKOUTS</h2>
+        {/* Meals Section */}
+        {meals.length > 0 && (
+          <div className="mb-6">
+            <div className="flex items-center gap-2 mb-4">
+              <UtensilsCrossed className="w-6 h-6 text-iron-orange" />
+              <h2 className="font-heading text-2xl text-iron-white">MEALS</h2>
             </div>
-
             <div className="space-y-4">
-              {dayInfo.workouts.map((workout) => (
-                <div
-                  key={workout.id}
-                  className={`border-2 p-6 ${
-                    workout.is_completed
-                      ? 'border-green-600 bg-green-600/5'
-                      : 'border-iron-gray bg-iron-black'
-                  }`}
-                >
-                  <div className="flex items-start justify-between mb-4">
-                    <div>
-                      <div className="text-xs text-iron-gray uppercase mb-1">
-                        {workout.workout_type.replace('_', ' ')}
-                      </div>
-                      <h3 className="text-xl font-bold text-iron-white">{workout.workout_name}</h3>
-                      <div className="flex gap-4 mt-1 text-sm text-iron-gray">
-                        {workout.duration_minutes && <span>Duration: {workout.duration_minutes} min</span>}
-                        {workout.intensity && <span>Intensity: {workout.intensity}</span>}
-                      </div>
-                    </div>
+              {meals.map((meal) => {
+                const isExpanded = expandedMeals.has(meal.id);
+                const mealIcon = getMealIcon(meal.meal_type);
+
+                return (
+                  <div key={meal.id} className="bg-iron-black border-2 border-iron-gray">
                     <button
-                      onClick={() => toggleWorkoutCompletion(workout.id, workout.is_completed)}
-                      className="text-iron-gray hover:text-iron-orange"
+                      onClick={() => toggleMeal(meal.id)}
+                      className="w-full p-4 flex items-center justify-between hover:bg-iron-gray/10 transition-colors"
                     >
-                      {workout.is_completed ? (
-                        <CheckCircle2 className="w-6 h-6 text-green-500" />
+                      <div className="flex items-center gap-4">
+                        <span className="text-2xl">{mealIcon}</span>
+                        <div className="text-left">
+                          <div className="font-bold text-iron-white text-lg">{meal.name}</div>
+                          <div className="text-iron-gray text-sm">
+                            {meal.meal_time && `${meal.meal_time} • `}
+                            {meal.total_calories} cal • {meal.total_protein_g}g protein
+                          </div>
+                        </div>
+                      </div>
+                      {isExpanded ? (
+                        <ChevronUp className="w-5 h-5 text-iron-gray" />
                       ) : (
-                        <Circle className="w-6 h-6" />
+                        <ChevronDown className="w-5 h-5 text-iron-gray" />
                       )}
                     </button>
-                  </div>
 
-                  {/* Exercises */}
-                  <div className="mb-4">
-                    <h4 className="text-sm font-bold text-iron-gray mb-2">EXERCISES</h4>
-                    <div className="space-y-3">
-                      {workout.exercises.map((exercise, index) => (
-                        <div key={index} className="p-3 bg-iron-black border border-iron-gray">
-                          <div className="font-bold text-iron-white mb-1">{exercise.name}</div>
-                          <div className="text-sm text-iron-gray">
-                            {exercise.sets && exercise.reps && (
-                              <span>{exercise.sets} sets × {exercise.reps} reps</span>
-                            )}
-                            {exercise.weight && <span> @ {exercise.weight}</span>}
-                            {exercise.duration && <span>{exercise.duration}</span>}
-                            {exercise.distance && <span> • {exercise.distance}</span>}
+                    {isExpanded && (
+                      <div className="border-t-2 border-iron-gray p-4">
+                        {/* Macros */}
+                        <div className="grid grid-cols-4 gap-4 mb-4 pb-4 border-b border-iron-gray">
+                          <div>
+                            <div className="text-xs text-iron-gray">Calories</div>
+                            <div className="text-lg font-bold text-iron-white">{meal.total_calories}</div>
                           </div>
-                          {exercise.notes && (
-                            <div className="text-sm text-iron-gray mt-1">{exercise.notes}</div>
-                          )}
+                          <div>
+                            <div className="text-xs text-iron-gray">Protein</div>
+                            <div className="text-lg font-bold text-iron-orange">{meal.total_protein_g}g</div>
+                          </div>
+                          <div>
+                            <div className="text-xs text-iron-gray">Carbs</div>
+                            <div className="text-lg font-bold text-iron-white">{meal.total_carbs_g}g</div>
+                          </div>
+                          <div>
+                            <div className="text-xs text-iron-gray">Fat</div>
+                            <div className="text-lg font-bold text-iron-white">{meal.total_fat_g}g</div>
+                          </div>
                         </div>
-                      ))}
-                    </div>
-                  </div>
 
-                  {/* Workout Notes */}
-                  {workout.notes && (
-                    <div>
-                      <h4 className="text-sm font-bold text-iron-gray mb-2">NOTES</h4>
-                      <p className="text-iron-white">{workout.notes}</p>
-                    </div>
-                  )}
-                </div>
-              ))}
+                        {/* Foods */}
+                        <div className="space-y-2">
+                          {meal.foods.map((food, idx) => (
+                            <div key={idx} className="flex justify-between items-center py-2 border-b border-iron-gray/30 last:border-0">
+                              <div>
+                                <div className="text-iron-white">{food.item}</div>
+                                <div className="text-sm text-iron-gray">{food.quantity}</div>
+                              </div>
+                              <div className="text-iron-gray text-sm">{food.calories} cal</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
+        )}
+
+        {/* Complete Day Button */}
+        {!dayData.is_completed && (
+          <button
+            onClick={markDayComplete}
+            className="w-full bg-iron-orange hover:bg-orange-600 text-white font-bold py-4 transition-colors flex items-center justify-center gap-2"
+          >
+            <CheckCircle2 className="w-5 h-5" />
+            MARK DAY AS COMPLETE
+          </button>
         )}
       </div>
     </div>
   );
+}
+
+function getMealIcon(mealType: string): string {
+  const icons: Record<string, string> = {
+    breakfast: '🌅',
+    lunch: '☀️',
+    dinner: '🌙',
+    snack: '🍎',
+    pre_workout: '💪',
+    post_workout: '🥤'
+  };
+  return icons[mealType] || '🍽️';
 }
