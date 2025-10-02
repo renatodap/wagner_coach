@@ -3,48 +3,96 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
+import DashboardClient from './DashboardClient';
 
 export default function DashboardPage() {
   const [user, setUser] = useState<any>(null);
+  const [profile, setProfile] = useState<any>(null);
+  const [stats, setStats] = useState({
+    activitiesToday: 0,
+    mealsToday: 0,
+    activePrograms: 0
+  });
+  const [upcomingWorkouts, setUpcomingWorkouts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const supabase = createClient();
 
   useEffect(() => {
-    console.log('🏠 Dashboard: Component mounted');
-    
-    async function getUser() {
+    async function loadDashboardData() {
       try {
-        console.log('🔍 Dashboard: Fetching user...');
-        const { data: { user }, error } = await supabase.auth.getUser();
-        
-        console.log('👤 Dashboard: User data:', user);
-        console.log('❌ Dashboard: Error:', error);
-        
-        if (error) {
-          console.error('💥 Dashboard: Auth error:', error);
+        // Get current user
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+        if (userError || !user) {
           router.push('/auth');
           return;
         }
-        
-        if (!user) {
-          console.log('🚫 Dashboard: No user, redirecting to auth');
-          router.push('/auth');
-          return;
-        }
-        
-        console.log('✅ Dashboard: User found:', user.email);
+
         setUser(user);
+
+        // Get user profile
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+
+        setProfile(profileData);
+
+        // Get quick stats
+        const today = new Date().toISOString().split('T')[0];
+
+        // Get today's activities count
+        const { count: activitiesCount } = await supabase
+          .from('activities')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .gte('start_date', `${today}T00:00:00`)
+          .lte('start_date', `${today}T23:59:59`);
+
+        // Get today's meals count
+        const { count: mealsCount } = await supabase
+          .from('meal_logs')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .gte('logged_at', `${today}T00:00:00`)
+          .lte('logged_at', `${today}T23:59:59`);
+
+        // Get active workout programs count
+        const { count: programsCount } = await supabase
+          .from('user_program_enrollments')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .eq('status', 'active');
+
+        setStats({
+          activitiesToday: activitiesCount || 0,
+          mealsToday: mealsCount || 0,
+          activePrograms: programsCount || 0
+        });
+
+        // Get upcoming workouts
+        const { data: workoutsData } = await supabase
+          .from('user_workouts')
+          .select('*, workouts(name, type)')
+          .eq('user_id', user.id)
+          .eq('status', 'scheduled')
+          .gte('scheduled_date', today)
+          .order('scheduled_date', { ascending: true })
+          .limit(3);
+
+        setUpcomingWorkouts(workoutsData || []);
+
       } catch (err) {
-        console.error('💥 Dashboard: Catch block error:', err);
+        console.error('Dashboard error:', err);
         router.push('/auth');
       } finally {
         setLoading(false);
-        console.log('✅ Dashboard: Loading complete');
       }
     }
-    
-    getUser();
+
+    loadDashboardData();
   }, [router, supabase]);
 
   if (loading) {
@@ -68,50 +116,10 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-iron-black text-iron-white p-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-5xl font-heading text-iron-orange uppercase tracking-wider">
-            DASHBOARD
-          </h1>
-          <p className="mt-2 text-iron-gray">Welcome back, {user.email}</p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="border-2 border-iron-orange p-6">
-            <h2 className="font-heading text-3xl text-iron-orange">TODAY'S STATS</h2>
-            <p className="text-iron-gray mt-2">Coming soon...</p>
-          </div>
-
-          <div className="border-2 border-iron-gray p-6">
-            <h2 className="font-heading text-3xl text-iron-white">WORKOUTS</h2>
-            <p className="text-iron-gray mt-2">Coming soon...</p>
-          </div>
-
-          <div className="border-2 border-iron-gray p-6">
-            <h2 className="font-heading text-3xl text-iron-white">NUTRITION</h2>
-            <p className="text-iron-gray mt-2">Coming soon...</p>
-          </div>
-        </div>
-
-        <div className="mt-8 p-6 border border-iron-gray">
-          <h2 className="font-heading text-2xl text-iron-orange mb-4">DEBUG INFO</h2>
-          <pre className="text-sm text-iron-gray overflow-auto">
-            {JSON.stringify(user, null, 2)}
-          </pre>
-        </div>
-
-        <button
-          onClick={async () => {
-            console.log('🚪 Signing out...');
-            await supabase.auth.signOut();
-            router.push('/');
-          }}
-          className="mt-8 bg-iron-orange text-iron-black px-6 py-3 font-heading uppercase hover:bg-orange-600"
-        >
-          SIGN OUT
-        </button>
-      </div>
-    </div>
+    <DashboardClient
+      profile={profile}
+      stats={stats}
+      upcomingWorkouts={upcomingWorkouts}
+    />
   );
 }
