@@ -154,7 +154,7 @@ export default function MultimodalQuickEntry() {
       }
 
       // Send to backend
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/quick-entry/multimodal`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/quick-entry/multimodal`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
@@ -186,22 +186,22 @@ export default function MultimodalQuickEntry() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 pb-24">
+    <div className="min-h-screen bg-iron-black pb-24">
       {/* Header with Back Button */}
-      <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-lg border-b border-gray-200">
+      <div className="sticky top-0 z-10 bg-iron-black/80 backdrop-blur-lg border-b border-iron-gray">
         <div className="max-w-2xl mx-auto px-4 py-4">
           <div className="flex items-center gap-3">
             <button
               onClick={() => router.back()}
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              className="p-2 hover:bg-iron-gray/20 rounded-full transition-colors"
             >
-              <ChevronLeft className="w-6 h-6 text-gray-600" />
+              <ChevronLeft className="w-6 h-6 text-iron-gray" />
             </button>
             <div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Quick Entry
+              <h1 className="text-2xl font-heading font-bold text-iron-orange">
+                QUICK ENTRY
               </h1>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-iron-gray">
                 Text • Image • Voice
               </p>
             </div>
@@ -213,22 +213,22 @@ export default function MultimodalQuickEntry() {
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
 
         {/* Text Input */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
-          <label className="block text-sm font-semibold text-gray-700 mb-3">
+        <div className="bg-iron-black rounded-2xl shadow-lg p-6 border border-iron-gray">
+          <label className="block text-sm font-semibold text-iron-orange mb-3">
             📝 What did you do?
           </label>
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder="e.g., 'Just had grilled chicken with rice and broccoli' or 'Ran 5 miles this morning'"
-            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+            className="w-full px-4 py-3 bg-iron-black border border-iron-gray text-iron-white rounded-xl focus:ring-2 focus:ring-iron-orange focus:border-iron-orange resize-none placeholder:text-iron-gray"
             rows={4}
           />
         </div>
 
         {/* Image Upload */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
-          <label className="block text-sm font-semibold text-gray-700 mb-3">
+        <div className="bg-iron-black rounded-2xl shadow-lg p-6 border border-iron-gray">
+          <label className="block text-sm font-semibold text-iron-orange mb-3">
             📸 Add Photo (optional)
           </label>
 
@@ -237,11 +237,11 @@ export default function MultimodalQuickEntry() {
               <img
                 src={imagePreview}
                 alt="Preview"
-                className="w-full h-64 object-cover rounded-xl"
+                className="w-full h-64 object-cover rounded-xl border border-iron-gray"
               />
               <button
                 onClick={removeImage}
-                className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full shadow-lg hover:bg-red-600 transition-colors"
+                className="absolute top-2 right-2 p-2 bg-red-600 text-white rounded-full shadow-lg hover:bg-red-700 transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -258,7 +258,7 @@ export default function MultimodalQuickEntry() {
               />
               <button
                 onClick={() => imageInputRef.current?.click()}
-                className="w-full py-4 px-6 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2"
+                className="w-full py-4 px-6 bg-iron-orange text-iron-black rounded-xl font-heading font-semibold shadow-lg hover:bg-orange-600 transition-all flex items-center justify-center gap-2 uppercase tracking-wider"
               >
                 <Camera className="w-5 h-5" />
                 Take or Upload Photo
@@ -268,33 +268,33 @@ export default function MultimodalQuickEntry() {
         </div>
 
         {/* Voice Recording */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
-          <label className="block text-sm font-semibold text-gray-700 mb-3">
+        <div className="bg-iron-black rounded-2xl shadow-lg p-6 border border-iron-gray">
+          <label className="block text-sm font-semibold text-iron-orange mb-3">
             🎤 Voice Note (optional)
           </label>
 
           {audioBlob ? (
-            <div className="flex items-center justify-between p-4 bg-green-50 rounded-xl border border-green-200">
+            <div className="flex items-center justify-between p-4 bg-green-900/20 rounded-xl border border-green-600">
               <div className="flex items-center gap-3">
-                <CheckCircle className="w-5 h-5 text-green-600" />
-                <span className="text-sm font-medium text-green-800">
+                <CheckCircle className="w-5 h-5 text-green-500" />
+                <span className="text-sm font-medium text-green-400">
                   Voice note recorded
                 </span>
               </div>
               <button
                 onClick={removeAudio}
-                className="p-2 hover:bg-red-100 rounded-full transition-colors"
+                className="p-2 hover:bg-red-900/20 rounded-full transition-colors"
               >
-                <X className="w-4 h-4 text-red-600" />
+                <X className="w-4 h-4 text-red-500" />
               </button>
             </div>
           ) : (
             <button
               onClick={isRecording ? stopRecording : startRecording}
-              className={`w-full py-4 px-6 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 ${
+              className={`w-full py-4 px-6 rounded-xl font-heading font-semibold shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 uppercase tracking-wider ${
                 isRecording
-                  ? 'bg-red-500 hover:bg-red-600 text-white animate-pulse'
-                  : 'bg-gradient-to-r from-purple-500 to-pink-500 text-white'
+                  ? 'bg-red-600 hover:bg-red-700 text-white animate-pulse'
+                  : 'bg-iron-orange text-iron-black hover:bg-orange-600'
               }`}
             >
               <Mic className="w-5 h-5" />
@@ -305,42 +305,42 @@ export default function MultimodalQuickEntry() {
 
         {/* Error Display */}
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-            <p className="text-red-800 text-sm font-medium">{error}</p>
+          <div className="bg-red-900/20 border border-red-500 rounded-xl p-4">
+            <p className="text-red-400 text-sm font-medium">{error}</p>
           </div>
         )}
 
         {/* Result Display */}
         {result && result.success && (
-          <div className="bg-green-50 border border-green-200 rounded-2xl p-6 shadow-lg">
+          <div className="bg-green-900/20 border border-green-600 rounded-2xl p-6 shadow-lg">
             <div className="flex items-center gap-3 mb-4">
-              <CheckCircle className="w-6 h-6 text-green-600" />
-              <h3 className="text-lg font-bold text-green-800">
+              <CheckCircle className="w-6 h-6 text-green-500" />
+              <h3 className="text-lg font-heading font-bold text-green-400 uppercase">
                 Logged Successfully!
               </h3>
             </div>
 
             <div className="space-y-3">
               <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-gray-700">Type:</span>
-                <span className="px-3 py-1 bg-white rounded-lg text-sm font-medium capitalize">
+                <span className="text-sm font-semibold text-iron-orange">Type:</span>
+                <span className="px-3 py-1 bg-iron-gray/20 rounded-lg text-sm font-medium capitalize text-iron-white">
                   {result.entry_type}
                 </span>
               </div>
 
               <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-gray-700">Confidence:</span>
-                <span className="text-sm text-gray-600">
+                <span className="text-sm font-semibold text-iron-orange">Confidence:</span>
+                <span className="text-sm text-iron-gray">
                   {(result.confidence * 100).toFixed(0)}%
                 </span>
               </div>
 
               {result.suggestions && result.suggestions.length > 0 && (
-                <div className="mt-4 p-4 bg-white rounded-lg">
-                  <p className="text-sm font-semibold text-gray-700 mb-2">💡 Tips:</p>
+                <div className="mt-4 p-4 bg-iron-gray/10 rounded-lg border border-iron-gray">
+                  <p className="text-sm font-semibold text-iron-orange mb-2">💡 Tips:</p>
                   <ul className="space-y-1">
                     {result.suggestions.map((tip, idx) => (
-                      <li key={idx} className="text-sm text-gray-600">• {tip}</li>
+                      <li key={idx} className="text-sm text-iron-gray">• {tip}</li>
                     ))}
                   </ul>
                 </div>
@@ -353,7 +353,7 @@ export default function MultimodalQuickEntry() {
         <button
           onClick={handleSubmit}
           disabled={isProcessing || (!text && !selectedImage && !audioBlob)}
-          className="w-full py-4 px-6 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+          className="w-full py-4 px-6 bg-iron-orange text-iron-black rounded-xl font-heading font-bold text-lg shadow-lg hover:bg-orange-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 uppercase tracking-wider"
         >
           {isProcessing ? (
             <>
@@ -369,9 +369,9 @@ export default function MultimodalQuickEntry() {
         </button>
 
         {/* Info */}
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-          <p className="text-sm text-blue-800">
-            <strong>✨ Revolutionary AI:</strong> Your entry will be analyzed, classified, and vectorized for semantic search. The AI coach can find and reference this data in future conversations!
+        <div className="bg-iron-gray/20 border border-iron-gray rounded-xl p-4">
+          <p className="text-sm text-iron-gray">
+            <strong className="text-iron-orange">✨ Revolutionary AI:</strong> Your entry will be analyzed, classified, and vectorized for semantic search. The AI coach can find and reference this data in future conversations!
           </p>
         </div>
       </div>
