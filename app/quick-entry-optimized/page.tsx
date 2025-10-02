@@ -1,9 +1,5 @@
-import QuickEntryOptimized from '@/components/QuickEntryOptimized';
+import MultimodalQuickEntry from '@/components/MultimodalQuickEntry';
 
 export default function QuickEntryPage() {
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8">
-      <QuickEntryOptimized />
-    </div>
-  );
+  return <MultimodalQuickEntry />;
 }
