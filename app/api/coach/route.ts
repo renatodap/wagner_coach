@@ -1,10 +1,8 @@
 import { NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { openai } from '@ai-sdk/openai';
-import { streamText, StreamingTextResponse } from 'ai';
 import { getSystemPrompt, formatCoachResponse } from '@/lib/ai/coaching-prompts';
 import { getConsolidatedUserContext } from '@/lib/ai/rag';
-import { openRouter } from '@/lib/ai/openrouter';
+import { modelRouter, TaskType } from '@/lib/ai/model-router';
 
 export async function POST(request: NextRequest) {
   try {
@@ -129,18 +127,24 @@ export async function POST(request: NextRequest) {
       }
     ];
 
-    // Get model name from environment variable with fallback
-    const modelName = process.env.OPENAI_MODEL_NAME || 'gpt-4-turbo';
+    // OPTIMIZED: Use FREE model with intelligent routing
+    // DeepSeek R1 beats GPT-4 at reasoning and is 100% FREE!
+    console.log('[Coach] Using optimized FREE model via model router');
 
-    // PHASE 3: Stream response using StreamingTextResponse
-    // Note: OpenRouter is integrated for photo analysis and quick entry.
-    // To use OpenRouter here, replace the openai() model with custom implementation
-    const result = await streamText({
-      model: openai(modelName),
+    const stream = await modelRouter.stream(
+      {
+        type: 'conversational' as TaskType,
+        requiresReasoning: true
+      },
       messages,
-      temperature: 0.7,
-      maxRetries: 3,
-      onFinish: async ({ text }) => {
+      {
+        onModelSwitch: (model) => console.log(`[Coach] Switched to model: ${model}`)
+      }
+    );
+
+    // Handle streaming response manually
+    let fullResponse = '';
+    const onFinish = async (text: string) => {
         // PHASE 1: CONVERSATION PERSISTENCE - Save conversation after completion
         try {
           const newMessages = [
@@ -207,8 +211,7 @@ export async function POST(request: NextRequest) {
             console.error('Error updating conversation with citations:', error);
           }
         }
-      }
-    });
+    };
 
     // Create a custom stream that includes conversation ID and citations
     const encoder = new TextEncoder();
@@ -222,23 +225,56 @@ export async function POST(request: NextRequest) {
         }
 
         // Stream the AI response
-        for await (const chunk of result.textStream) {
-          controller.enqueue(
-            encoder.encode(`data: ${JSON.stringify({ content: chunk })}\n\n`)
-          );
-        }
+        const reader = stream.getReader();
+        const decoder = new TextDecoder();
 
-        // Add citations at the end
-        const citationText = formatCoachResponse('', context);
-        if (citationText) {
-          controller.enqueue(
-            encoder.encode(`data: ${JSON.stringify({ content: '\n\n' + citationText })}\n\n`)
-          );
-        }
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
 
-        // Send completion signal
-        controller.enqueue(encoder.encode('data: [DONE]\n\n'));
-        controller.close();
+            const chunk = decoder.decode(value, { stream: true });
+            const lines = chunk.split('\n').filter(line => line.trim());
+
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                const data = line.slice(6);
+                if (data === '[DONE]') continue;
+
+                try {
+                  const parsed = JSON.parse(data);
+                  const content = parsed.choices?.[0]?.delta?.content || '';
+                  if (content) {
+                    fullResponse += content;
+                    controller.enqueue(
+                      encoder.encode(`data: ${JSON.stringify({ content })}\n\n`)
+                    );
+                  }
+                } catch (e) {
+                  // Ignore parse errors for streaming chunks
+                }
+              }
+            }
+          }
+
+          // Finish and save
+          await onFinish(fullResponse);
+
+          // Add citations at the end
+          const citationText = formatCoachResponse('', context);
+          if (citationText) {
+            controller.enqueue(
+              encoder.encode(`data: ${JSON.stringify({ content: '\n\n' + citationText })}\n\n`)
+            );
+          }
+
+          // Send completion signal
+          controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+          controller.close();
+        } catch (error) {
+          console.error('Stream error:', error);
+          controller.error(error);
+        }
       }
     });
 

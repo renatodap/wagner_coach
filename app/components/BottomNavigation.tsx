@@ -28,9 +28,9 @@ export default function BottomNavigation() {
     },
     {
       name: 'Quick',
-      href: '/quick-entry',
+      href: '/quick-entry-optimized',
       icon: Sparkles,
-      current: pathname === '/quick-entry'
+      current: pathname === '/quick-entry-optimized' || pathname === '/quick-entry'
     },
     {
       name: 'Coach',

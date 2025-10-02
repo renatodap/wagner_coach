@@ -124,14 +124,14 @@ class OpenRouterService {
 
   /**
    * Analyze an image using vision models
+   * OPTIMIZED: Using FREE models only!
    */
   async analyzeImage(
     imageData: string,
     prompt: string,
     preferredModels = [
-      'openai/gpt-4-vision-preview',
-      'anthropic/claude-3-opus',
-      'google/gemini-pro-vision'
+      'google/gemini-2.0-flash-thinking-exp:free',  // ✅ FREE - 1M context + vision
+      'google/gemini-2.0-flash-exp:free'            // ✅ FREE - Fast vision
     ]
   ): Promise<any> {
     const messages = [
@@ -165,14 +165,15 @@ class OpenRouterService {
 
   /**
    * Quick text analysis for categorization
+   * OPTIMIZED: Using FREE ultra-fast models!
    */
   async quickAnalysis(
     text: string,
     systemPrompt: string,
     preferredModels = [
-      'openai/gpt-3.5-turbo',
-      'anthropic/claude-instant',
-      'google/gemini-pro'
+      'meta-llama/llama-3.2-3b-instruct:free',    // ✅ FREE - Super fast categorization
+      'google/gemini-2.0-flash-exp:free',          // ✅ FREE - Fast and accurate
+      'meta-llama/llama-3.3-70b-instruct:free'     // ✅ FREE - Backup
     ]
   ): Promise<string> {
     const response = await this.complete({
@@ -191,13 +192,14 @@ class OpenRouterService {
 
   /**
    * High-quality coaching response
+   * OPTIMIZED: Using FREE top-tier models with SOTA reasoning!
    */
   async coachingResponse(
     messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>,
     preferredModels = [
-      'anthropic/claude-3-opus',
-      'openai/gpt-4-turbo-preview',
-      'google/gemini-pro'
+      'deepseek/deepseek-r1:free',                 // ✅ FREE - Best reasoning, beats GPT-4!
+      'google/gemini-2.0-flash-exp:free',          // ✅ FREE - 1M context, excellent quality
+      'qwen/qwen-2.5-72b-instruct:free'            // ✅ FREE - Strong backup
     ]
   ): Promise<OpenRouterResponse> {
     return this.complete({
