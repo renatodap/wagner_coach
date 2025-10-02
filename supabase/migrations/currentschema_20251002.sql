@@ -193,7 +193,7 @@ CREATE TABLE public.activity_streams (
   original_size integer,
   series_type text CHECK (series_type = ANY (ARRAY['time'::text, 'distance'::text])),
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
-  CONSTRAINT activity_streams_pkey PRIMARY KEY (stream_type, activity_id),
+  CONSTRAINT activity_streams_pkey PRIMARY KEY (activity_id, stream_type),
   CONSTRAINT activity_streams_activity_id_fkey FOREIGN KEY (activity_id) REFERENCES public.activities(id)
 );
 CREATE TABLE public.activity_workout_links (
@@ -224,6 +224,114 @@ CREATE TABLE public.ai_conversations (
   CONSTRAINT ai_conversations_pkey PRIMARY KEY (id),
   CONSTRAINT ai_conversations_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
+CREATE TABLE public.ai_generated_programs (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  name text NOT NULL,
+  description text,
+  goals ARRAY,
+  duration_weeks integer NOT NULL DEFAULT 12,
+  total_days integer NOT NULL DEFAULT 84,
+  start_date date,
+  end_date date,
+  is_active boolean DEFAULT true,
+  status text DEFAULT 'active'::text CHECK (status = ANY (ARRAY['active'::text, 'completed'::text, 'paused'::text, 'abandoned'::text])),
+  generation_prompt text,
+  generation_context jsonb DEFAULT '{}'::jsonb,
+  questions_answers jsonb DEFAULT '[]'::jsonb,
+  ai_model text DEFAULT 'gpt-4o'::text,
+  difficulty_level text CHECK (difficulty_level = ANY (ARRAY['beginner'::text, 'intermediate'::text, 'advanced'::text])),
+  primary_focus ARRAY,
+  equipment_needed ARRAY,
+  dietary_approach text,
+  current_day integer DEFAULT 1,
+  days_completed integer DEFAULT 0,
+  meals_completed integer DEFAULT 0,
+  workouts_completed integer DEFAULT 0,
+  adherence_percentage numeric DEFAULT 100 CHECK (adherence_percentage >= 0::numeric AND adherence_percentage <= 100::numeric),
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  completed_at timestamp with time zone,
+  CONSTRAINT ai_generated_programs_pkey PRIMARY KEY (id),
+  CONSTRAINT ai_generated_programs_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+CREATE TABLE public.ai_program_days (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  program_id uuid NOT NULL,
+  day_number integer NOT NULL CHECK (day_number >= 1 AND day_number <= 365),
+  day_date date,
+  day_of_week text CHECK (day_of_week = ANY (ARRAY['monday'::text, 'tuesday'::text, 'wednesday'::text, 'thursday'::text, 'friday'::text, 'saturday'::text, 'sunday'::text])),
+  day_name text,
+  day_focus text,
+  day_notes text,
+  is_completed boolean DEFAULT false,
+  completed_at timestamp with time zone,
+  completion_notes text,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT ai_program_days_pkey PRIMARY KEY (id),
+  CONSTRAINT ai_program_days_program_id_fkey FOREIGN KEY (program_id) REFERENCES public.ai_generated_programs(id)
+);
+CREATE TABLE public.ai_program_meals (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  program_day_id uuid NOT NULL,
+  program_id uuid NOT NULL,
+  meal_type text NOT NULL CHECK (meal_type = ANY (ARRAY['breakfast'::text, 'lunch'::text, 'dinner'::text, 'snack'::text, 'pre_workout'::text, 'post_workout'::text])),
+  meal_time time without time zone,
+  meal_order integer DEFAULT 0,
+  name text NOT NULL,
+  description text,
+  recipe_instructions text,
+  preparation_time_minutes integer,
+  foods jsonb DEFAULT '[]'::jsonb,
+  total_calories numeric,
+  total_protein_g numeric,
+  total_carbs_g numeric,
+  total_fat_g numeric,
+  total_fiber_g numeric,
+  meal_tags ARRAY,
+  alternatives jsonb DEFAULT '[]'::jsonb,
+  notes text,
+  is_completed boolean DEFAULT false,
+  completed_at timestamp with time zone,
+  actual_foods_eaten jsonb,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT ai_program_meals_pkey PRIMARY KEY (id),
+  CONSTRAINT ai_program_meals_program_day_id_fkey FOREIGN KEY (program_day_id) REFERENCES public.ai_program_days(id),
+  CONSTRAINT ai_program_meals_program_id_fkey FOREIGN KEY (program_id) REFERENCES public.ai_generated_programs(id)
+);
+CREATE TABLE public.ai_program_workouts (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  program_day_id uuid NOT NULL,
+  program_id uuid NOT NULL,
+  workout_type text NOT NULL CHECK (workout_type = ANY (ARRAY['strength'::text, 'cardio'::text, 'sports'::text, 'flexibility'::text, 'mobility'::text, 'rest'::text, 'active_recovery'::text])),
+  workout_subtype text,
+  workout_order integer DEFAULT 0,
+  name text NOT NULL,
+  description text,
+  duration_minutes integer,
+  exercises jsonb DEFAULT '[]'::jsonb,
+  workout_details jsonb DEFAULT '{}'::jsonb,
+  intensity text CHECK (intensity = ANY (ARRAY['low'::text, 'moderate'::text, 'high'::text, 'max'::text])),
+  target_rpe integer CHECK (target_rpe >= 1 AND target_rpe <= 10),
+  estimated_calories_burned integer,
+  equipment_needed ARRAY,
+  location text,
+  warmup_notes text,
+  cooldown_notes text,
+  technique_cues ARRAY,
+  notes text,
+  alternatives jsonb DEFAULT '[]'::jsonb,
+  is_completed boolean DEFAULT false,
+  completed_at timestamp with time zone,
+  actual_duration_minutes integer,
+  actual_rpe integer,
+  actual_exercises jsonb,
+  completion_notes text,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT ai_program_workouts_pkey PRIMARY KEY (id),
+  CONSTRAINT ai_program_workouts_program_day_id_fkey FOREIGN KEY (program_day_id) REFERENCES public.ai_program_days(id),
+  CONSTRAINT ai_program_workouts_program_id_fkey FOREIGN KEY (program_id) REFERENCES public.ai_generated_programs(id)
+);
 CREATE TABLE public.api_sync_logs (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   source_id uuid NOT NULL,
@@ -253,6 +361,46 @@ CREATE TABLE public.barcode_scan_history (
   CONSTRAINT barcode_scan_history_pkey PRIMARY KEY (id),
   CONSTRAINT barcode_scan_history_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
   CONSTRAINT barcode_scan_history_food_id_fkey FOREIGN KEY (food_id) REFERENCES public.foods_enhanced(id)
+);
+CREATE TABLE public.coach_conversations (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  coach_persona_id uuid NOT NULL,
+  messages jsonb DEFAULT '[]'::jsonb,
+  last_message_at timestamp with time zone DEFAULT now(),
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT coach_conversations_pkey PRIMARY KEY (id),
+  CONSTRAINT coach_conversations_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
+  CONSTRAINT coach_conversations_coach_persona_id_fkey FOREIGN KEY (coach_persona_id) REFERENCES public.coach_personas(id)
+);
+CREATE TABLE public.coach_personas (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name text NOT NULL UNIQUE,
+  display_name text NOT NULL,
+  system_prompt text NOT NULL,
+  specialty text,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT coach_personas_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.coach_recommendations (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  coach_persona_id uuid NOT NULL,
+  recommendation_type text,
+  title text NOT NULL,
+  description text NOT NULL,
+  reasoning text,
+  priority integer DEFAULT 3 CHECK (priority >= 1 AND priority <= 5),
+  status text DEFAULT 'pending'::text CHECK (status = ANY (ARRAY['pending'::text, 'accepted'::text, 'rejected'::text, 'completed'::text])),
+  due_date date,
+  created_at timestamp with time zone DEFAULT now(),
+  completed_at timestamp with time zone,
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT coach_recommendations_pkey PRIMARY KEY (id),
+  CONSTRAINT coach_recommendations_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
+  CONSTRAINT coach_recommendations_coach_persona_id_fkey FOREIGN KEY (coach_persona_id) REFERENCES public.coach_personas(id)
 );
 CREATE TABLE public.conversation_summaries (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -315,6 +463,19 @@ CREATE TABLE public.day_exercises (
   CONSTRAINT day_exercises_pkey PRIMARY KEY (id),
   CONSTRAINT day_exercises_day_id_fkey FOREIGN KEY (day_id) REFERENCES public.program_days(id),
   CONSTRAINT day_exercises_exercise_id_fkey FOREIGN KEY (exercise_id) REFERENCES public.exercises(id)
+);
+CREATE TABLE public.embeddings (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  content text NOT NULL,
+  embedding USER-DEFINED,
+  metadata jsonb DEFAULT '{}'::jsonb,
+  source_type text NOT NULL,
+  source_id uuid,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT embeddings_pkey PRIMARY KEY (id),
+  CONSTRAINT embeddings_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
 CREATE TABLE public.equipment_types (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -778,14 +939,14 @@ CREATE TABLE public.profiles (
   goals_embedding USER-DEFINED,
   about_me text,
   experience_level USER-DEFINED DEFAULT 'beginner'::experience_level,
-  fitness_goals ARRAY,
+  fitness_goals text,
   preferred_activities ARRAY,
   motivation_factors ARRAY,
   physical_limitations ARRAY,
   available_equipment ARRAY,
   training_frequency text,
   session_duration text,
-  dietary_preferences ARRAY,
+  dietary_preferences text,
   notification_preferences jsonb DEFAULT '{}'::jsonb,
   privacy_settings jsonb DEFAULT '{}'::jsonb,
   age integer CHECK (age >= 13 AND age <= 120),
@@ -841,6 +1002,40 @@ CREATE TABLE public.program_days (
   CONSTRAINT program_days_pkey PRIMARY KEY (id),
   CONSTRAINT program_days_program_id_fkey FOREIGN KEY (program_id) REFERENCES public.workout_programs(id)
 );
+CREATE TABLE public.program_generation_requests (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  specific_performance_goal text,
+  event_date date,
+  weak_points ARRAY,
+  recovery_capacity text CHECK (recovery_capacity = ANY (ARRAY['excellent'::text, 'good'::text, 'fair'::text, 'poor'::text])),
+  preferred_workout_duration text CHECK (preferred_workout_duration = ANY (ARRAY['30-45min'::text, '45-60min'::text, '60-90min'::text, '90+min'::text])),
+  additional_context text,
+  status text DEFAULT 'pending'::text CHECK (status = ANY (ARRAY['pending'::text, 'generating'::text, 'completed'::text, 'failed'::text])),
+  generated_program_id uuid,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  completed_at timestamp with time zone,
+  CONSTRAINT program_generation_requests_pkey PRIMARY KEY (id),
+  CONSTRAINT program_generation_requests_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
+  CONSTRAINT program_generation_requests_generated_program_id_fkey FOREIGN KEY (generated_program_id) REFERENCES public.user_program_enrollments(id)
+);
+CREATE TABLE public.program_generation_sessions (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  status text DEFAULT 'in_progress'::text CHECK (status = ANY (ARRAY['in_progress'::text, 'completed'::text, 'abandoned'::text])),
+  current_step integer DEFAULT 1,
+  total_steps integer DEFAULT 3,
+  user_profile_snapshot jsonb,
+  questions jsonb DEFAULT '[]'::jsonb,
+  answers jsonb DEFAULT '[]'::jsonb,
+  generated_program_id uuid,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  completed_at timestamp with time zone,
+  CONSTRAINT program_generation_sessions_pkey PRIMARY KEY (id),
+  CONSTRAINT program_generation_sessions_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
+  CONSTRAINT program_generation_sessions_generated_program_id_fkey FOREIGN KEY (generated_program_id) REFERENCES public.ai_generated_programs(id)
+);
 CREATE TABLE public.rate_limits (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   user_id uuid,
@@ -890,6 +1085,18 @@ CREATE TABLE public.recipes (
   updated_at timestamp with time zone DEFAULT now(),
   CONSTRAINT recipes_pkey PRIMARY KEY (id),
   CONSTRAINT recipes_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+CREATE TABLE public.recommendation_feedback (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  recommendation_id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  feedback_type text NOT NULL CHECK (feedback_type = ANY (ARRAY['accepted'::text, 'rejected'::text, 'completed'::text, 'helpful'::text, 'not_helpful'::text])),
+  feedback_text text,
+  rating integer CHECK (rating >= 1 AND rating <= 5),
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT recommendation_feedback_pkey PRIMARY KEY (id),
+  CONSTRAINT recommendation_feedback_recommendation_id_fkey FOREIGN KEY (recommendation_id) REFERENCES public.coach_recommendations(id),
+  CONSTRAINT recommendation_feedback_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
 CREATE TABLE public.rest_timer_preferences (
   user_id uuid NOT NULL,
@@ -963,6 +1170,19 @@ CREATE TABLE public.strava_connections (
   sync_enabled boolean DEFAULT true,
   CONSTRAINT strava_connections_pkey PRIMARY KEY (id),
   CONSTRAINT strava_connections_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id)
+);
+CREATE TABLE public.user_active_programs (
+  user_id uuid NOT NULL,
+  program_id uuid NOT NULL,
+  started_at timestamp with time zone DEFAULT now(),
+  current_day integer DEFAULT 1,
+  last_activity_date date,
+  auto_advance_days boolean DEFAULT true,
+  notification_preferences jsonb DEFAULT '{}'::jsonb,
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT user_active_programs_pkey PRIMARY KEY (user_id),
+  CONSTRAINT user_active_programs_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
+  CONSTRAINT user_active_programs_program_id_fkey FOREIGN KEY (program_id) REFERENCES public.ai_generated_programs(id)
 );
 CREATE TABLE public.user_context_embeddings (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -1114,6 +1334,31 @@ CREATE TABLE public.user_nutrition_preferences (
   CONSTRAINT user_nutrition_preferences_pkey PRIMARY KEY (id),
   CONSTRAINT user_nutrition_preferences_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
+CREATE TABLE public.user_onboarding (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL UNIQUE,
+  primary_goal text NOT NULL CHECK (primary_goal = ANY (ARRAY['build_muscle'::text, 'lose_fat'::text, 'improve_endurance'::text, 'increase_strength'::text, 'sport_performance'::text, 'general_health'::text, 'rehab_recovery'::text])),
+  user_persona text NOT NULL CHECK (user_persona = ANY (ARRAY['strength_athlete'::text, 'bodybuilder'::text, 'endurance_runner'::text, 'triathlete'::text, 'crossfit_athlete'::text, 'team_sport_athlete'::text, 'general_fitness'::text, 'beginner_recovery'::text])),
+  current_activity_level text NOT NULL CHECK (current_activity_level = ANY (ARRAY['sedentary'::text, 'lightly_active'::text, 'moderately_active'::text, 'very_active'::text])),
+  desired_training_frequency integer NOT NULL CHECK (desired_training_frequency >= 3 AND desired_training_frequency <= 7),
+  program_duration_weeks integer NOT NULL CHECK (program_duration_weeks = ANY (ARRAY[4, 8, 12, 16])),
+  biological_sex text NOT NULL CHECK (biological_sex = ANY (ARRAY['male'::text, 'female'::text])),
+  age integer NOT NULL CHECK (age >= 18 AND age <= 80),
+  current_weight_kg numeric NOT NULL CHECK (current_weight_kg > 0::numeric),
+  height_cm numeric NOT NULL CHECK (height_cm > 0::numeric),
+  daily_meal_preference integer NOT NULL CHECK (daily_meal_preference = ANY (ARRAY[2, 3, 4, 5, 6])),
+  training_time_preferences ARRAY DEFAULT ARRAY[]::text[],
+  dietary_restrictions ARRAY DEFAULT ARRAY[]::text[],
+  equipment_access ARRAY DEFAULT ARRAY[]::text[],
+  injury_limitations ARRAY DEFAULT ARRAY[]::text[],
+  experience_level text NOT NULL CHECK (experience_level = ANY (ARRAY['beginner'::text, 'intermediate'::text, 'advanced'::text, 'expert'::text])),
+  completed boolean NOT NULL DEFAULT false,
+  completed_at timestamp with time zone,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT user_onboarding_pkey PRIMARY KEY (id),
+  CONSTRAINT user_onboarding_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
 CREATE TABLE public.user_preference_profiles (
   user_id uuid NOT NULL,
   workout_preferences jsonb DEFAULT '{}'::jsonb,
@@ -1143,6 +1388,16 @@ CREATE TABLE public.user_preferences (
   updated_at timestamp with time zone DEFAULT now(),
   CONSTRAINT user_preferences_pkey PRIMARY KEY (id),
   CONSTRAINT user_preferences_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+CREATE TABLE public.user_profile_embeddings (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL UNIQUE,
+  profile_text text NOT NULL,
+  embedding USER-DEFINED,
+  last_updated timestamp with time zone NOT NULL DEFAULT now(),
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT user_profile_embeddings_pkey PRIMARY KEY (id),
+  CONSTRAINT user_profile_embeddings_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
 CREATE TABLE public.user_program_enrollments (
   id uuid NOT NULL DEFAULT gen_random_uuid(),

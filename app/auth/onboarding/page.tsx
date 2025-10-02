@@ -3,149 +3,596 @@
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
-import { Loader2, Target, TrendingDown, Dumbbell } from 'lucide-react';
+import { Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 
-type Goal = 'build_muscle' | 'lose_weight' | 'gain_strength';
+interface OnboardingData {
+  // Tier 1: Essential
+  primary_goal: string;
+  user_persona: string;
+  current_activity_level: string;
+  desired_training_frequency: number;
+  program_duration_weeks: number;
+  biological_sex: string;
+  age: number;
+  current_weight_kg: number;
+  height_cm: number;
+  daily_meal_preference: number;
+  // Tier 2: Optimization
+  training_time_preferences: string[];
+  dietary_restrictions: string[];
+  equipment_access: string[];
+  injury_limitations: string[];
+  experience_level: string;
+}
 
 export default function OnboardingPage() {
-  const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
+  const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
   const supabase = createClient();
 
-  const goals = [
-    {
-      id: 'build_muscle' as Goal,
-      title: 'BUILD MUSCLE',
-      description: 'Pack on lean mass with hypertrophy-focused training',
-      icon: <Dumbbell className="w-8 h-8" />,
-    },
-    {
-      id: 'lose_weight' as Goal,
-      title: 'LOSE WEIGHT',
-      description: 'Burn fat with high-intensity circuits and cardio',
-      icon: <TrendingDown className="w-8 h-8" />,
-    },
-    {
-      id: 'gain_strength' as Goal,
-      title: 'GAIN STRENGTH',
-      description: 'Build raw power with heavy compound movements',
-      icon: <Target className="w-8 h-8" />,
-    },
-  ];
+  const [data, setData] = useState<Partial<OnboardingData>>({
+    training_time_preferences: [],
+    dietary_restrictions: [],
+    equipment_access: [],
+    injury_limitations: []
+  });
 
-  const handleContinue = async () => {
-    if (!selectedGoal) return;
+  const totalSteps = 15;
 
+  const updateData = (field: keyof OnboardingData, value: any) => {
+    setData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const toggleArray = (field: keyof OnboardingData, value: string) => {
+    setData(prev => {
+      const current = (prev[field] as string[]) || [];
+      const updated = current.includes(value)
+        ? current.filter(v => v !== value)
+        : [...current, value];
+      return { ...prev, [field]: updated };
+    });
+  };
+
+  const canProgress = () => {
+    switch (step) {
+      case 1: return !!data.primary_goal;
+      case 2: return !!data.user_persona;
+      case 3: return !!data.current_activity_level;
+      case 4: return !!data.desired_training_frequency;
+      case 5: return !!data.program_duration_weeks;
+      case 6: return !!data.biological_sex;
+      case 7: return !!data.age && data.age >= 18 && data.age <= 80;
+      case 8: return !!data.current_weight_kg && data.current_weight_kg > 0;
+      case 9: return !!data.height_cm && data.height_cm > 0;
+      case 10: return !!data.daily_meal_preference;
+      case 11: return true; // optional
+      case 12: return true; // optional
+      case 13: return true; // optional
+      case 14: return true; // optional
+      case 15: return !!data.experience_level;
+      default: return false;
+    }
+  };
+
+  const handleSubmit = async () => {
     setLoading(true);
     setError('');
 
     try {
-      // Get current user
       const { data: { user } } = await supabase.auth.getUser();
-
       if (!user) {
         router.push('/auth');
         return;
       }
 
-      // Update profile with goal and mark onboarding as complete
-      const { error: profileError } = await (supabase
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .from('profiles') as any)
-        .update({
-          goal: selectedGoal,
-          onboarding_completed: true,
-        })
-        .eq('id', user.id);
+      const onboardingData = {
+        user_id: user.id,
+        ...data,
+        completed: true
+      };
 
-      if (profileError) throw profileError;
+      const { error: insertError } = await supabase
+        .from('user_onboarding')
+        .upsert(onboardingData, { onConflict: 'user_id' });
 
-      // Generate first week of workouts
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error: workoutError } = await (supabase as any)
-        .rpc('generate_week_workouts', {
-          p_user_id: user.id,
-          p_goal: selectedGoal,
-        });
+      if (insertError) throw insertError;
 
-      if (workoutError) throw workoutError;
-
-      // Navigate to dashboard
       router.push('/dashboard');
     } catch (err) {
-      setError((err as Error).message || 'Failed to save goal');
+      setError((err as Error).message || 'Failed to save onboarding');
     } finally {
       setLoading(false);
     }
   };
 
+  const renderStep = () => {
+    switch (step) {
+      case 1:
+        return (
+          <div className="space-y-4">
+            <h2 className="text-2xl font-heading text-iron-orange">What's your primary goal?</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {[
+                { id: 'build_muscle', label: 'Build Muscle' },
+                { id: 'lose_fat', label: 'Lose Fat' },
+                { id: 'improve_endurance', label: 'Improve Endurance' },
+                { id: 'increase_strength', label: 'Increase Strength' },
+                { id: 'sport_performance', label: 'Sport Performance' },
+                { id: 'general_health', label: 'General Health' },
+                { id: 'rehab_recovery', label: 'Rehab/Recovery' }
+              ].map(option => (
+                <button
+                  key={option.id}
+                  onClick={() => updateData('primary_goal', option.id)}
+                  className={`p-4 border-2 transition-all ${
+                    data.primary_goal === option.id
+                      ? 'border-iron-orange bg-iron-orange/10'
+                      : 'border-iron-gray hover:border-iron-orange/50'
+                  }`}
+                >
+                  <span className="font-semibold">{option.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+
+      case 2:
+        return (
+          <div className="space-y-4">
+            <h2 className="text-2xl font-heading text-iron-orange">Which best describes you?</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {[
+                { id: 'strength_athlete', label: 'Strength Athlete' },
+                { id: 'bodybuilder', label: 'Bodybuilder' },
+                { id: 'endurance_runner', label: 'Endurance Runner' },
+                { id: 'triathlete', label: 'Triathlete' },
+                { id: 'crossfit_athlete', label: 'CrossFit Athlete' },
+                { id: 'team_sport_athlete', label: 'Team Sport Athlete' },
+                { id: 'general_fitness', label: 'General Fitness' },
+                { id: 'beginner_recovery', label: 'Beginner/Recovery' }
+              ].map(option => (
+                <button
+                  key={option.id}
+                  onClick={() => updateData('user_persona', option.id)}
+                  className={`p-4 border-2 transition-all ${
+                    data.user_persona === option.id
+                      ? 'border-iron-orange bg-iron-orange/10'
+                      : 'border-iron-gray hover:border-iron-orange/50'
+                  }`}
+                >
+                  <span className="font-semibold">{option.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+
+      case 3:
+        return (
+          <div className="space-y-4">
+            <h2 className="text-2xl font-heading text-iron-orange">Current activity level?</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {[
+                { id: 'sedentary', label: 'Sedentary', sub: '0-1 days/week' },
+                { id: 'lightly_active', label: 'Lightly Active', sub: '2-3 days/week' },
+                { id: 'moderately_active', label: 'Moderately Active', sub: '4-5 days/week' },
+                { id: 'very_active', label: 'Very Active', sub: '6-7 days/week' }
+              ].map(option => (
+                <button
+                  key={option.id}
+                  onClick={() => updateData('current_activity_level', option.id)}
+                  className={`p-4 border-2 transition-all ${
+                    data.current_activity_level === option.id
+                      ? 'border-iron-orange bg-iron-orange/10'
+                      : 'border-iron-gray hover:border-iron-orange/50'
+                  }`}
+                >
+                  <div className="text-left">
+                    <div className="font-semibold">{option.label}</div>
+                    <div className="text-sm text-iron-gray">{option.sub}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+
+      case 4:
+        return (
+          <div className="space-y-4">
+            <h2 className="text-2xl font-heading text-iron-orange">Training days per week?</h2>
+            <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
+              {[3, 4, 5, 6, 7].map(days => (
+                <button
+                  key={days}
+                  onClick={() => updateData('desired_training_frequency', days)}
+                  className={`p-6 border-2 transition-all ${
+                    data.desired_training_frequency === days
+                      ? 'border-iron-orange bg-iron-orange/10'
+                      : 'border-iron-gray hover:border-iron-orange/50'
+                  }`}
+                >
+                  <div className="text-3xl font-heading text-iron-orange">{days}</div>
+                  <div className="text-sm text-iron-gray mt-1">days</div>
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+
+      case 5:
+        return (
+          <div className="space-y-4">
+            <h2 className="text-2xl font-heading text-iron-orange">Program duration?</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {[
+                { weeks: 4, label: '1 Month' },
+                { weeks: 8, label: '2 Months' },
+                { weeks: 12, label: '3 Months' },
+                { weeks: 16, label: '4 Months' }
+              ].map(option => (
+                <button
+                  key={option.weeks}
+                  onClick={() => updateData('program_duration_weeks', option.weeks)}
+                  className={`p-6 border-2 transition-all ${
+                    data.program_duration_weeks === option.weeks
+                      ? 'border-iron-orange bg-iron-orange/10'
+                      : 'border-iron-gray hover:border-iron-orange/50'
+                  }`}
+                >
+                  <div className="text-2xl font-heading text-iron-orange">{option.label}</div>
+                  <div className="text-sm text-iron-gray mt-1">{option.weeks} weeks</div>
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+
+      case 6:
+        return (
+          <div className="space-y-4">
+            <h2 className="text-2xl font-heading text-iron-orange">Biological sex?</h2>
+            <div className="grid grid-cols-2 gap-3 max-w-md mx-auto">
+              {[
+                { id: 'male', label: 'Male' },
+                { id: 'female', label: 'Female' }
+              ].map(option => (
+                <button
+                  key={option.id}
+                  onClick={() => updateData('biological_sex', option.id)}
+                  className={`p-6 border-2 transition-all ${
+                    data.biological_sex === option.id
+                      ? 'border-iron-orange bg-iron-orange/10'
+                      : 'border-iron-gray hover:border-iron-orange/50'
+                  }`}
+                >
+                  <span className="font-semibold text-lg">{option.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+
+      case 7:
+        return (
+          <div className="space-y-4">
+            <h2 className="text-2xl font-heading text-iron-orange">What's your age?</h2>
+            <div className="max-w-sm mx-auto">
+              <input
+                type="number"
+                min="18"
+                max="80"
+                value={data.age || ''}
+                onChange={(e) => updateData('age', parseInt(e.target.value))}
+                className="w-full p-4 bg-iron-black border-2 border-iron-gray text-white text-2xl text-center focus:border-iron-orange focus:outline-none"
+                placeholder="Enter age"
+              />
+              <p className="text-sm text-iron-gray mt-2 text-center">Ages 18-80</p>
+            </div>
+          </div>
+        );
+
+      case 8:
+        return (
+          <div className="space-y-4">
+            <h2 className="text-2xl font-heading text-iron-orange">Current weight?</h2>
+            <div className="max-w-sm mx-auto">
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  step="0.1"
+                  value={data.current_weight_kg || ''}
+                  onChange={(e) => updateData('current_weight_kg', parseFloat(e.target.value))}
+                  className="flex-1 p-4 bg-iron-black border-2 border-iron-gray text-white text-2xl text-center focus:border-iron-orange focus:outline-none"
+                  placeholder="70"
+                />
+                <div className="p-4 bg-iron-gray/20 border-2 border-iron-gray text-white text-2xl">kg</div>
+              </div>
+              <p className="text-sm text-iron-gray mt-2 text-center">Enter weight in kilograms</p>
+            </div>
+          </div>
+        );
+
+      case 9:
+        return (
+          <div className="space-y-4">
+            <h2 className="text-2xl font-heading text-iron-orange">Height?</h2>
+            <div className="max-w-sm mx-auto">
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  step="0.1"
+                  value={data.height_cm || ''}
+                  onChange={(e) => updateData('height_cm', parseFloat(e.target.value))}
+                  className="flex-1 p-4 bg-iron-black border-2 border-iron-gray text-white text-2xl text-center focus:border-iron-orange focus:outline-none"
+                  placeholder="175"
+                />
+                <div className="p-4 bg-iron-gray/20 border-2 border-iron-gray text-white text-2xl">cm</div>
+              </div>
+              <p className="text-sm text-iron-gray mt-2 text-center">Enter height in centimeters</p>
+            </div>
+          </div>
+        );
+
+      case 10:
+        return (
+          <div className="space-y-4">
+            <h2 className="text-2xl font-heading text-iron-orange">Meals per day?</h2>
+            <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
+              {[2, 3, 4, 5, 6].map(meals => (
+                <button
+                  key={meals}
+                  onClick={() => updateData('daily_meal_preference', meals)}
+                  className={`p-6 border-2 transition-all ${
+                    data.daily_meal_preference === meals
+                      ? 'border-iron-orange bg-iron-orange/10'
+                      : 'border-iron-gray hover:border-iron-orange/50'
+                  }`}
+                >
+                  <div className="text-3xl font-heading text-iron-orange">{meals}</div>
+                  <div className="text-sm text-iron-gray mt-1">meals</div>
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+
+      case 11:
+        return (
+          <div className="space-y-4">
+            <h2 className="text-2xl font-heading text-iron-orange">When do you train?</h2>
+            <p className="text-iron-gray text-sm">Select all that apply (optional)</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {[
+                { id: 'early_morning', label: 'Early Morning', sub: '5-8 AM' },
+                { id: 'morning', label: 'Morning', sub: '8-11 AM' },
+                { id: 'midday', label: 'Midday', sub: '11 AM-2 PM' },
+                { id: 'afternoon', label: 'Afternoon', sub: '2-5 PM' },
+                { id: 'evening', label: 'Evening', sub: '5-8 PM' },
+                { id: 'night', label: 'Night', sub: '8-10 PM' }
+              ].map(option => (
+                <button
+                  key={option.id}
+                  onClick={() => toggleArray('training_time_preferences', option.id)}
+                  className={`p-4 border-2 transition-all ${
+                    data.training_time_preferences?.includes(option.id)
+                      ? 'border-iron-orange bg-iron-orange/10'
+                      : 'border-iron-gray hover:border-iron-orange/50'
+                  }`}
+                >
+                  <div className="text-left">
+                    <div className="font-semibold">{option.label}</div>
+                    <div className="text-sm text-iron-gray">{option.sub}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+
+      case 12:
+        return (
+          <div className="space-y-4">
+            <h2 className="text-2xl font-heading text-iron-orange">Dietary restrictions?</h2>
+            <p className="text-iron-gray text-sm">Select all that apply (optional)</p>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {[
+                'none', 'vegetarian', 'vegan', 'dairy_free', 'gluten_free', 'nut_allergies', 'shellfish_allergies'
+              ].map(option => (
+                <button
+                  key={option}
+                  onClick={() => {
+                    if (option === 'none') {
+                      updateData('dietary_restrictions', ['none']);
+                    } else {
+                      const filtered = data.dietary_restrictions?.filter(r => r !== 'none') || [];
+                      toggleArray('dietary_restrictions', option);
+                    }
+                  }}
+                  className={`p-4 border-2 transition-all ${
+                    data.dietary_restrictions?.includes(option)
+                      ? 'border-iron-orange bg-iron-orange/10'
+                      : 'border-iron-gray hover:border-iron-orange/50'
+                  }`}
+                >
+                  <span className="font-semibold capitalize">{option.replace('_', ' ')}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+
+      case 13:
+        return (
+          <div className="space-y-4">
+            <h2 className="text-2xl font-heading text-iron-orange">Equipment access?</h2>
+            <p className="text-iron-gray text-sm">Select all that apply (optional)</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {[
+                { id: 'full_gym', label: 'Full Gym' },
+                { id: 'home_gym', label: 'Home Gym' },
+                { id: 'dumbbells', label: 'Dumbbells Only' },
+                { id: 'resistance_bands', label: 'Resistance Bands' },
+                { id: 'bodyweight', label: 'Bodyweight Only' },
+                { id: 'cardio_equipment', label: 'Cardio Equipment' }
+              ].map(option => (
+                <button
+                  key={option.id}
+                  onClick={() => toggleArray('equipment_access', option.id)}
+                  className={`p-4 border-2 transition-all ${
+                    data.equipment_access?.includes(option.id)
+                      ? 'border-iron-orange bg-iron-orange/10'
+                      : 'border-iron-gray hover:border-iron-orange/50'
+                  }`}
+                >
+                  <span className="font-semibold">{option.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+
+      case 14:
+        return (
+          <div className="space-y-4">
+            <h2 className="text-2xl font-heading text-iron-orange">Any injuries or limitations?</h2>
+            <p className="text-iron-gray text-sm">Select all that apply (optional)</p>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {[
+                { id: 'none', label: 'None' },
+                { id: 'lower_back', label: 'Lower Back' },
+                { id: 'shoulder', label: 'Shoulder' },
+                { id: 'knee', label: 'Knee' },
+                { id: 'hip', label: 'Hip' },
+                { id: 'wrist', label: 'Wrist' },
+                { id: 'ankle', label: 'Ankle' }
+              ].map(option => (
+                <button
+                  key={option.id}
+                  onClick={() => {
+                    if (option.id === 'none') {
+                      updateData('injury_limitations', ['none']);
+                    } else {
+                      const filtered = data.injury_limitations?.filter(r => r !== 'none') || [];
+                      toggleArray('injury_limitations', option.id);
+                    }
+                  }}
+                  className={`p-4 border-2 transition-all ${
+                    data.injury_limitations?.includes(option.id)
+                      ? 'border-iron-orange bg-iron-orange/10'
+                      : 'border-iron-gray hover:border-iron-orange/50'
+                  }`}
+                >
+                  <span className="font-semibold">{option.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+
+      case 15:
+        return (
+          <div className="space-y-4">
+            <h2 className="text-2xl font-heading text-iron-orange">Training experience?</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {[
+                { id: 'beginner', label: 'Beginner', sub: '0-1 year' },
+                { id: 'intermediate', label: 'Intermediate', sub: '1-3 years' },
+                { id: 'advanced', label: 'Advanced', sub: '3-5 years' },
+                { id: 'expert', label: 'Expert', sub: '5+ years' }
+              ].map(option => (
+                <button
+                  key={option.id}
+                  onClick={() => updateData('experience_level', option.id)}
+                  className={`p-4 border-2 transition-all ${
+                    data.experience_level === option.id
+                      ? 'border-iron-orange bg-iron-orange/10'
+                      : 'border-iron-gray hover:border-iron-orange/50'
+                  }`}
+                >
+                  <div className="text-left">
+                    <div className="font-semibold">{option.label}</div>
+                    <div className="text-sm text-iron-gray">{option.sub}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-iron-black text-iron-white flex items-center justify-center px-4">
-      <div className="max-w-2xl w-full space-y-8">
-        {/* Header */}
-        <div className="text-center">
-          <h1 className="font-heading text-5xl text-iron-orange uppercase tracking-wider">
-            Choose Your Path
-          </h1>
-          <p className="mt-2 text-iron-gray text-lg">
-            Select your primary fitness goal to get personalized workouts
-          </p>
+    <div className="min-h-screen bg-iron-black text-iron-white flex items-center justify-center px-4 py-8">
+      <div className="max-w-3xl w-full space-y-8">
+        {/* Progress Bar */}
+        <div className="space-y-2">
+          <div className="flex justify-between text-sm text-iron-gray">
+            <span>Step {step} of {totalSteps}</span>
+            <span>{Math.round((step / totalSteps) * 100)}%</span>
+          </div>
+          <div className="h-2 bg-iron-gray/20 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-iron-orange transition-all duration-300"
+              style={{ width: `${(step / totalSteps) * 100}%` }}
+            />
+          </div>
         </div>
 
-        {/* Goal Selection */}
-        <div className="grid gap-6 md:grid-cols-3">
-          {goals.map((goal) => (
-            <button
-              key={goal.id}
-              onClick={() => setSelectedGoal(goal.id)}
-              className={`p-6 border-2 transition-all ${
-                selectedGoal === goal.id
-                  ? 'border-iron-orange bg-iron-orange/10'
-                  : 'border-iron-gray hover:border-iron-orange/50'
-              }`}
-            >
-              <div className="flex flex-col items-center space-y-4">
-                <div className={selectedGoal === goal.id ? 'text-iron-orange' : 'text-iron-gray'}>
-                  {goal.icon}
-                </div>
-                <h3 className="font-heading text-xl text-iron-white">
-                  {goal.title}
-                </h3>
-                <p className="text-iron-gray text-sm">
-                  {goal.description}
-                </p>
-              </div>
-            </button>
-          ))}
+        {/* Current Step */}
+        <div className="min-h-[400px]">
+          {renderStep()}
         </div>
 
         {error && (
-          <div className="text-center text-iron-orange">
+          <div className="text-center text-iron-orange p-4 border border-iron-orange">
             {error}
           </div>
         )}
 
-        {/* Continue Button */}
-        <button
-          onClick={handleContinue}
-          disabled={!selectedGoal || loading}
-          className="w-full bg-iron-orange text-iron-black font-heading text-2xl py-4 uppercase tracking-widest hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-        >
-          {loading ? (
-            <>
-              <Loader2 className="w-5 h-5 animate-spin" />
-              Generating Workouts...
-            </>
-          ) : (
-            'Start Training'
-          )}
-        </button>
+        {/* Navigation */}
+        <div className="flex justify-between gap-4">
+          <button
+            onClick={() => setStep(s => Math.max(1, s - 1))}
+            disabled={step === 1}
+            className="px-6 py-3 border-2 border-iron-gray hover:border-iron-orange transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            <ChevronLeft className="w-5 h-5" />
+            Back
+          </button>
 
-        <p className="text-center text-iron-gray text-sm">
-          You can change your goal anytime in settings
-        </p>
+          {step < totalSteps ? (
+            <button
+              onClick={() => setStep(s => s + 1)}
+              disabled={!canProgress()}
+              className="px-6 py-3 bg-iron-orange text-iron-black hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 font-heading uppercase"
+            >
+              Next
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          ) : (
+            <button
+              onClick={handleSubmit}
+              disabled={!canProgress() || loading}
+              className="px-8 py-3 bg-iron-orange text-iron-black hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 font-heading uppercase text-lg"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                'Complete Setup'
+              )}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

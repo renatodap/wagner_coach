@@ -42,3 +42,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# sensitive files
+VERCEL_ENV_VARS.txt
+dev.log
+*.bak
