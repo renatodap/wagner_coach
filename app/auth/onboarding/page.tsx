@@ -11,12 +11,14 @@ interface OnboardingData {
   user_persona: string;
   current_activity_level: string;
   desired_training_frequency: number;
-  program_duration_weeks: number;
   biological_sex: string;
   age: number;
   current_weight_kg: number;
   height_cm: number;
   daily_meal_preference: number;
+  city: string;
+  location_permission: boolean;
+  facility_access: string[];
   // Tier 2: Optimization
   training_time_preferences: string[];
   dietary_restrictions: string[];
@@ -36,10 +38,12 @@ export default function OnboardingPage() {
     training_time_preferences: [],
     dietary_restrictions: [],
     equipment_access: [],
-    injury_limitations: []
+    injury_limitations: [],
+    facility_access: [],
+    location_permission: false
   });
 
-  const totalSteps = 15;
+  const totalSteps = 14;
 
   const updateData = (field: keyof OnboardingData, value: any) => {
     setData(prev => ({ ...prev, [field]: value }));
@@ -61,17 +65,16 @@ export default function OnboardingPage() {
       case 2: return !!data.user_persona;
       case 3: return !!data.current_activity_level;
       case 4: return !!data.desired_training_frequency;
-      case 5: return !!data.program_duration_weeks;
-      case 6: return !!data.biological_sex;
-      case 7: return !!data.age && data.age >= 18 && data.age <= 80;
-      case 8: return !!data.current_weight_kg && data.current_weight_kg > 0;
-      case 9: return !!data.height_cm && data.height_cm > 0;
-      case 10: return !!data.daily_meal_preference;
-      case 11: return true; // optional
-      case 12: return true; // optional
-      case 13: return true; // optional
-      case 14: return true; // optional
-      case 15: return !!data.experience_level;
+      case 5: return !!data.biological_sex;
+      case 6: return !!data.age && data.age >= 18 && data.age <= 80;
+      case 7: return !!data.current_weight_kg && data.current_weight_kg > 0;
+      case 8: return !!data.height_cm && data.height_cm > 0;
+      case 9: return !!data.daily_meal_preference;
+      case 10: return true; // city optional but recommended
+      case 11: return true; // facility access optional
+      case 12: return true; // training time preferences optional
+      case 13: return true; // dietary restrictions optional
+      case 14: return !!data.experience_level;
       default: return false;
     }
   };
@@ -226,36 +229,9 @@ export default function OnboardingPage() {
       case 5:
         return (
           <div className="space-y-4">
-            <h2 className="text-2xl font-heading text-iron-orange">Program duration?</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {[
-                { weeks: 4, label: '1 Month' },
-                { weeks: 8, label: '2 Months' },
-                { weeks: 12, label: '3 Months' },
-                { weeks: 16, label: '4 Months' }
-              ].map(option => (
-                <button
-                  key={option.weeks}
-                  onClick={() => updateData('program_duration_weeks', option.weeks)}
-                  className={`p-6 border-2 transition-all ${
-                    data.program_duration_weeks === option.weeks
-                      ? 'border-iron-orange bg-iron-orange/10'
-                      : 'border-iron-gray hover:border-iron-orange/50'
-                  }`}
-                >
-                  <div className="text-2xl font-heading text-iron-orange">{option.label}</div>
-                  <div className="text-sm text-iron-gray mt-1">{option.weeks} weeks</div>
-                </button>
-              ))}
-            </div>
-          </div>
-        );
-
-      case 6:
-        return (
-          <div className="space-y-4">
             <h2 className="text-2xl font-heading text-iron-orange">Biological sex?</h2>
-            <div className="grid grid-cols-2 gap-3 max-w-md mx-auto">
+            <p className="text-sm text-iron-gray">Used for accurate calorie and macro calculations</p>
+            <div className="grid grid-cols-2 gap-3">
               {[
                 { id: 'male', label: 'Male' },
                 { id: 'female', label: 'Female' }
@@ -276,7 +252,7 @@ export default function OnboardingPage() {
           </div>
         );
 
-      case 7:
+      case 6:
         return (
           <div className="space-y-4">
             <h2 className="text-2xl font-heading text-iron-orange">What's your age?</h2>
@@ -295,7 +271,7 @@ export default function OnboardingPage() {
           </div>
         );
 
-      case 8:
+      case 7:
         return (
           <div className="space-y-4">
             <h2 className="text-2xl font-heading text-iron-orange">Current weight?</h2>
@@ -316,7 +292,7 @@ export default function OnboardingPage() {
           </div>
         );
 
-      case 9:
+      case 8:
         return (
           <div className="space-y-4">
             <h2 className="text-2xl font-heading text-iron-orange">Height?</h2>
@@ -337,7 +313,7 @@ export default function OnboardingPage() {
           </div>
         );
 
-      case 10:
+      case 9:
         return (
           <div className="space-y-4">
             <h2 className="text-2xl font-heading text-iron-orange">Meals per day?</h2>
@@ -360,7 +336,73 @@ export default function OnboardingPage() {
           </div>
         );
 
+      case 10:
+        return (
+          <div className="space-y-4">
+            <h2 className="text-2xl font-heading text-iron-orange">Where do you live?</h2>
+            <p className="text-iron-gray text-sm">For weather-aware programming (optional)</p>
+            <div className="max-w-md mx-auto space-y-4">
+              <input
+                type="text"
+                value={data.city || ''}
+                onChange={(e) => updateData('city', e.target.value)}
+                className="w-full p-4 bg-iron-black border-2 border-iron-gray text-white text-lg focus:border-iron-orange focus:outline-none"
+                placeholder="Enter your city"
+              />
+              <label className="flex items-center gap-3 p-4 border-2 border-iron-gray cursor-pointer hover:border-iron-orange/50 transition-all">
+                <input
+                  type="checkbox"
+                  checked={data.location_permission || false}
+                  onChange={(e) => updateData('location_permission', e.target.checked)}
+                  className="w-5 h-5 accent-iron-orange"
+                />
+                <div>
+                  <div className="font-semibold">Allow location access</div>
+                  <div className="text-sm text-iron-gray">AI can adapt workouts based on weather (rain, snow, heat)</div>
+                </div>
+              </label>
+            </div>
+          </div>
+        );
+
       case 11:
+        return (
+          <div className="space-y-4">
+            <h2 className="text-2xl font-heading text-iron-orange">Available facilities?</h2>
+            <p className="text-iron-gray text-sm">Select all facilities you have access to (optional)</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {[
+                { id: 'gym', label: 'Gym', icon: '🏋️' },
+                { id: 'tennis_courts', label: 'Tennis Courts', icon: '🎾' },
+                { id: 'soccer_field', label: 'Soccer Field', icon: '⚽' },
+                { id: 'basketball_court', label: 'Basketball Court', icon: '🏀' },
+                { id: 'swimming_pool', label: 'Swimming Pool', icon: '🏊' },
+                { id: 'track_indoor', label: 'Indoor Track', icon: '🏃' },
+                { id: 'track_outdoor', label: 'Outdoor Track', icon: '🏃' },
+                { id: 'climbing_gym', label: 'Climbing Gym', icon: '🧗' },
+                { id: 'yoga_studio', label: 'Yoga Studio', icon: '🧘' },
+                { id: 'home_gym', label: 'Home Gym', icon: '🏠' }
+              ].map(option => (
+                <button
+                  key={option.id}
+                  onClick={() => toggleArray('facility_access', option.id)}
+                  className={`p-4 border-2 transition-all text-left ${
+                    data.facility_access?.includes(option.id)
+                      ? 'border-iron-orange bg-iron-orange/10'
+                      : 'border-iron-gray hover:border-iron-orange/50'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">{option.icon}</span>
+                    <span className="font-semibold">{option.label}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+
+      case 12:
         return (
           <div className="space-y-4">
             <h2 className="text-2xl font-heading text-iron-orange">When do you train?</h2>
@@ -393,7 +435,7 @@ export default function OnboardingPage() {
           </div>
         );
 
-      case 12:
+      case 13:
         return (
           <div className="space-y-4">
             <h2 className="text-2xl font-heading text-iron-orange">Dietary restrictions?</h2>
@@ -425,75 +467,7 @@ export default function OnboardingPage() {
           </div>
         );
 
-      case 13:
-        return (
-          <div className="space-y-4">
-            <h2 className="text-2xl font-heading text-iron-orange">Equipment access?</h2>
-            <p className="text-iron-gray text-sm">Select all that apply (optional)</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {[
-                { id: 'full_gym', label: 'Full Gym' },
-                { id: 'home_gym', label: 'Home Gym' },
-                { id: 'dumbbells', label: 'Dumbbells Only' },
-                { id: 'resistance_bands', label: 'Resistance Bands' },
-                { id: 'bodyweight', label: 'Bodyweight Only' },
-                { id: 'cardio_equipment', label: 'Cardio Equipment' }
-              ].map(option => (
-                <button
-                  key={option.id}
-                  onClick={() => toggleArray('equipment_access', option.id)}
-                  className={`p-4 border-2 transition-all ${
-                    data.equipment_access?.includes(option.id)
-                      ? 'border-iron-orange bg-iron-orange/10'
-                      : 'border-iron-gray hover:border-iron-orange/50'
-                  }`}
-                >
-                  <span className="font-semibold">{option.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        );
-
       case 14:
-        return (
-          <div className="space-y-4">
-            <h2 className="text-2xl font-heading text-iron-orange">Any injuries or limitations?</h2>
-            <p className="text-iron-gray text-sm">Select all that apply (optional)</p>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {[
-                { id: 'none', label: 'None' },
-                { id: 'lower_back', label: 'Lower Back' },
-                { id: 'shoulder', label: 'Shoulder' },
-                { id: 'knee', label: 'Knee' },
-                { id: 'hip', label: 'Hip' },
-                { id: 'wrist', label: 'Wrist' },
-                { id: 'ankle', label: 'Ankle' }
-              ].map(option => (
-                <button
-                  key={option.id}
-                  onClick={() => {
-                    if (option.id === 'none') {
-                      updateData('injury_limitations', ['none']);
-                    } else {
-                      const filtered = data.injury_limitations?.filter(r => r !== 'none') || [];
-                      toggleArray('injury_limitations', option.id);
-                    }
-                  }}
-                  className={`p-4 border-2 transition-all ${
-                    data.injury_limitations?.includes(option.id)
-                      ? 'border-iron-orange bg-iron-orange/10'
-                      : 'border-iron-gray hover:border-iron-orange/50'
-                  }`}
-                >
-                  <span className="font-semibold">{option.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        );
-
-      case 15:
         return (
           <div className="space-y-4">
             <h2 className="text-2xl font-heading text-iron-orange">Training experience?</h2>
