@@ -175,43 +175,57 @@ Return a JSON object with this EXACT structure:
 
     // Insert program days, workouts, and meals
     const startDate = new Date();
+    const totalDays = duration_weeks * 7;
 
+    // Create all program days first
+    const dayInserts = [];
+    for (let i = 1; i <= totalDays; i++) {
+      const dayDate = new Date(startDate);
+      dayDate.setDate(dayDate.getDate() + i - 1);
+      const daysOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+      const dayOfWeek = daysOfWeek[dayDate.getDay()];
+
+      dayInserts.push({
+        program_id: aiProgram.id,
+        day_number: i,
+        day_date: dayDate.toISOString().split('T')[0],
+        day_of_week: dayOfWeek,
+        day_name: dayOfWeek.charAt(0).toUpperCase() + dayOfWeek.slice(1),
+        day_focus: ''
+      });
+    }
+
+    const { data: programDays, error: daysError } = await supabase
+      .from('ai_program_days')
+      .insert(dayInserts)
+      .select();
+
+    if (daysError) {
+      console.error('Days creation error:', daysError);
+      throw daysError;
+    }
+
+    // Create a map of day_number to day id for quick lookup
+    const dayMap = new Map();
+    programDays.forEach(day => {
+      dayMap.set(day.day_number, day.id);
+    });
+
+    // Insert workouts and meals for each week
     for (const week of programData.weekly_schedule || []) {
       const weekNumber = week.week_number;
 
-      // Process workouts for this week
+      // Insert workouts
       for (const workout of week.workouts || []) {
         const dayNumber = (weekNumber - 1) * 7 + workout.day_of_week;
-        const dayDate = new Date(startDate);
-        dayDate.setDate(dayDate.getDate() + dayNumber - 1);
+        const programDayId = dayMap.get(dayNumber);
 
-        const daysOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-        const dayOfWeek = daysOfWeek[dayDate.getDay()];
+        if (!programDayId) continue;
 
-        // Insert program day
-        const { data: programDay, error: dayError } = await supabase
-          .from('ai_program_days')
-          .insert({
-            program_id: aiProgram.id,
-            day_number: dayNumber,
-            day_date: dayDate.toISOString().split('T')[0],
-            day_of_week: dayOfWeek,
-            day_name: dayOfWeek.charAt(0).toUpperCase() + dayOfWeek.slice(1),
-            day_focus: week.focus || ''
-          })
-          .select()
-          .single();
-
-        if (dayError) {
-          console.error('Day creation error:', dayError);
-          continue;
-        }
-
-        // Insert workout
         await supabase
           .from('ai_program_workouts')
           .insert({
-            program_day_id: programDay.id,
+            program_day_id: programDayId,
             program_id: aiProgram.id,
             workout_type: workout.workout_type || 'strength',
             name: workout.workout_name || 'Workout',
@@ -219,13 +233,20 @@ Return a JSON object with this EXACT structure:
             exercises: workout.exercises || [],
             workout_details: workout
           });
+      }
 
-        // Insert meals for this day
+      // Insert meals for each day of the week
+      for (let dayOfWeek = 1; dayOfWeek <= 7; dayOfWeek++) {
+        const dayNumber = (weekNumber - 1) * 7 + dayOfWeek;
+        const programDayId = dayMap.get(dayNumber);
+
+        if (!programDayId) continue;
+
         for (const meal of week.daily_meals || []) {
           await supabase
             .from('ai_program_meals')
             .insert({
-              program_day_id: programDay.id,
+              program_day_id: programDayId,
               program_id: aiProgram.id,
               meal_type: meal.meal_name?.toLowerCase() === 'breakfast' ? 'breakfast' :
                         meal.meal_name?.toLowerCase() === 'lunch' ? 'lunch' :
