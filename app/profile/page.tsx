@@ -10,13 +10,10 @@ import UnitSystemToggle from '@/components/UnitSystemToggle';
 import {
   Loader2,
   User,
-  Target,
   Trophy,
   Activity,
   Clock,
   Flame,
-  Edit,
-  Plus,
   LogOut,
   Settings,
   Link as LinkIcon,
@@ -189,12 +186,6 @@ export default function ProfilePage() {
                 )}
               </div>
             </div>
-            <button
-              onClick={() => router.push('/profile/edit')}
-              className="text-iron-orange hover:text-orange-600 transition-colors"
-            >
-              <Edit className="w-5 h-5" />
-            </button>
           </div>
 
           {/* Quick Stats */}
@@ -226,62 +217,6 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Goals Section */}
-        <div className="border border-iron-gray p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-heading text-xl text-iron-white flex items-center gap-2">
-              <Target className="w-5 h-5 text-iron-orange" />
-              ACTIVE GOALS ({goals.length}/5)
-            </h3>
-            <button
-              onClick={() => router.push('/profile/goals/add')}
-              disabled={goals.length >= 5}
-              className={`flex items-center gap-2 px-4 py-2 uppercase font-heading text-sm transition-colors ${
-                goals.length >= 5
-                  ? 'bg-iron-gray/50 text-iron-gray cursor-not-allowed'
-                  : 'bg-iron-orange text-iron-black hover:bg-orange-600'
-              }`}
-            >
-              <Plus className="w-4 h-4" />
-              Add Goal
-            </button>
-          </div>
-
-          {goals.length === 0 ? (
-            <div className="text-center py-8">
-              <Target className="w-12 h-12 mx-auto mb-4 text-iron-gray" />
-              <p className="text-iron-gray mb-4">No active goals</p>
-              <button
-                onClick={() => router.push('/profile/goals/add')}
-                className="bg-iron-orange text-iron-black font-heading px-4 py-2 uppercase tracking-wider hover:bg-orange-600 transition-colors"
-              >
-                Create Your First Goal
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {goals.map((goal) => (
-                <div
-                  key={goal.id}
-                  onClick={() => router.push(`/profile/goals/${goal.id}/edit`)}
-                  className="p-4 border border-iron-gray hover:border-iron-orange transition-colors cursor-pointer"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <p className="text-iron-white mb-2">{goal.goal_description || goal.description}</p>
-                      {goal.target_date && (
-                        <p className="text-sm text-iron-gray">
-                          Target Date: {new Date(goal.target_date).toLocaleDateString()}
-                        </p>
-                      )}
-                    </div>
-                    <ChevronRight className="w-5 h-5 text-iron-gray flex-shrink-0 ml-2" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
 
         {/* Focus Areas */}
         {profile?.focus_areas && profile.focus_areas.length > 0 && (

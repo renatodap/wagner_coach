@@ -1341,7 +1341,6 @@ CREATE TABLE public.user_onboarding (
   user_persona text NOT NULL CHECK (user_persona = ANY (ARRAY['strength_athlete'::text, 'bodybuilder'::text, 'endurance_runner'::text, 'triathlete'::text, 'crossfit_athlete'::text, 'team_sport_athlete'::text, 'general_fitness'::text, 'beginner_recovery'::text])),
   current_activity_level text NOT NULL CHECK (current_activity_level = ANY (ARRAY['sedentary'::text, 'lightly_active'::text, 'moderately_active'::text, 'very_active'::text])),
   desired_training_frequency integer NOT NULL CHECK (desired_training_frequency >= 3 AND desired_training_frequency <= 7),
-  program_duration_weeks integer NOT NULL CHECK (program_duration_weeks = ANY (ARRAY[4, 8, 12, 16])),
   biological_sex text NOT NULL CHECK (biological_sex = ANY (ARRAY['male'::text, 'female'::text])),
   age integer NOT NULL CHECK (age >= 18 AND age <= 80),
   current_weight_kg numeric NOT NULL CHECK (current_weight_kg > 0::numeric),
@@ -1356,6 +1355,9 @@ CREATE TABLE public.user_onboarding (
   completed_at timestamp with time zone,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  city text,
+  location_permission boolean DEFAULT false,
+  facility_access ARRAY DEFAULT ARRAY[]::text[],
   CONSTRAINT user_onboarding_pkey PRIMARY KEY (id),
   CONSTRAINT user_onboarding_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );

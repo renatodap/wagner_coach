@@ -40,6 +40,23 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Onboarding data not found' }, { status: 404 });
     }
 
+    // Calculate program duration
+    let duration_weeks = 12; // default
+    let end_date = new Date();
+
+    if (genRequest.event_date) {
+      // Calculate weeks from today to event date
+      const eventDate = new Date(genRequest.event_date);
+      const today = new Date();
+      const diffTime = Math.abs(eventDate.getTime() - today.getTime());
+      const diffWeeks = Math.ceil(diffTime / (1000 * 60 * 60 * 24 * 7));
+      duration_weeks = Math.max(4, Math.min(diffWeeks, 52)); // 4-52 weeks range
+      end_date = eventDate;
+    } else {
+      // Default 12 weeks from today
+      end_date = new Date(Date.now() + (12 * 7 * 24 * 60 * 60 * 1000));
+    }
+
     // Get profile embedding text for context
     const { data: embedding } = await supabase
       .from('user_profile_embeddings')
@@ -67,7 +84,7 @@ Additional Request Details:
       messages: [
         {
           role: 'system',
-          content: `You are an expert fitness coach creating personalized training and nutrition programs. Generate a ${onboarding.program_duration_weeks}-week program with ${onboarding.desired_training_frequency} workouts per week and ${onboarding.daily_meal_preference} meals per day.
+          content: `You are an expert fitness coach creating personalized training and nutrition programs. Generate a ${duration_weeks}-week program with ${onboarding.desired_training_frequency} workouts per week and ${onboarding.daily_meal_preference} meals per day.
 
 Return a JSON object with this EXACT structure:
 {
@@ -126,36 +143,27 @@ Return a JSON object with this EXACT structure:
 
     const programData = JSON.parse(completion.choices[0].message.content || '{}');
 
-    // Calculate total calories
-    const dailyCalories = Math.round(
-      ((onboarding.current_weight_kg * 2.2) * (onboarding.biological_sex === 'male' ? 15 : 14)) *
-      (onboarding.current_activity_level === 'sedentary' ? 1.2 :
-       onboarding.current_activity_level === 'lightly_active' ? 1.375 :
-       onboarding.current_activity_level === 'moderately_active' ? 1.55 : 1.725)
-    );
-
-    // Adjust based on goal
-    const calorieAdjustment =
-      onboarding.primary_goal === 'lose_fat' ? -500 :
-      onboarding.primary_goal === 'build_muscle' ? +300 : 0;
-
-    const targetCalories = dailyCalories + calorieAdjustment;
-
-    // Create program enrollment
-    const { data: program, error: programError } = await supabase
-      .from('user_program_enrollments')
+    // Create AI generated program
+    const { data: aiProgram, error: programError } = await supabase
+      .from('ai_generated_programs')
       .insert({
         user_id,
-        program_name: programData.program_name || 'Custom AI Program',
-        program_type: 'ai_generated',
+        name: programData.program_name || 'Custom AI Program',
+        description: programData.program_description || '',
+        duration_weeks: duration_weeks,
+        total_days: duration_weeks * 7,
+        start_date: new Date().toISOString().split('T')[0],
+        end_date: end_date.toISOString().split('T')[0],
+        is_active: true,
         status: 'active',
-        start_date: new Date().toISOString(),
-        end_date: new Date(Date.now() + (onboarding.program_duration_weeks * 7 * 24 * 60 * 60 * 1000)).toISOString(),
-        target_calories: targetCalories,
-        target_protein_g: Math.round(onboarding.current_weight_kg * 1.8),
-        target_carbs_g: Math.round((targetCalories * 0.45) / 4),
-        target_fat_g: Math.round((targetCalories * 0.30) / 9),
-        notes: programData.program_description
+        generation_context: {
+          specific_goal: genRequest.specific_performance_goal,
+          event_date: genRequest.event_date,
+          weak_points: genRequest.weak_points,
+          recovery_capacity: genRequest.recovery_capacity,
+          workout_duration: genRequest.preferred_workout_duration
+        },
+        primary_focus: genRequest.weak_points || []
       })
       .select()
       .single();
@@ -165,19 +173,88 @@ Return a JSON object with this EXACT structure:
       throw programError;
     }
 
+    // Insert program days, workouts, and meals
+    const startDate = new Date();
+
+    for (const week of programData.weekly_schedule || []) {
+      const weekNumber = week.week_number;
+
+      // Process workouts for this week
+      for (const workout of week.workouts || []) {
+        const dayNumber = (weekNumber - 1) * 7 + workout.day_of_week;
+        const dayDate = new Date(startDate);
+        dayDate.setDate(dayDate.getDate() + dayNumber - 1);
+
+        const daysOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+        const dayOfWeek = daysOfWeek[dayDate.getDay()];
+
+        // Insert program day
+        const { data: programDay, error: dayError } = await supabase
+          .from('ai_program_days')
+          .insert({
+            program_id: aiProgram.id,
+            day_number: dayNumber,
+            day_date: dayDate.toISOString().split('T')[0],
+            day_of_week: dayOfWeek,
+            day_name: dayOfWeek.charAt(0).toUpperCase() + dayOfWeek.slice(1),
+            day_focus: week.focus || ''
+          })
+          .select()
+          .single();
+
+        if (dayError) {
+          console.error('Day creation error:', dayError);
+          continue;
+        }
+
+        // Insert workout
+        await supabase
+          .from('ai_program_workouts')
+          .insert({
+            program_day_id: programDay.id,
+            program_id: aiProgram.id,
+            workout_type: workout.workout_type || 'strength',
+            name: workout.workout_name || 'Workout',
+            duration_minutes: workout.duration_minutes || 60,
+            exercises: workout.exercises || [],
+            workout_details: workout
+          });
+
+        // Insert meals for this day
+        for (const meal of week.daily_meals || []) {
+          await supabase
+            .from('ai_program_meals')
+            .insert({
+              program_day_id: programDay.id,
+              program_id: aiProgram.id,
+              meal_type: meal.meal_name?.toLowerCase() === 'breakfast' ? 'breakfast' :
+                        meal.meal_name?.toLowerCase() === 'lunch' ? 'lunch' :
+                        meal.meal_name?.toLowerCase() === 'dinner' ? 'dinner' : 'snack',
+              meal_order: meal.meal_number || 0,
+              name: meal.meal_name || 'Meal',
+              total_calories: meal.calories || 0,
+              total_protein_g: meal.protein_g || 0,
+              total_carbs_g: meal.carbs_g || 0,
+              total_fat_g: meal.fat_g || 0,
+              foods: meal.foods || []
+            });
+        }
+      }
+    }
+
     // Update request status
     await supabase
       .from('program_generation_requests')
       .update({
         status: 'completed',
-        generated_program_id: program.id,
+        generated_program_id: aiProgram.id,
         completed_at: new Date().toISOString()
       })
       .eq('id', request_id);
 
     return NextResponse.json({
       success: true,
-      program_id: program.id,
+      program_id: aiProgram.id,
       message: 'Program generated successfully'
     });
   } catch (error) {

@@ -11,12 +11,14 @@ interface OnboardingData {
   user_persona: string;
   current_activity_level: string;
   desired_training_frequency: number;
-  program_duration_weeks: number;
   biological_sex: string;
   age: number;
   current_weight_kg: number;
   height_cm: number;
   daily_meal_preference: number;
+  city: string;
+  location_permission: boolean;
+  facility_access: string[];
   training_time_preferences: string[];
   dietary_restrictions: string[];
   equipment_access: string[];
@@ -36,7 +38,9 @@ export default function PreferencesPage() {
     training_time_preferences: [],
     dietary_restrictions: [],
     equipment_access: [],
-    injury_limitations: []
+    injury_limitations: [],
+    facility_access: [],
+    location_permission: false
   });
 
   useEffect(() => {
@@ -240,31 +244,6 @@ export default function PreferencesPage() {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-iron-gray text-sm mb-2 uppercase">Program Duration</label>
-                <div className="grid grid-cols-4 gap-2">
-                  {[
-                    { weeks: 4, label: '1 Month' },
-                    { weeks: 8, label: '2 Months' },
-                    { weeks: 12, label: '3 Months' },
-                    { weeks: 16, label: '4 Months' }
-                  ].map(option => (
-                    <button
-                      key={option.weeks}
-                      type="button"
-                      onClick={() => updateField('program_duration_weeks', option.weeks)}
-                      className={`p-4 border-2 transition-all ${
-                        data.program_duration_weeks === option.weeks
-                          ? 'border-iron-orange bg-iron-orange/10'
-                          : 'border-iron-gray hover:border-iron-orange/50'
-                      }`}
-                    >
-                      <div className="text-lg font-heading text-iron-orange">{option.label}</div>
-                      <div className="text-xs text-iron-gray">{option.weeks} weeks</div>
-                    </button>
-                  ))}
-                </div>
-              </div>
             </div>
           </div>
 
@@ -381,6 +360,68 @@ export default function PreferencesPage() {
                   {option.label}
                 </button>
               ))}
+            </div>
+          </div>
+
+          {/* Location & Facilities */}
+          <div className="border border-iron-gray p-6">
+            <h2 className="font-heading text-xl text-iron-white mb-4 uppercase">Location & Facilities</h2>
+
+            <div className="mb-6">
+              <label className="block text-iron-gray text-sm mb-2 uppercase">City</label>
+              <input
+                type="text"
+                value={data.city || ''}
+                onChange={(e) => updateField('city', e.target.value)}
+                placeholder="Enter your city"
+                className="w-full bg-iron-black border-2 border-iron-gray text-white px-4 py-3 focus:border-iron-orange focus:outline-none"
+              />
+            </div>
+
+            <div className="mb-6">
+              <label className="flex items-center gap-3 p-4 border-2 border-iron-gray cursor-pointer hover:border-iron-orange/50 transition-all">
+                <input
+                  type="checkbox"
+                  checked={data.location_permission || false}
+                  onChange={(e) => updateField('location_permission', e.target.checked)}
+                  className="w-5 h-5 accent-iron-orange"
+                />
+                <div>
+                  <div className="font-semibold text-iron-white">Allow location access</div>
+                  <div className="text-sm text-iron-gray">AI can adapt workouts based on weather (rain, snow, heat)</div>
+                </div>
+              </label>
+            </div>
+
+            <div>
+              <label className="block text-iron-gray text-sm mb-2 uppercase">Facility Access</label>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                {[
+                  { id: 'gym', label: '🏋️ Gym' },
+                  { id: 'tennis_courts', label: '🎾 Tennis Courts' },
+                  { id: 'soccer_field', label: '⚽ Soccer Field' },
+                  { id: 'basketball_court', label: '🏀 Basketball Court' },
+                  { id: 'swimming_pool', label: '🏊 Swimming Pool' },
+                  { id: 'track_indoor', label: '🏃 Indoor Track' },
+                  { id: 'track_outdoor', label: '🏃 Outdoor Track' },
+                  { id: 'climbing_gym', label: '🧗 Climbing Gym' },
+                  { id: 'yoga_studio', label: '🧘 Yoga Studio' },
+                  { id: 'home_gym', label: '🏠 Home Gym' }
+                ].map(option => (
+                  <button
+                    key={option.id}
+                    type="button"
+                    onClick={() => toggleArray('facility_access', option.id)}
+                    className={`p-3 border-2 transition-all text-sm ${
+                      data.facility_access?.includes(option.id)
+                        ? 'border-iron-orange bg-iron-orange/10'
+                        : 'border-iron-gray hover:border-iron-orange/50'
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 

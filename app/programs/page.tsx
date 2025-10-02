@@ -47,22 +47,38 @@ export default function ProgramsPage() {
   async function fetchActiveProgram() {
     try {
       const supabase = createClient();
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { user } } = await supabase.auth.getUser();
 
-      if (!session) {
+      if (!user) {
         router.push('/login');
         return;
       }
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/v1/programs/active`, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-      });
+      // Query Supabase for active AI program
+      const { data: program, error } = await supabase
+        .from('ai_generated_programs')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
 
-      if (response.ok) {
-        const data = await response.json();
-        setActiveProgram(data);
+      if (error) {
+        console.error('Error fetching program:', error);
+        setLoading(false);
+        return;
+      }
+
+      if (program) {
+        setActiveProgram({
+          program_id: program.id,
+          current_day: program.current_day || 1,
+          total_days: program.total_days,
+          start_date: program.start_date,
+          end_date: program.end_date,
+          duration_weeks: program.duration_weeks
+        });
       }
     } catch (error) {
       console.error('Error fetching active program:', error);
@@ -76,9 +92,6 @@ export default function ProgramsPage() {
 
     try {
       const supabase = createClient();
-      const { data: { session } } = await supabase.auth.getSession();
-
-      if (!session) return;
 
       // Calculate day range based on view mode
       let startDay = 1;
@@ -96,19 +109,37 @@ export default function ProgramsPage() {
         endDay = activeProgram.current_day;
       }
 
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/v1/programs/${activeProgram.program_id}/calendar?start_day=${startDay}&end_day=${endDay}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-          },
-        }
-      );
+      // Fetch program days with workout and meal counts
+      const { data: days, error } = await supabase
+        .from('ai_program_days')
+        .select(`
+          *,
+          workouts:ai_program_workouts(count),
+          meals:ai_program_meals(count)
+        `)
+        .eq('program_id', activeProgram.program_id)
+        .gte('day_number', startDay)
+        .lte('day_number', endDay)
+        .order('day_number', { ascending: true });
 
-      if (response.ok) {
-        const data = await response.json();
-        setCalendarDays(data.days || []);
+      if (error) {
+        console.error('Error fetching calendar:', error);
+        return;
       }
+
+      // Transform data to match CalendarDay interface
+      const calendarData: CalendarDay[] = (days || []).map(day => ({
+        day_number: day.day_number,
+        day_date: day.day_date,
+        day_name: day.day_name || '',
+        is_completed: day.is_completed || false,
+        meal_count: day.meals?.[0]?.count || 0,
+        workout_count: day.workouts?.[0]?.count || 0,
+        completed_meals: 0, // TODO: track completed meals
+        completed_workouts: 0 // TODO: track completed workouts
+      }));
+
+      setCalendarDays(calendarData);
     } catch (error) {
       console.error('Error fetching calendar data:', error);
     }
