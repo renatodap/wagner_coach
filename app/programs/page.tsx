@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { Dumbbell, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Dumbbell, Calendar, ChevronLeft, ChevronRight, ArrowLeft } from 'lucide-react';
+import BottomNavigation from '@/app/components/BottomNavigation';
 
 interface ActiveProgram {
   program_id: string;
@@ -157,6 +158,12 @@ export default function ProgramsPage() {
         <div className="max-w-2xl mx-auto pt-8">
           {/* Header */}
           <div className="flex items-center gap-3 mb-6">
+            <button
+              onClick={() => router.push('/dashboard')}
+              className="text-iron-gray hover:text-iron-orange transition-colors"
+            >
+              <ArrowLeft className="w-6 h-6" />
+            </button>
             <Dumbbell className="w-8 h-8 text-iron-orange" />
             <h1 className="font-heading text-3xl text-iron-white">AI PROGRAMS</h1>
           </div>
@@ -176,6 +183,7 @@ export default function ProgramsPage() {
             </button>
           </div>
         </div>
+        <BottomNavigation />
       </div>
     );
   }
@@ -186,6 +194,12 @@ export default function ProgramsPage() {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
+            <button
+              onClick={() => router.push('/dashboard')}
+              className="text-iron-gray hover:text-iron-orange transition-colors"
+            >
+              <ArrowLeft className="w-6 h-6" />
+            </button>
             <Dumbbell className="w-8 h-8 text-iron-orange" />
             <div>
               <h1 className="font-heading text-3xl text-iron-white">MY PROGRAM</h1>
@@ -315,6 +329,7 @@ export default function ProgramsPage() {
           })}
         </div>
       </div>
+      <BottomNavigation />
     </div>
   );
 }

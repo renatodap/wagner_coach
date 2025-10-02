@@ -300,6 +300,24 @@ export default function ProfilePage() {
           </div>
         )}
 
+        {/* Program Preferences */}
+        <div className="border border-iron-gray p-6">
+          <h3 className="font-heading text-xl text-iron-white mb-4 flex items-center gap-2">
+            <Settings className="w-5 h-5 text-iron-orange" />
+            PROGRAM PREFERENCES
+          </h3>
+          <button
+            onClick={() => router.push('/profile/preferences')}
+            className="w-full flex items-center justify-between p-4 border border-iron-gray hover:border-iron-orange transition-colors"
+          >
+            <div className="text-left">
+              <p className="text-iron-white mb-1">Training & Nutrition Settings</p>
+              <p className="text-sm text-iron-gray">Update your goals, training frequency, dietary preferences, and more</p>
+            </div>
+            <ChevronRight className="w-5 h-5 text-iron-gray flex-shrink-0" />
+          </button>
+        </div>
+
         {/* Integrations */}
         <IntegrationsSection />
 

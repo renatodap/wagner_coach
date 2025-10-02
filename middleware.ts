@@ -54,27 +54,27 @@ export async function middleware(request: NextRequest) {
 
   // If user exists, check onboarding status (except for auth routes)
   if (user && !isPublicRoute && request.nextUrl.pathname !== '/auth/onboarding') {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('onboarding_completed')
-      .eq('id', user.id)
+    const { data: onboarding } = await supabase
+      .from('user_onboarding')
+      .select('completed')
+      .eq('user_id', user.id)
       .single()
 
     // If onboarding not completed, redirect to onboarding
-    if (!profile?.onboarding_completed) {
+    if (!onboarding?.completed) {
       return NextResponse.redirect(new URL('/auth/onboarding', request.url))
     }
   }
 
   // If user completed onboarding and tries to access onboarding page, redirect to dashboard
   if (user && request.nextUrl.pathname === '/auth/onboarding') {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('onboarding_completed')
-      .eq('id', user.id)
+    const { data: onboarding } = await supabase
+      .from('user_onboarding')
+      .select('completed')
+      .eq('user_id', user.id)
       .single()
 
-    if (profile?.onboarding_completed) {
+    if (onboarding?.completed) {
       return NextResponse.redirect(new URL('/dashboard', request.url))
     }
   }
