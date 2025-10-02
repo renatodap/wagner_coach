@@ -49,6 +49,8 @@ export default function MultimodalQuickEntry() {
 
   // State
   const [text, setText] = useState('');
+  const [notes, setNotes] = useState('');  // User notes/feelings
+  const [manualType, setManualType] = useState<string>('auto');  // auto, meal, activity, workout, note
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
@@ -56,6 +58,7 @@ export default function MultimodalQuickEntry() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState<QuickEntryResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showPreview, setShowPreview] = useState(false);  // Preview before confirming
 
   // Refs
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -145,6 +148,16 @@ export default function MultimodalQuickEntry() {
         formData.append('text', text);
       }
 
+      // Add notes if provided
+      if (notes) {
+        formData.append('notes', notes);
+      }
+
+      // Add manual type override if not auto
+      if (manualType && manualType !== 'auto') {
+        formData.append('manual_type', manualType);
+      }
+
       if (selectedImage) {
         formData.append('image', selectedImage);
       }
@@ -173,6 +186,8 @@ export default function MultimodalQuickEntry() {
       // Clear form on success
       if (data.success) {
         setText('');
+        setNotes('');
+        setManualType('auto');
         removeImage();
         removeAudio();
       }
@@ -212,6 +227,24 @@ export default function MultimodalQuickEntry() {
       {/* Main Content */}
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
 
+        {/* Type Selector */}
+        <div className="bg-iron-black rounded-2xl shadow-lg p-6 border border-iron-gray">
+          <label className="block text-sm font-semibold text-iron-orange mb-3">
+            🎯 Entry Type
+          </label>
+          <select
+            value={manualType}
+            onChange={(e) => setManualType(e.target.value)}
+            className="w-full px-4 py-3 bg-iron-black border border-iron-gray text-iron-white rounded-xl focus:ring-2 focus:ring-iron-orange focus:border-iron-orange"
+          >
+            <option value="auto">Auto-detect (AI will figure it out)</option>
+            <option value="meal">🍽️ Meal / Nutrition</option>
+            <option value="activity">🏃 Activity / Cardio</option>
+            <option value="workout">💪 Workout / Strength Training</option>
+            <option value="note">📝 General Note</option>
+          </select>
+        </div>
+
         {/* Text Input */}
         <div className="bg-iron-black rounded-2xl shadow-lg p-6 border border-iron-gray">
           <label className="block text-sm font-semibold text-iron-orange mb-3">
@@ -223,6 +256,20 @@ export default function MultimodalQuickEntry() {
             placeholder="e.g., 'Just had grilled chicken with rice and broccoli' or 'Ran 5 miles this morning'"
             className="w-full px-4 py-3 bg-iron-black border border-iron-gray text-iron-white rounded-xl focus:ring-2 focus:ring-iron-orange focus:border-iron-orange resize-none placeholder:text-iron-gray"
             rows={4}
+          />
+        </div>
+
+        {/* Notes / Feelings */}
+        <div className="bg-iron-black rounded-2xl shadow-lg p-6 border border-iron-gray">
+          <label className="block text-sm font-semibold text-iron-orange mb-3">
+            💭 Notes / How did you feel? (optional)
+          </label>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="e.g., 'Felt great!', 'Very hungry after', 'Form was perfect on squats', 'Energy was low'"
+            className="w-full px-4 py-3 bg-iron-black border border-iron-gray text-iron-white rounded-xl focus:ring-2 focus:ring-iron-orange focus:border-iron-orange resize-none placeholder:text-iron-gray"
+            rows={2}
           />
         </div>
 
