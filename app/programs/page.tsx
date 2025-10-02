@@ -239,6 +239,12 @@ export default function ProgramsPage() {
               </p>
             </div>
           </div>
+          <button
+            onClick={startProgramGeneration}
+            className="bg-iron-orange hover:bg-orange-600 text-iron-black font-heading px-6 py-3 uppercase tracking-wider transition-colors"
+          >
+            Create New Program
+          </button>
         </div>
 
         {/* View Mode Selector */}

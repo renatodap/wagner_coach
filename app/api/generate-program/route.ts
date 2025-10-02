@@ -143,6 +143,13 @@ Return a JSON object with this EXACT structure:
 
     const programData = JSON.parse(completion.choices[0].message.content || '{}');
 
+    // Deactivate all existing programs for this user
+    await supabase
+      .from('ai_generated_programs')
+      .update({ is_active: false, status: 'completed' })
+      .eq('user_id', user_id)
+      .eq('is_active', true);
+
     // Create AI generated program
     const { data: aiProgram, error: programError } = await supabase
       .from('ai_generated_programs')
