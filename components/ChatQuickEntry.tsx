@@ -4,7 +4,7 @@
  * ChatGPT-Style Quick Entry Component
  *
  * Features:
- * - Clean ChatGPT-inspired interface
+ * - ChatGPT-inspired centered interface
  * - Multi-input support (text, voice, files)
  * - Log type selector (Meal/Workout/Auto-detect)
  * - Confirmation modal before saving
@@ -22,9 +22,8 @@ import {
   ChevronDown,
   Edit3,
   AlertCircle,
-  Image as ImageIcon,
-  FileText,
-  Volume2
+  Volume2,
+  FileText
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
@@ -47,6 +46,12 @@ interface AttachedFile {
   preview?: string;
   type: 'image' | 'audio' | 'pdf' | 'other';
 }
+
+// ============================================================================
+// CONFIGURATION
+// ============================================================================
+
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 
 // ============================================================================
 // MAIN COMPONENT
@@ -98,6 +103,13 @@ export default function ChatQuickEntry() {
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Auto-focus textarea on mount
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.focus();
+    }
   }, []);
 
   // ============================================================================
@@ -232,7 +244,7 @@ export default function ChatQuickEntry() {
       });
 
       // Call PREVIEW endpoint (doesn't save yet)
-      const response = await fetch('http://localhost:8000/api/v1/quick-entry/preview', {
+      const response = await fetch(`${BACKEND_URL}/api/v1/quick-entry/preview`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
@@ -280,7 +292,7 @@ export default function ChatQuickEntry() {
       }
 
       // Call CONFIRM endpoint to save
-      const response = await fetch('http://localhost:8000/api/v1/quick-entry/confirm', {
+      const response = await fetch(`${BACKEND_URL}/api/v1/quick-entry/confirm`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
@@ -299,8 +311,6 @@ export default function ChatQuickEntry() {
         throw new Error(errorData.detail || 'Failed to save entry');
       }
 
-      const result = await response.json();
-
       // Success! Clear form and close modal
       setText('');
       setAttachedFiles([]);
@@ -308,8 +318,6 @@ export default function ChatQuickEntry() {
       setProcessedEntry(null);
       setIsEditing(false);
       setEditedData({});
-
-      // TODO: Show success toast/notification
 
     } catch (err) {
       console.error('Save error:', err);
@@ -343,6 +351,7 @@ export default function ChatQuickEntry() {
       note: '📝',
       measurement: '📊',
       unknown: '❓',
+      auto: '✨',
     };
     return icons[type] || '❓';
   };
@@ -358,229 +367,207 @@ export default function ChatQuickEntry() {
     return colors[type] || 'from-gray-600 to-gray-500';
   };
 
+  const hasContent = text || attachedFiles.length > 0;
+
   // ============================================================================
   // RENDER
   // ============================================================================
 
   return (
     <div className="flex flex-col h-screen bg-iron-black">
-      {/* Header */}
-      <div className="p-4 border-b border-iron-gray">
-        <h1 className="text-2xl font-heading text-iron-orange">QUICK ENTRY</h1>
-        <p className="text-sm text-iron-gray mt-1">Log anything instantly with AI</p>
-      </div>
-
-      {/* Main Content Area */}
-      <div className="flex-1 overflow-y-auto p-4">
-        {/* Placeholder when empty */}
-        {!text && attachedFiles.length === 0 && (
-          <div className="flex items-center justify-center h-full">
-            <div className="text-center text-iron-gray">
-              <p className="text-lg mb-2">What did you do today?</p>
-              <p className="text-sm">Type, speak, or attach a photo</p>
+      {/* ChatGPT-style centered content */}
+      <div className="flex-1 flex flex-col items-center justify-center overflow-y-auto p-4">
+        <div className="w-full max-w-3xl">
+          {/* Header - only show when no content */}
+          {!hasContent && (
+            <div className="text-center mb-8">
+              <h1 className="text-4xl font-heading text-iron-orange mb-3">QUICK ENTRY</h1>
+              <p className="text-iron-gray text-lg">What did you do today?</p>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Error Display */}
-        {error && (
-          <div className="mb-4 p-4 bg-red-900/20 border border-red-500 flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-            <p className="text-sm text-red-300">{error}</p>
-          </div>
-        )}
-      </div>
+          {/* Error Display */}
+          {error && (
+            <div className="mb-4 p-4 bg-red-900/20 border border-red-500 flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-red-300">{error}</p>
+            </div>
+          )}
 
-      {/* ChatGPT-Style Input Section */}
-      <div className="p-4 border-t border-iron-gray bg-iron-black">
-        {/* Attached Files Preview */}
-        {attachedFiles.length > 0 && (
-          <div className="mb-3 flex flex-wrap gap-2">
-            {attachedFiles.map((attached, index) => (
-              <div
-                key={index}
-                className="relative bg-iron-gray p-2 flex items-center gap-2"
-                style={{ borderRadius: '8px' }}
-              >
-                {attached.type === 'image' && attached.preview ? (
-                  <img
-                    src={attached.preview}
-                    alt="Preview"
-                    className="w-12 h-12 object-cover"
-                    style={{ borderRadius: '4px' }}
-                  />
-                ) : attached.type === 'audio' ? (
-                  <div className="w-12 h-12 bg-iron-black flex items-center justify-center">
-                    <Volume2 className="w-6 h-6 text-iron-orange" />
-                  </div>
-                ) : (
-                  <div className="w-12 h-12 bg-iron-black flex items-center justify-center">
-                    <FileText className="w-6 h-6 text-iron-orange" />
-                  </div>
-                )}
-                <span className="text-xs text-iron-white truncate max-w-[100px]">
-                  {attached.file.name}
-                </span>
-                <button
-                  onClick={() => removeFile(index)}
-                  className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 flex items-center justify-center"
-                  style={{ borderRadius: '50%' }}
-                >
-                  <X className="w-3 h-3 text-white" />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Input Container */}
-        <div
-          className="bg-iron-gray border border-iron-gray flex items-end gap-2 p-2"
-          style={{ borderRadius: '24px' }}
-        >
-          {/* Log Type Selector */}
-          <div className="relative" ref={dropdownRef}>
-            <button
-              onClick={() => setShowTypeDropdown(!showTypeDropdown)}
-              disabled={isProcessing}
-              className="p-2 hover:bg-iron-black/50 transition-colors disabled:opacity-50"
-              style={{ borderRadius: '12px' }}
-              title="Select log type"
-            >
-              <div className="flex items-center gap-1">
-                <span className="text-lg">{getLogTypeIcon(selectedLogType)}</span>
-                <ChevronDown className="w-4 h-4 text-iron-white" />
-              </div>
-            </button>
-
-            {/* Dropdown Menu */}
-            {showTypeDropdown && (
-              <div
-                className="absolute bottom-full mb-2 left-0 bg-iron-gray border border-iron-gray shadow-xl min-w-[150px]"
-                style={{ borderRadius: '12px' }}
-              >
-                {(['auto', 'meal', 'workout', 'activity', 'note', 'measurement'] as LogType[]).map(type => (
-                  <button
-                    key={type}
-                    onClick={() => {
-                      setSelectedLogType(type);
-                      setShowTypeDropdown(false);
-                    }}
-                    className={`w-full text-left px-4 py-2 hover:bg-iron-black/50 transition-colors flex items-center gap-2 ${
-                      selectedLogType === type ? 'bg-iron-orange text-white' : 'text-iron-white'
-                    }`}
+          {/* ChatGPT-Style Input Box - CENTERED */}
+          <div className="w-full">
+            {/* Attached Files Preview */}
+            {attachedFiles.length > 0 && (
+              <div className="mb-3 flex flex-wrap gap-2">
+                {attachedFiles.map((attached, index) => (
+                  <div
+                    key={index}
+                    className="relative bg-iron-gray p-2 flex items-center gap-2 rounded-xl"
                   >
-                    <span>{getLogTypeIcon(type)}</span>
-                    <span className="text-sm">{getLogTypeLabel(type)}</span>
-                  </button>
+                    {attached.type === 'image' && attached.preview ? (
+                      <img
+                        src={attached.preview}
+                        alt="Preview"
+                        className="w-12 h-12 object-cover rounded-lg"
+                      />
+                    ) : attached.type === 'audio' ? (
+                      <div className="w-12 h-12 bg-iron-black flex items-center justify-center rounded-lg">
+                        <Volume2 className="w-6 h-6 text-iron-orange" />
+                      </div>
+                    ) : (
+                      <div className="w-12 h-12 bg-iron-black flex items-center justify-center rounded-lg">
+                        <FileText className="w-6 h-6 text-iron-orange" />
+                      </div>
+                    )}
+                    <span className="text-xs text-iron-white truncate max-w-[100px]">
+                      {attached.file.name}
+                    </span>
+                    <button
+                      onClick={() => removeFile(index)}
+                      className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
+                    >
+                      <X className="w-3 h-3 text-white" />
+                    </button>
+                  </div>
                 ))}
               </div>
             )}
+
+            {/* Input Container */}
+            <div className="bg-iron-gray border-2 border-iron-gray hover:border-iron-orange/50 focus-within:border-iron-orange transition-colors rounded-3xl flex items-end gap-2 p-3 shadow-2xl">
+              {/* Log Type Selector */}
+              <div className="relative" ref={dropdownRef}>
+                <button
+                  onClick={() => setShowTypeDropdown(!showTypeDropdown)}
+                  disabled={isProcessing}
+                  className="p-2 hover:bg-iron-black/50 transition-colors disabled:opacity-50 rounded-xl"
+                  title="Select log type"
+                >
+                  <div className="flex items-center gap-1">
+                    <span className="text-xl">{getLogTypeIcon(selectedLogType)}</span>
+                    <ChevronDown className="w-4 h-4 text-iron-white" />
+                  </div>
+                </button>
+
+                {/* Dropdown Menu */}
+                {showTypeDropdown && (
+                  <div className="absolute bottom-full mb-2 left-0 bg-iron-gray border-2 border-iron-orange shadow-2xl min-w-[180px] rounded-2xl overflow-hidden">
+                    {(['auto', 'meal', 'workout', 'activity', 'note', 'measurement'] as LogType[]).map(type => (
+                      <button
+                        key={type}
+                        onClick={() => {
+                          setSelectedLogType(type);
+                          setShowTypeDropdown(false);
+                        }}
+                        className={`w-full text-left px-4 py-3 hover:bg-iron-black/50 transition-colors flex items-center gap-3 ${
+                          selectedLogType === type ? 'bg-iron-orange text-white' : 'text-iron-white'
+                        }`}
+                      >
+                        <span className="text-lg">{getLogTypeIcon(type)}</span>
+                        <span className="text-sm font-medium">{getLogTypeLabel(type)}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* File Attachment */}
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isProcessing}
+                className="p-2 hover:bg-iron-black/50 transition-colors disabled:opacity-50 rounded-xl"
+                title="Attach file"
+              >
+                <Paperclip className="w-5 h-5 text-iron-white" />
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*,audio/*,application/pdf"
+                multiple
+                className="hidden"
+                onChange={(e) => e.target.files && handleFileSelect(e.target.files)}
+              />
+
+              {/* Text Input */}
+              <textarea
+                ref={textareaRef}
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSubmit();
+                  }
+                }}
+                placeholder="Describe what you ate, did, or how you feel..."
+                disabled={isProcessing}
+                className="flex-1 bg-transparent text-iron-white placeholder-iron-gray/60 resize-none outline-none max-h-[200px] min-h-[28px] py-2 text-base disabled:opacity-50"
+                rows={1}
+              />
+
+              {/* Voice Recording */}
+              {!isRecording ? (
+                <button
+                  onClick={startVoiceRecording}
+                  disabled={isProcessing}
+                  className="p-2 hover:bg-iron-black/50 transition-colors disabled:opacity-50 rounded-xl"
+                  title="Voice input"
+                >
+                  <Mic className="w-5 h-5 text-iron-white" />
+                </button>
+              ) : (
+                <button
+                  onClick={stopVoiceRecording}
+                  className="p-2 bg-red-500 animate-pulse rounded-xl"
+                  title="Stop recording"
+                >
+                  <Mic className="w-5 h-5 text-white" />
+                </button>
+              )}
+
+              {/* Submit Button */}
+              <button
+                onClick={handleSubmit}
+                disabled={(!text && attachedFiles.length === 0) || isProcessing}
+                className="p-3 bg-iron-orange hover:bg-iron-orange/80 transition-all disabled:opacity-50 disabled:cursor-not-allowed rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95"
+                title="Submit"
+              >
+                {isProcessing ? (
+                  <Loader2 className="w-5 h-5 text-white animate-spin" />
+                ) : (
+                  <Send className="w-5 h-5 text-white" />
+                )}
+              </button>
+            </div>
+
+            {/* Helper Text */}
+            <div className="mt-3 text-xs text-iron-gray text-center">
+              Press <kbd className="px-2 py-1 bg-iron-gray/30 rounded">Enter</kbd> to send • <kbd className="px-2 py-1 bg-iron-gray/30 rounded">Shift + Enter</kbd> for new line
+            </div>
           </div>
-
-          {/* File Attachment */}
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isProcessing}
-            className="p-2 hover:bg-iron-black/50 transition-colors disabled:opacity-50"
-            style={{ borderRadius: '12px' }}
-            title="Attach file"
-          >
-            <Paperclip className="w-5 h-5 text-iron-white" />
-          </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*,audio/*,application/pdf"
-            multiple
-            className="hidden"
-            onChange={(e) => e.target.files && handleFileSelect(e.target.files)}
-          />
-
-          {/* Text Input */}
-          <textarea
-            ref={textareaRef}
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                handleSubmit();
-              }
-            }}
-            placeholder="Describe what you ate, did, or how you feel..."
-            disabled={isProcessing}
-            className="flex-1 bg-transparent text-iron-white placeholder-iron-gray resize-none outline-none max-h-[120px] min-h-[24px] py-2 disabled:opacity-50"
-            rows={1}
-          />
-
-          {/* Voice Recording */}
-          {!isRecording ? (
-            <button
-              onClick={startVoiceRecording}
-              disabled={isProcessing}
-              className="p-2 hover:bg-iron-black/50 transition-colors disabled:opacity-50"
-              style={{ borderRadius: '12px' }}
-              title="Voice input"
-            >
-              <Mic className="w-5 h-5 text-iron-white" />
-            </button>
-          ) : (
-            <button
-              onClick={stopVoiceRecording}
-              className="p-2 bg-red-500 animate-pulse"
-              style={{ borderRadius: '12px' }}
-              title="Stop recording"
-            >
-              <Mic className="w-5 h-5 text-white" />
-            </button>
-          )}
-
-          {/* Submit Button */}
-          <button
-            onClick={handleSubmit}
-            disabled={(!text && attachedFiles.length === 0) || isProcessing}
-            className="p-2 bg-iron-orange hover:bg-iron-orange/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{ borderRadius: '12px' }}
-            title="Submit"
-          >
-            {isProcessing ? (
-              <Loader2 className="w-5 h-5 text-white animate-spin" />
-            ) : (
-              <Send className="w-5 h-5 text-white" />
-            )}
-          </button>
-        </div>
-
-        {/* Helper Text */}
-        <div className="mt-2 text-xs text-iron-gray text-center">
-          Press Enter to send, Shift+Enter for new line
         </div>
       </div>
 
       {/* Confirmation Modal */}
       {showConfirmation && processedEntry && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
-          <div
-            className="bg-iron-black border border-iron-gray max-w-2xl w-full max-h-[90vh] overflow-y-auto"
-            style={{ borderRadius: '16px' }}
-          >
+        <div className="fixed inset-0 bg-black/90 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+          <div className="bg-iron-black border-2 border-iron-orange max-w-2xl w-full max-h-[90vh] overflow-y-auto rounded-3xl shadow-2xl">
             {/* Modal Header */}
-            <div className="p-6 border-b border-iron-gray">
+            <div className="p-6 border-b-2 border-iron-gray">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-4">
                   <div
-                    className={`w-12 h-12 bg-gradient-to-br ${getTypeColor(processedEntry.type)} flex items-center justify-center text-2xl`}
-                    style={{ borderRadius: '12px' }}
+                    className={`w-14 h-14 bg-gradient-to-br ${getTypeColor(processedEntry.type)} flex items-center justify-center text-3xl rounded-2xl shadow-lg`}
                   >
                     {getLogTypeIcon(processedEntry.type)}
                   </div>
                   <div>
-                    <h2 className="text-xl font-heading text-iron-orange uppercase">
-                      {processedEntry.type} Detected
+                    <h2 className="text-2xl font-heading text-iron-orange uppercase">
+                      {processedEntry.type} DETECTED
                     </h2>
-                    <p className="text-sm text-iron-gray">
-                      Confidence: {(processedEntry.confidence * 100).toFixed(0)}%
+                    <p className="text-sm text-iron-gray mt-1">
+                      Confidence: <span className="text-iron-white font-bold">{(processedEntry.confidence * 100).toFixed(0)}%</span>
                     </p>
                   </div>
                 </div>
@@ -590,10 +577,9 @@ export default function ChatQuickEntry() {
                     setProcessedEntry(null);
                     setIsEditing(false);
                   }}
-                  className="p-2 hover:bg-iron-gray transition-colors"
-                  style={{ borderRadius: '8px' }}
+                  className="p-2 hover:bg-iron-gray transition-colors rounded-xl"
                 >
-                  <X className="w-5 h-5 text-iron-white" />
+                  <X className="w-6 h-6 text-iron-white" />
                 </button>
               </div>
             </div>
@@ -603,19 +589,16 @@ export default function ChatQuickEntry() {
               {/* Extracted Data */}
               {processedEntry.data && Object.keys(processedEntry.data).length > 0 && (
                 <div className="mb-6">
-                  <h3 className="text-sm font-semibold text-iron-white mb-3 uppercase tracking-wider">
-                    Extracted Information
+                  <h3 className="text-sm font-semibold text-iron-white mb-4 uppercase tracking-wider">
+                    📊 Extracted Information
                   </h3>
-                  <div
-                    className="bg-iron-gray p-4 space-y-2"
-                    style={{ borderRadius: '12px' }}
-                  >
+                  <div className="bg-iron-gray/50 p-5 space-y-3 rounded-2xl">
                     {Object.entries(isEditing ? editedData : processedEntry.data).map(([key, value]) => {
                       if (typeof value === 'object' && value !== null) {
                         return (
-                          <div key={key} className="border-l-2 border-iron-orange pl-3">
-                            <p className="text-xs text-iron-gray uppercase">{key.replace(/_/g, ' ')}</p>
-                            <pre className="text-sm text-iron-white mt-1 whitespace-pre-wrap">
+                          <div key={key} className="border-l-4 border-iron-orange pl-4">
+                            <p className="text-xs text-iron-gray uppercase font-semibold">{key.replace(/_/g, ' ')}</p>
+                            <pre className="text-sm text-iron-white mt-2 whitespace-pre-wrap font-mono bg-iron-black/50 p-3 rounded-lg">
                               {JSON.stringify(value, null, 2)}
                             </pre>
                           </div>
@@ -623,8 +606,8 @@ export default function ChatQuickEntry() {
                       }
 
                       return (
-                        <div key={key} className="flex justify-between items-center">
-                          <span className="text-sm text-iron-gray capitalize">
+                        <div key={key} className="flex justify-between items-center gap-4">
+                          <span className="text-sm text-iron-gray capitalize font-medium">
                             {key.replace(/_/g, ' ')}:
                           </span>
                           {isEditing ? (
@@ -635,11 +618,10 @@ export default function ChatQuickEntry() {
                                 ...prev,
                                 [key]: e.target.value
                               }))}
-                              className="bg-iron-black text-iron-white px-2 py-1 text-sm border border-iron-gray"
-                              style={{ borderRadius: '4px' }}
+                              className="bg-iron-black text-iron-white px-3 py-2 text-sm border-2 border-iron-gray focus:border-iron-orange rounded-lg outline-none"
                             />
                           ) : (
-                            <span className="text-sm text-iron-white font-medium">
+                            <span className="text-sm text-iron-white font-semibold">
                               {String(value)}
                             </span>
                           )}
@@ -653,13 +635,13 @@ export default function ChatQuickEntry() {
               {/* Suggestions */}
               {processedEntry.suggestions && processedEntry.suggestions.length > 0 && (
                 <div className="mb-6">
-                  <h3 className="text-sm font-semibold text-iron-white mb-3 uppercase tracking-wider">
-                    💡 Suggestions
+                  <h3 className="text-sm font-semibold text-iron-white mb-4 uppercase tracking-wider">
+                    💡 AI Suggestions
                   </h3>
                   <ul className="space-y-2">
                     {processedEntry.suggestions.map((suggestion, i) => (
-                      <li key={i} className="text-sm text-iron-gray flex items-start gap-2">
-                        <span className="text-iron-orange">•</span>
+                      <li key={i} className="text-sm text-iron-gray flex items-start gap-3 bg-iron-gray/30 p-3 rounded-xl">
+                        <span className="text-iron-orange text-lg">•</span>
                         <span>{suggestion}</span>
                       </li>
                     ))}
@@ -669,7 +651,7 @@ export default function ChatQuickEntry() {
 
               {/* Error in modal */}
               {error && (
-                <div className="mb-6 p-4 bg-red-900/20 border border-red-500 flex items-start gap-3">
+                <div className="mb-6 p-4 bg-red-900/20 border-2 border-red-500 rounded-xl flex items-start gap-3">
                   <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
                   <p className="text-sm text-red-300">{error}</p>
                 </div>
@@ -677,12 +659,11 @@ export default function ChatQuickEntry() {
             </div>
 
             {/* Modal Actions */}
-            <div className="p-6 border-t border-iron-gray flex gap-3">
+            <div className="p-6 border-t-2 border-iron-gray flex gap-3">
               <button
                 onClick={() => setIsEditing(!isEditing)}
                 disabled={isSaving}
-                className="flex-1 p-3 bg-iron-gray hover:bg-iron-gray/80 text-iron-white font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                style={{ borderRadius: '12px' }}
+                className="flex-1 p-4 bg-iron-gray hover:bg-iron-gray/80 text-iron-white font-bold transition-colors disabled:opacity-50 flex items-center justify-center gap-2 rounded-2xl text-base uppercase tracking-wide"
               >
                 <Edit3 className="w-5 h-5" />
                 {isEditing ? 'Done Editing' : 'Edit Details'}
@@ -690,8 +671,7 @@ export default function ChatQuickEntry() {
               <button
                 onClick={handleConfirmAndLog}
                 disabled={isSaving}
-                className="flex-1 p-3 bg-iron-orange hover:bg-iron-orange/80 text-white font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                style={{ borderRadius: '12px' }}
+                className="flex-1 p-4 bg-iron-orange hover:bg-iron-orange/80 text-white font-bold transition-all disabled:opacity-50 flex items-center justify-center gap-2 rounded-2xl text-base uppercase tracking-wide shadow-xl hover:shadow-2xl transform hover:scale-105 active:scale-95"
               >
                 {isSaving ? (
                   <>
