@@ -1,5 +1,5 @@
-import MultimodalQuickEntry from '@/components/MultimodalQuickEntry';
+import ChatQuickEntry from '@/components/ChatQuickEntry';
 
 export default function QuickEntryPage() {
-  return <MultimodalQuickEntry />;
+  return <ChatQuickEntry />;
 }
