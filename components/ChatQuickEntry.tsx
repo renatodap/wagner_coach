@@ -244,17 +244,33 @@ export default function ChatQuickEntry() {
       });
 
       // Call PREVIEW endpoint (doesn't save yet)
-      const response = await fetch(`${BACKEND_URL}/api/v1/quick-entry/preview`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-        body: formData,
-      });
+      let response;
+      try {
+        response = await fetch(`${BACKEND_URL}/api/v1/quick-entry/preview`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: formData,
+        });
+      } catch (fetchError) {
+        // Network error or CORS error
+        console.error('Fetch error:', fetchError);
+        throw new Error(
+          `Cannot connect to backend at ${BACKEND_URL}. ` +
+          `This is likely a CORS or network issue. ` +
+          `Check that the backend is running and CORS is configured correctly.`
+        );
+      }
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to process entry');
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch (e) {
+          throw new Error(`Backend error (${response.status}): ${response.statusText}`);
+        }
+        throw new Error(errorData.detail || `Backend error: ${response.statusText}`);
       }
 
       const data = await response.json();
@@ -292,23 +308,37 @@ export default function ChatQuickEntry() {
       }
 
       // Call CONFIRM endpoint to save
-      const response = await fetch(`${BACKEND_URL}/api/v1/quick-entry/confirm`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          entry_type: processedEntry.type,
-          data: isEditing ? editedData : processedEntry.data,
-          original_text: text,
-          extracted_text: processedEntry.extracted_text,
-        }),
-      });
+      let response;
+      try {
+        response = await fetch(`${BACKEND_URL}/api/v1/quick-entry/confirm`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            entry_type: processedEntry.type,
+            data: isEditing ? editedData : processedEntry.data,
+            original_text: text,
+            extracted_text: processedEntry.extracted_text,
+          }),
+        });
+      } catch (fetchError) {
+        console.error('Fetch error:', fetchError);
+        throw new Error(
+          `Cannot connect to backend at ${BACKEND_URL}. ` +
+          `This is likely a CORS or network issue.`
+        );
+      }
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to save entry');
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch (e) {
+          throw new Error(`Backend error (${response.status}): ${response.statusText}`);
+        }
+        throw new Error(errorData.detail || `Failed to save: ${response.statusText}`);
       }
 
       // Success! Clear form and close modal
