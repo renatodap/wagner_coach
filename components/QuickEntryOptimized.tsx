@@ -15,26 +15,18 @@
 import React, { useState, useRef } from 'react';
 import { Camera, Mic, Upload, FileText, Send, X, Check, Loader2, Image as ImageIcon, Zap } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
-
-interface QuickEntryResult {
-  success: boolean;
-  entry_type: string;
-  confidence: number;
-  data: any;
-  entry_id?: string;
-  suggestions?: string[];
-  extracted_text?: string;
-  error?: string;
-}
+import QuickEntryPreview from './quick-entry/QuickEntryPreview';
+import { QuickEntryPreviewResponse } from './quick-entry/types';
 
 export default function QuickEntryOptimized() {
   const [text, setText] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
-  const [result, setResult] = useState<QuickEntryResult | null>(null);
+  const [previewData, setPreviewData] = useState<QuickEntryPreviewResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [savedEntryId, setSavedEntryId] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -111,7 +103,7 @@ export default function QuickEntryOptimized() {
     }
   };
 
-  // Submit entry
+  // Submit entry for preview
   const handleSubmit = async () => {
     if (!text && !selectedFile) {
       setError('Please enter text or select a file');
@@ -120,7 +112,8 @@ export default function QuickEntryOptimized() {
 
     setIsProcessing(true);
     setError(null);
-    setResult(null);
+    setPreviewData(null);
+    setSavedEntryId(null);
 
     try {
       // Get auth token
@@ -160,15 +153,8 @@ export default function QuickEntryOptimized() {
         throw new Error(errorData.detail || 'Failed to process entry');
       }
 
-      const data: QuickEntryResult = await response.json();
-      setResult(data);
-
-      // Clear form on success
-      if (data.success) {
-        setText('');
-        setSelectedFile(null);
-        setPreviewUrl(null);
-      }
+      const data: QuickEntryPreviewResponse = await response.json();
+      setPreviewData(data);
     } catch (err) {
       console.error('Submit error:', err);
       setError(err instanceof Error ? err.message : 'Failed to process entry');
@@ -177,28 +163,36 @@ export default function QuickEntryOptimized() {
     }
   };
 
-  // Get icon for entry type
-  const getEntryTypeIcon = (type: string) => {
-    switch (type) {
-      case 'meal': return '🍽️';
-      case 'activity': return '🏃';
-      case 'workout': return '💪';
-      case 'measurement': return '📊';
-      case 'note': return '📝';
-      default: return '❓';
-    }
+  // Handle save from preview
+  const handleSave = async (editedData: any) => {
+    // For now, just mark as saved since backend already saved it
+    // TODO: Implement actual save endpoint if preview-only mode is added
+    setSavedEntryId('saved');
+
+    // Clear form
+    setText('');
+    setSelectedFile(null);
+    setPreviewUrl(null);
+
+    // Show success for 3 seconds then clear
+    setTimeout(() => {
+      setPreviewData(null);
+      setSavedEntryId(null);
+    }, 3000);
   };
 
-  // Get color for entry type
-  const getEntryTypeColor = (type: string) => {
-    switch (type) {
-      case 'meal': return 'text-green-600 bg-green-50 border-green-200';
-      case 'activity': return 'text-blue-600 bg-blue-50 border-blue-200';
-      case 'workout': return 'text-orange-600 bg-orange-50 border-orange-200';
-      case 'measurement': return 'text-purple-600 bg-purple-50 border-purple-200';
-      case 'note': return 'text-gray-600 bg-gray-50 border-gray-200';
-      default: return 'text-gray-600 bg-gray-50 border-gray-200';
-    }
+  // Handle edit from preview
+  const handleEdit = () => {
+    // Return to edit mode - keep the text and preview data
+    setPreviewData(null);
+  };
+
+  // Handle cancel from preview
+  const handleCancel = () => {
+    setPreviewData(null);
+    setText('');
+    setSelectedFile(null);
+    setPreviewUrl(null);
   };
 
   return (
@@ -353,54 +347,26 @@ export default function QuickEntryOptimized() {
         </button>
       </div>
 
-      {/* Result Display */}
-      {result && result.success && (
-        <div className={`p-6 rounded-xl border-2 shadow-lg ${getEntryTypeColor(result.entry_type)}`}>
-          <div className="flex items-start gap-4 mb-4">
-            <span className="text-4xl">{getEntryTypeIcon(result.entry_type)}</span>
-            <div className="flex-1">
-              <h3 className="text-xl font-bold mb-1 capitalize">
-                {result.entry_type} Saved!
-              </h3>
-              <p className="text-sm opacity-75">
-                Confidence: {(result.confidence * 100).toFixed(0)}% • Entry ID: {result.entry_id?.slice(0, 8)}
-              </p>
-            </div>
+      {/* Preview Display */}
+      {previewData && (
+        <QuickEntryPreview
+          data={previewData}
+          onSave={handleSave}
+          onEdit={handleEdit}
+          onCancel={handleCancel}
+        />
+      )}
+
+      {/* Success Message */}
+      {savedEntryId && (
+        <div className="p-6 rounded-xl border-2 shadow-lg bg-green-50 border-green-200">
+          <div className="flex items-center gap-4">
             <Check className="w-8 h-8 text-green-600" />
+            <div>
+              <h3 className="text-xl font-bold text-green-900">Saved Successfully!</h3>
+              <p className="text-sm text-green-700">Your entry has been recorded.</p>
+            </div>
           </div>
-
-          {/* Extracted Data */}
-          {result.data && Object.keys(result.data).length > 0 && (
-            <div className="mb-4 p-4 bg-white/50 rounded-lg">
-              <p className="text-sm font-semibold mb-2">Extracted Data:</p>
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                {Object.entries(result.data).map(([key, value]) => {
-                  if (typeof value === 'object') return null;
-                  return (
-                    <div key={key}>
-                      <span className="font-medium capitalize">{key.replace(/_/g, ' ')}:</span>{' '}
-                      <span>{String(value)}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Suggestions */}
-          {result.suggestions && result.suggestions.length > 0 && (
-            <div className="p-4 bg-white/50 rounded-lg">
-              <p className="text-sm font-semibold mb-2">💡 Suggestions:</p>
-              <ul className="text-sm space-y-1">
-                {result.suggestions.map((suggestion, i) => (
-                  <li key={i} className="flex items-start gap-2">
-                    <span className="text-orange-600">•</span>
-                    <span>{suggestion}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
         </div>
       )}
     </div>
