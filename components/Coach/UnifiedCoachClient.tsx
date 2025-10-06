@@ -1,36 +1,40 @@
 /**
- * Unified Coach Client
+ * Unified Coach Client - ChatGPT-Style Interface
  *
- * Complete ChatGPT-like interface for Wagner Coach.
- * Single interface for both:
- * - Chat (questions, advice) → AI responds with RAG context
- * - Logging (meals, workouts) → Shows preview card for confirmation
- *
- * Follows 2026 AI SaaS principles:
- * - Invisible, anticipatory, trustworthy
- * - 3-minute time-to-value (user can start chatting immediately)
- * - Minimal cognitive load (clear, calm, consistent)
- * - Proactive (suggests actions at right moment)
+ * Complete AI Coach with Quick Entry integration.
+ * - Pre-chat state: Centered entry screen like Quick Entry
+ * - Post-chat state: Full messaging interface
+ * - Auto-detects logging vs chatting
+ * - Orange/black visual theme for consistency
  *
  * Features:
+ * - Multimodal input (text, voice, images)
  * - Auto-detection of logs vs chat
  * - Log preview cards with confirm/edit/cancel
- * - Conversation history (sidebar on desktop, bottom sheet on mobile)
  * - Streaming responses (typing indicator)
- * - Optimistic UI updates
- * - Full RAG context from all user data
+ * - RAG context from all user data
  */
 
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { MessageSquare, Loader2, ChevronLeft, Archive, AlertCircle } from 'lucide-react'
-import Link from 'next/link'
+import {
+  Mic,
+  Paperclip,
+  Send,
+  X,
+  Loader2,
+  ChevronDown,
+  AlertCircle,
+  Volume2,
+  FileText,
+  MessageSquare,
+  Archive
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
 import { UnifiedMessageBubble } from './UnifiedMessageBubble'
 import { LogPreviewCard } from './LogPreviewCard'
-import { ChatInput } from './ChatInput'
 import {
   sendMessage,
   confirmLog,
@@ -44,6 +48,14 @@ interface UnifiedCoachClientProps {
   initialConversationId?: string | null
 }
 
+interface AttachedFile {
+  file: File
+  preview?: string
+  type: 'image' | 'audio' | 'pdf' | 'other'
+}
+
+type LogType = 'auto' | 'meal' | 'workout' | 'activity' | 'note' | 'measurement'
+
 export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoachClientProps) {
   // State
   const [messages, setMessages] = useState<UnifiedMessage[]>([])
@@ -55,27 +67,53 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Input state
+  const [text, setText] = useState('')
+  const [selectedLogType, setSelectedLogType] = useState<LogType>('auto')
+  const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([])
+  const [isRecording, setIsRecording] = useState(false)
+  const [showTypeDropdown, setShowTypeDropdown] = useState(false)
+
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const recognitionRef = useRef<any>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const dropdownRef = useRef<HTMLDivElement>(null)
 
   // Hooks
   const { toast } = useToast()
 
+  // Determine if we're in chat mode (messages exist) or entry mode (no messages)
+  const hasStartedChat = messages.length > 0
+  const hasContent = text || attachedFiles.length > 0
+
   // Auto-scroll to bottom when messages change
   useEffect(() => {
-    scrollToBottom()
-  }, [messages, pendingLogPreview])
-
-  // Load conversation history on mount (if continuing existing conversation)
-  useEffect(() => {
-    if (initialConversationId) {
-      loadConversationHistory(initialConversationId)
-    } else {
-      // Show welcome message for new conversation
-      showWelcomeMessage()
+    if (hasStartedChat) {
+      scrollToBottom()
     }
-  }, [initialConversationId])
+  }, [messages, pendingLogPreview, hasStartedChat])
+
+  // Auto-resize textarea
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto'
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`
+    }
+  }, [text])
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowTypeDropdown(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   function scrollToBottom(smooth = true) {
     messagesEndRef.current?.scrollIntoView({
@@ -84,47 +122,102 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
     })
   }
 
-  function showWelcomeMessage() {
-    // Welcome message (not saved to DB)
-    const welcomeMessage: UnifiedMessage = {
-      id: 'welcome',
-      role: 'assistant',
-      content: `# Welcome to Your AI Coach! 👋
+  // ============================================================================
+  // FILE HANDLING
+  // ============================================================================
 
-I'm here to help you achieve your fitness and nutrition goals. I can:
+  const handleFileSelect = (files: FileList) => {
+    const newFiles: AttachedFile[] = []
 
-✅ **Answer questions** about training, nutrition, recovery, and more
-✅ **Log your meals** - just tell me what you ate (e.g., "I had 3 eggs and oatmeal")
-✅ **Log your workouts** - describe what you did (e.g., "Did 10 pushups and ran 5K")
-✅ **Track measurements** - tell me your weight, body fat, etc.
-✅ **Provide personalized advice** based on your complete history
+    Array.from(files).forEach(file => {
+      let fileType: AttachedFile['type'] = 'other'
 
-**Just start typing!** I'll automatically detect if you're logging something or asking a question.`,
-      message_type: 'chat',
-      is_vectorized: false,
-      created_at: new Date().toISOString()
+      if (file.type.startsWith('image/')) {
+        fileType = 'image'
+        const reader = new FileReader()
+        reader.onloadend = () => {
+          setAttachedFiles(prev => prev.map(f =>
+            f.file === file ? { ...f, preview: reader.result as string } : f
+          ))
+        }
+        reader.readAsDataURL(file)
+      } else if (file.type.startsWith('audio/')) {
+        fileType = 'audio'
+      } else if (file.type === 'application/pdf') {
+        fileType = 'pdf'
+      }
+
+      newFiles.push({ file, type: fileType })
+    })
+
+    setAttachedFiles(prev => [...prev, ...newFiles])
+    setError(null)
+  }
+
+  const removeFile = (index: number) => {
+    setAttachedFiles(prev => prev.filter((_, i) => i !== index))
+  }
+
+  // ============================================================================
+  // VOICE RECORDING
+  // ============================================================================
+
+  const startVoiceRecording = () => {
+    try {
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+
+      if (!SpeechRecognition) {
+        setError('Voice recognition not supported in this browser')
+        return
+      }
+
+      const recognition = new SpeechRecognition()
+      recognition.continuous = false
+      recognition.interimResults = false
+      recognition.lang = 'en-US'
+
+      recognition.onstart = () => {
+        setIsRecording(true)
+        setError(null)
+      }
+
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript
+        setText(prev => prev ? `${prev} ${transcript}` : transcript)
+        setIsRecording(false)
+      }
+
+      recognition.onerror = (event: any) => {
+        console.error('Speech recognition error:', event.error)
+        setError(`Voice input error: ${event.error}`)
+        setIsRecording(false)
+      }
+
+      recognition.onend = () => {
+        setIsRecording(false)
+      }
+
+      recognitionRef.current = recognition
+      recognition.start()
+    } catch (err) {
+      console.error('Voice recording error:', err)
+      setError('Failed to start voice recording')
     }
-    setMessages([welcomeMessage])
   }
 
-  async function loadConversationHistory(convId: string) {
-    // TODO: Load from backend (Phase 2 - conversation history)
-    // For now, just show welcome
-    showWelcomeMessage()
+  const stopVoiceRecording = () => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop()
+      setIsRecording(false)
+    }
   }
 
-  /**
-   * Handle sending a message
-   *
-   * Flow:
-   * 1. Add user message to UI (optimistic)
-   * 2. Send to backend
-   * 3. Backend classifies (chat vs log)
-   * 4. If log: Show preview card
-   * 5. If chat: Add AI response to UI
-   */
-  async function handleSendMessage(message: string, imageUrls?: string[]) {
-    if (!message.trim() && !imageUrls?.length) return
+  // ============================================================================
+  // MESSAGE HANDLING
+  // ============================================================================
+
+  async function handleSendMessage() {
+    if (!text.trim() && !attachedFiles.length) return
 
     setError(null)
     setIsLoading(true)
@@ -134,7 +227,7 @@ I'm here to help you achieve your fitness and nutrition goals. I can:
     const optimisticUserMessage: UnifiedMessage = {
       id: tempUserMessageId,
       role: 'user',
-      content: message,
+      content: text,
       message_type: 'chat',
       is_vectorized: false,
       created_at: new Date().toISOString()
@@ -143,11 +236,14 @@ I'm here to help you achieve your fitness and nutrition goals. I can:
     setMessages(prev => [...prev, optimisticUserMessage])
 
     try {
+      // TODO: Handle image URLs from attachedFiles
+      const imageUrls = undefined // Backend integration needed
+
       // Send to backend
       const response: SendMessageResponse = await sendMessage({
-        message,
+        message: text,
         conversation_id: conversationId,
-        has_image: !!imageUrls?.length,
+        has_image: !!attachedFiles.length,
         image_urls: imageUrls
       })
 
@@ -179,11 +275,15 @@ I'm here to help you achieve your fitness and nutrition goals. I can:
           role: 'assistant',
           content: response.message,
           message_type: 'chat',
-          is_vectorized: false, // Will be vectorized in backend
+          is_vectorized: false,
           created_at: new Date().toISOString()
         }
         setMessages(prev => [...prev, aiMessage])
       }
+
+      // Clear input
+      setText('')
+      setAttachedFiles([])
     } catch (err) {
       // Remove optimistic message on error
       setMessages(prev => prev.filter(msg => msg.id !== tempUserMessageId))
@@ -200,14 +300,6 @@ I'm here to help you achieve your fitness and nutrition goals. I can:
     }
   }
 
-  /**
-   * Handle confirming a log
-   *
-   * Flow:
-   * 1. Call confirmLog API
-   * 2. Add system success message
-   * 3. Clear pending log preview
-   */
   async function handleConfirmLog(logData: Record<string, any>) {
     if (!pendingLogPreview || !conversationId) return
 
@@ -235,7 +327,6 @@ I'm here to help you achieve your fitness and nutrition goals. I can:
       // Clear pending preview
       setPendingLogPreview(null)
 
-      // Show success toast
       toast({
         title: 'Logged!',
         description: result.system_message,
@@ -251,9 +342,6 @@ I'm here to help you achieve your fitness and nutrition goals. I can:
     }
   }
 
-  /**
-   * Handle canceling a log
-   */
   function handleCancelLog() {
     setPendingLogPreview(null)
     toast({
@@ -263,39 +351,247 @@ I'm here to help you achieve your fitness and nutrition goals. I can:
     })
   }
 
+  // ============================================================================
+  // RENDER HELPERS
+  // ============================================================================
+
+  const getLogTypeLabel = (type: LogType) => {
+    const labels: Record<LogType, string> = {
+      auto: 'Auto-detect',
+      meal: 'Meal',
+      workout: 'Workout',
+      activity: 'Activity',
+      note: 'Note',
+      measurement: 'Measurement',
+    }
+    return labels[type]
+  }
+
+  const getLogTypeIcon = (type: string) => {
+    const icons: Record<string, string> = {
+      meal: '🍽️',
+      workout: '💪',
+      activity: '🏃',
+      note: '📝',
+      measurement: '📊',
+      unknown: '❓',
+      auto: '✨',
+    }
+    return icons[type] || '❓'
+  }
+
+  // ============================================================================
+  // RENDER - PRE-CHAT (ENTRY SCREEN)
+  // ============================================================================
+
+  if (!hasStartedChat) {
+    return (
+      <div className="flex flex-col h-screen bg-iron-black">
+        {/* ChatGPT-style centered content */}
+        <div className="flex-1 flex flex-col items-center justify-center overflow-y-auto p-4 pb-24">
+          <div className="w-full max-w-3xl">
+            {/* Header - only show when no content */}
+            {!hasContent && (
+              <div className="text-center mb-8">
+                <h1 className="text-4xl font-heading text-iron-orange mb-3">YOUR AI COACH</h1>
+                <p className="text-iron-gray text-lg">Ask anything, log meals, track workouts, get advice</p>
+              </div>
+            )}
+
+            {/* Error Display */}
+            {error && (
+              <div className="mb-4 p-4 bg-red-900/20 border-2 border-red-500 flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-red-300">{error}</p>
+              </div>
+            )}
+
+            {/* ChatGPT-Style Input Box - CENTERED */}
+            <div className="w-full">
+              {/* Attached Files Preview */}
+              {attachedFiles.length > 0 && (
+                <div className="mb-3 flex flex-wrap gap-2">
+                  {attachedFiles.map((attached, index) => (
+                    <div
+                      key={index}
+                      className="relative bg-iron-gray p-2 flex items-center gap-2"
+                    >
+                      {attached.type === 'image' && attached.preview ? (
+                        <img
+                          src={attached.preview}
+                          alt="Preview"
+                          className="w-12 h-12 object-cover"
+                        />
+                      ) : attached.type === 'audio' ? (
+                        <div className="w-12 h-12 bg-iron-black flex items-center justify-center">
+                          <Volume2 className="w-6 h-6 text-iron-orange" />
+                        </div>
+                      ) : (
+                        <div className="w-12 h-12 bg-iron-black flex items-center justify-center">
+                          <FileText className="w-6 h-6 text-iron-orange" />
+                        </div>
+                      )}
+                      <span className="text-xs text-iron-white truncate max-w-[100px]">
+                        {attached.file.name}
+                      </span>
+                      <button
+                        onClick={() => removeFile(index)}
+                        className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 flex items-center justify-center hover:bg-red-600 transition-colors"
+                      >
+                        <X className="w-3 h-3 text-white" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Input Container */}
+              <div className="bg-iron-gray border-2 border-iron-gray hover:border-iron-orange/50 focus-within:border-iron-orange transition-colors flex items-end gap-2 p-3 shadow-2xl">
+                {/* Log Type Selector */}
+                <div className="relative" ref={dropdownRef}>
+                  <button
+                    onClick={() => setShowTypeDropdown(!showTypeDropdown)}
+                    disabled={isLoading}
+                    className="p-2 hover:bg-iron-black/50 transition-colors disabled:opacity-50"
+                    title="Select log type"
+                  >
+                    <div className="flex items-center gap-1">
+                      <span className="text-xl">{getLogTypeIcon(selectedLogType)}</span>
+                      <ChevronDown className="w-4 h-4 text-iron-white" />
+                    </div>
+                  </button>
+
+                  {/* Dropdown Menu */}
+                  {showTypeDropdown && (
+                    <div className="absolute bottom-full mb-2 left-0 bg-iron-gray border-2 border-iron-orange shadow-2xl min-w-[180px] overflow-hidden">
+                      {(['auto', 'meal', 'workout', 'activity', 'note', 'measurement'] as LogType[]).map(type => (
+                        <button
+                          key={type}
+                          onClick={() => {
+                            setSelectedLogType(type)
+                            setShowTypeDropdown(false)
+                          }}
+                          className={`w-full text-left px-4 py-3 hover:bg-iron-black/50 transition-colors flex items-center gap-3 ${
+                            selectedLogType === type ? 'bg-iron-orange text-white' : 'text-iron-white'
+                          }`}
+                        >
+                          <span className="text-lg">{getLogTypeIcon(type)}</span>
+                          <span className="text-sm font-medium">{getLogTypeLabel(type)}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* File Attachment */}
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isLoading}
+                  className="p-2 hover:bg-iron-black/50 transition-colors disabled:opacity-50"
+                  title="Attach file"
+                >
+                  <Paperclip className="w-5 h-5 text-iron-white" />
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*,audio/*,application/pdf"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => e.target.files && handleFileSelect(e.target.files)}
+                />
+
+                {/* Text Input */}
+                <textarea
+                  ref={textareaRef}
+                  value={text}
+                  onChange={(e) => setText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault()
+                      handleSendMessage()
+                    }
+                  }}
+                  placeholder="Ask a question, log a meal, describe a workout..."
+                  disabled={isLoading}
+                  className="flex-1 bg-transparent text-iron-white placeholder-iron-gray/60 resize-none outline-none max-h-[200px] min-h-[28px] py-2 text-base disabled:opacity-50"
+                  rows={1}
+                />
+
+                {/* Voice Recording */}
+                {!isRecording ? (
+                  <button
+                    onClick={startVoiceRecording}
+                    disabled={isLoading}
+                    className="p-2 hover:bg-iron-black/50 transition-colors disabled:opacity-50"
+                    title="Voice input"
+                  >
+                    <Mic className="w-5 h-5 text-iron-white" />
+                  </button>
+                ) : (
+                  <button
+                    onClick={stopVoiceRecording}
+                    className="p-2 bg-red-500 animate-pulse"
+                    title="Stop recording"
+                  >
+                    <Mic className="w-5 h-5 text-white" />
+                  </button>
+                )}
+
+                {/* Submit Button */}
+                <button
+                  onClick={handleSendMessage}
+                  disabled={(!text && attachedFiles.length === 0) || isLoading}
+                  className="p-3 bg-iron-orange hover:bg-iron-orange/80 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95"
+                  title="Submit"
+                >
+                  {isLoading ? (
+                    <Loader2 className="w-5 h-5 text-white animate-spin" />
+                  ) : (
+                    <Send className="w-5 h-5 text-white" />
+                  )}
+                </button>
+              </div>
+
+              {/* Helper Text */}
+              <div className="mt-3 text-xs text-iron-gray text-center">
+                Press <kbd className="px-2 py-1 bg-iron-gray/30">Enter</kbd> to send • <kbd className="px-2 py-1 bg-iron-gray/30">Shift + Enter</kbd> for new line
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ============================================================================
+  // RENDER - POST-CHAT (MESSAGING INTERFACE)
+  // ============================================================================
+
   return (
-    <div className="h-screen flex flex-col bg-gray-50">
+    <div className="h-screen flex flex-col bg-iron-black">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
+      <header className="bg-iron-gray border-b-2 border-iron-orange sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              {/* Back button (mobile only) */}
-              <Link
-                href="/dashboard"
-                className="lg:hidden text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                <ChevronLeft className="w-6 h-6" />
-              </Link>
-
               {/* Title */}
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                <div className="w-8 h-8 bg-iron-orange flex items-center justify-center">
                   <MessageSquare className="w-5 h-5 text-white" />
                 </div>
-                <h1 className="text-lg font-bold text-gray-900">
-                  Coach
+                <h1 className="text-lg font-heading text-iron-orange">
+                  YOUR AI COACH
                 </h1>
               </div>
             </div>
 
             {/* Actions */}
             <div className="flex items-center gap-2">
-              {/* Conversation history button (Phase 2) */}
               <Button
                 variant="ghost"
                 size="icon"
-                className="text-gray-600 hover:text-gray-900"
+                className="text-iron-white hover:text-iron-orange hover:bg-iron-black"
                 title="Conversation history (coming soon)"
                 disabled
               >
@@ -325,7 +621,7 @@ I'm here to help you achieve your fitness and nutrition goals. I can:
             {/* Typing Indicator */}
             {isLoading && !pendingLogPreview && (
               <div
-                className="flex items-center gap-2 text-gray-500 px-4"
+                className="flex items-center gap-2 text-iron-gray px-4"
                 data-testid="typing-indicator"
               >
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -345,18 +641,18 @@ I'm here to help you achieve your fitness and nutrition goals. I can:
 
             {/* Error Message */}
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
+              <div className="bg-red-900/20 border-2 border-red-500 p-4 flex items-start gap-3">
                 <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-red-900">
+                  <p className="text-sm font-medium text-red-300">
                     Something went wrong
                   </p>
-                  <p className="text-sm text-red-700 mt-1">
+                  <p className="text-sm text-red-200 mt-1">
                     {error}
                   </p>
                   <button
                     onClick={() => setError(null)}
-                    className="text-sm text-red-600 hover:text-red-800 underline mt-2"
+                    className="text-sm text-red-400 hover:text-red-300 underline mt-2"
                   >
                     Dismiss
                   </button>
@@ -371,17 +667,155 @@ I'm here to help you achieve your fitness and nutrition goals. I can:
       </div>
 
       {/* Input Container (fixed at bottom) */}
-      <div className="bg-white border-t border-gray-200 p-4 safe-area-pb">
+      <div className="bg-iron-gray border-t-2 border-iron-orange p-4 safe-area-pb">
         <div className="max-w-4xl mx-auto">
-          <ChatInput
-            onSend={handleSendMessage}
-            disabled={isLoading || !!pendingLogPreview}
-            placeholder={
-              pendingLogPreview
-                ? "Review the log above before sending another message..."
-                : "Ask anything, or describe what you ate/did..."
-            }
-          />
+          {/* Attached Files Preview */}
+          {attachedFiles.length > 0 && (
+            <div className="mb-3 flex flex-wrap gap-2">
+              {attachedFiles.map((attached, index) => (
+                <div
+                  key={index}
+                  className="relative bg-iron-black p-2 flex items-center gap-2"
+                >
+                  {attached.type === 'image' && attached.preview ? (
+                    <img
+                      src={attached.preview}
+                      alt="Preview"
+                      className="w-12 h-12 object-cover"
+                    />
+                  ) : attached.type === 'audio' ? (
+                    <div className="w-12 h-12 bg-iron-gray flex items-center justify-center">
+                      <Volume2 className="w-6 h-6 text-iron-orange" />
+                    </div>
+                  ) : (
+                    <div className="w-12 h-12 bg-iron-gray flex items-center justify-center">
+                      <FileText className="w-6 h-6 text-iron-orange" />
+                    </div>
+                  )}
+                  <span className="text-xs text-iron-white truncate max-w-[100px]">
+                    {attached.file.name}
+                  </span>
+                  <button
+                    onClick={() => removeFile(index)}
+                    className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 flex items-center justify-center hover:bg-red-600 transition-colors"
+                  >
+                    <X className="w-3 h-3 text-white" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Input Container */}
+          <div className="bg-iron-black border-2 border-iron-orange/50 hover:border-iron-orange focus-within:border-iron-orange transition-colors flex items-end gap-2 p-3">
+            {/* Log Type Selector */}
+            <div className="relative" ref={dropdownRef}>
+              <button
+                onClick={() => setShowTypeDropdown(!showTypeDropdown)}
+                disabled={isLoading || !!pendingLogPreview}
+                className="p-2 hover:bg-iron-gray/50 transition-colors disabled:opacity-50"
+                title="Select log type"
+              >
+                <div className="flex items-center gap-1">
+                  <span className="text-xl">{getLogTypeIcon(selectedLogType)}</span>
+                  <ChevronDown className="w-4 h-4 text-iron-white" />
+                </div>
+              </button>
+
+              {showTypeDropdown && (
+                <div className="absolute bottom-full mb-2 left-0 bg-iron-black border-2 border-iron-orange shadow-2xl min-w-[180px] overflow-hidden">
+                  {(['auto', 'meal', 'workout', 'activity', 'note', 'measurement'] as LogType[]).map(type => (
+                    <button
+                      key={type}
+                      onClick={() => {
+                        setSelectedLogType(type)
+                        setShowTypeDropdown(false)
+                      }}
+                      className={`w-full text-left px-4 py-3 hover:bg-iron-gray/50 transition-colors flex items-center gap-3 ${
+                        selectedLogType === type ? 'bg-iron-orange text-white' : 'text-iron-white'
+                      }`}
+                    >
+                      <span className="text-lg">{getLogTypeIcon(type)}</span>
+                      <span className="text-sm font-medium">{getLogTypeLabel(type)}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* File Attachment */}
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isLoading || !!pendingLogPreview}
+              className="p-2 hover:bg-iron-gray/50 transition-colors disabled:opacity-50"
+              title="Attach file"
+            >
+              <Paperclip className="w-5 h-5 text-iron-white" />
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*,audio/*,application/pdf"
+              multiple
+              className="hidden"
+              onChange={(e) => e.target.files && handleFileSelect(e.target.files)}
+            />
+
+            {/* Text Input */}
+            <textarea
+              ref={textareaRef}
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault()
+                  handleSendMessage()
+                }
+              }}
+              placeholder={
+                pendingLogPreview
+                  ? "Review the log above before sending another message..."
+                  : "Ask anything, or describe what you ate/did..."
+              }
+              disabled={isLoading || !!pendingLogPreview}
+              className="flex-1 bg-transparent text-iron-white placeholder-iron-gray/60 resize-none outline-none max-h-[200px] min-h-[28px] py-2 text-base disabled:opacity-50"
+              rows={1}
+            />
+
+            {/* Voice Recording */}
+            {!isRecording ? (
+              <button
+                onClick={startVoiceRecording}
+                disabled={isLoading || !!pendingLogPreview}
+                className="p-2 hover:bg-iron-gray/50 transition-colors disabled:opacity-50"
+                title="Voice input"
+              >
+                <Mic className="w-5 h-5 text-iron-white" />
+              </button>
+            ) : (
+              <button
+                onClick={stopVoiceRecording}
+                className="p-2 bg-red-500 animate-pulse"
+                title="Stop recording"
+              >
+                <Mic className="w-5 h-5 text-white" />
+              </button>
+            )}
+
+            {/* Submit Button */}
+            <button
+              onClick={handleSendMessage}
+              disabled={(!text && attachedFiles.length === 0) || isLoading || !!pendingLogPreview}
+              className="p-3 bg-iron-orange hover:bg-iron-orange/80 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95"
+              title="Submit"
+            >
+              {isLoading ? (
+                <Loader2 className="w-5 h-5 text-white animate-spin" />
+              ) : (
+                <Send className="w-5 h-5 text-white" />
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>
