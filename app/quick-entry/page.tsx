@@ -1,4 +1,4 @@
-import QuickEntry from '@/components/QuickEntry';
+import { QuickEntryFlow } from '@/components/quick-entry/QuickEntryFlow';
 import BottomNavigation from '@/app/components/BottomNavigation';
 
 export default function QuickEntryPage() {
@@ -16,7 +16,7 @@ export default function QuickEntryPage() {
 
       {/* Main Content */}
       <main className="max-w-4xl mx-auto px-4 py-8">
-        <QuickEntry />
+        <QuickEntryFlow />
 
         {/* Examples Section */}
         <div className="mt-12 space-y-6">
