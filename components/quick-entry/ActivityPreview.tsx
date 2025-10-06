@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ChevronDown, ChevronUp, Check, Edit3, AlertTriangle, Zap, Activity as ActivityIcon } from 'lucide-react';
+import { ChevronDown, ChevronUp, Check, Edit3, AlertTriangle, Zap } from 'lucide-react';
 import { ActivityPrimaryFields, ActivitySecondaryFields, QuickEntryPreviewResponse } from './types';
 
 interface ActivityPreviewProps {
@@ -37,28 +37,14 @@ export default function ActivityPreview({ data, onSave, onEdit }: ActivityPrevie
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-4 text-white flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <span className="text-2xl">{activityEmojis[primary.activity_type] || '🏃'}</span>
-          <h3 className="text-lg font-semibold">Activity Entry</h3>
-        </div>
-        {data.data.estimated && (
-          <div className="flex items-center gap-2 bg-amber-500 px-3 py-1 rounded-full text-sm">
-            <Zap size={14} />
-            <span>Estimated • {Math.round(data.confidence * 100)}% confidence</span>
-          </div>
-        )}
-      </div>
-
+    <div className="bg-iron-gray/30 border-2 border-iron-gray rounded-3xl overflow-hidden shadow-2xl">
       {/* Warnings */}
       {data.validation.warnings.length > 0 && (
-        <div className="bg-amber-50 border-l-4 border-amber-500 px-6 py-3 flex items-start gap-3">
-          <AlertTriangle size={20} className="text-amber-600 mt-0.5 flex-shrink-0" />
+        <div className="bg-amber-900/20 border-b-2 border-amber-600 px-6 py-3 flex items-start gap-3">
+          <AlertTriangle size={20} className="text-amber-500 mt-0.5 flex-shrink-0" />
           <div className="flex-1">
-            <p className="font-medium text-amber-900">Needs Clarification</p>
-            <ul className="text-sm text-amber-800 mt-1 space-y-1">
+            <p className="font-medium text-amber-400">Needs Clarification</p>
+            <ul className="text-sm text-amber-300 mt-1 space-y-1">
               {data.validation.warnings.map((warning, i) => (
                 <li key={i}>• {warning}</li>
               ))}
@@ -67,20 +53,10 @@ export default function ActivityPreview({ data, onSave, onEdit }: ActivityPrevie
         </div>
       )}
 
-      {/* Critical Missing Data */}
-      {data.data.needs_clarification && (
-        <div className="bg-red-50 border-l-4 border-red-500 px-6 py-3">
-          <p className="text-red-900 font-medium">⚠️ Missing Details</p>
-          <p className="text-sm text-red-800 mt-1">
-            Add duration or distance for better tracking
-          </p>
-        </div>
-      )}
-
       <div className="p-6 space-y-6">
         {/* Activity Name */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-iron-gray uppercase tracking-wider mb-2">
             Activity Name
           </label>
           {editMode ? (
@@ -88,10 +64,11 @@ export default function ActivityPreview({ data, onSave, onEdit }: ActivityPrevie
               type="text"
               value={editedFields.activity_name || ''}
               onChange={(e) => updateField('activity_name', e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-3 bg-iron-black text-iron-white border-2 border-iron-gray rounded-xl focus:ring-2 focus:ring-iron-orange focus:border-iron-orange outline-none text-lg"
+              placeholder="Morning Run"
             />
           ) : (
-            <div className="text-lg font-medium text-gray-900">
+            <div className="text-2xl font-heading text-iron-orange uppercase">
               {primary.activity_name}
             </div>
           )}
@@ -99,7 +76,7 @@ export default function ActivityPreview({ data, onSave, onEdit }: ActivityPrevie
 
         {/* Activity Type */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-iron-gray uppercase tracking-wider mb-2">
             Activity Type
           </label>
           <div className="grid grid-cols-3 gap-2">
@@ -109,17 +86,17 @@ export default function ActivityPreview({ data, onSave, onEdit }: ActivityPrevie
                 onClick={() => editMode && updateField('activity_type', type)}
                 disabled={!editMode}
                 className={`
-                  py-2 px-4 rounded-lg font-medium transition-all text-sm
+                  py-3 px-4 rounded-xl font-medium transition-all text-sm uppercase tracking-wide
                   ${
                     (editedFields.activity_type || primary.activity_type) === type
-                      ? 'bg-blue-500 text-white shadow-md'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      ? 'bg-iron-orange text-white shadow-lg'
+                      : 'bg-iron-gray text-iron-white hover:bg-iron-gray/70'
                   }
                   ${!editMode && 'cursor-default'}
                 `}
               >
-                <span className="mr-1">{activityEmojis[type]}</span>
-                {type.charAt(0).toUpperCase() + type.slice(1)}
+                <span className="mr-1 text-lg">{activityEmojis[type]}</span>
+                {type}
               </button>
             ))}
           </div>
@@ -129,7 +106,7 @@ export default function ActivityPreview({ data, onSave, onEdit }: ActivityPrevie
         <div className="grid grid-cols-2 gap-4">
           {/* Duration */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-iron-gray uppercase tracking-wider mb-2">
               Duration
             </label>
             {editMode ? (
@@ -137,23 +114,23 @@ export default function ActivityPreview({ data, onSave, onEdit }: ActivityPrevie
                 <input
                   type="number"
                   value={editedFields.duration_minutes || ''}
-                  onChange={(e) => updateField('duration_minutes', parseFloat(e.target.value))}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  onChange={(e) => updateField('duration_minutes', parseFloat(e.target.value) || 0)}
+                  className="w-full px-4 py-3 bg-iron-black text-iron-white border-2 border-iron-gray rounded-xl focus:ring-2 focus:ring-iron-orange focus:border-iron-orange outline-none text-lg"
                   placeholder="30"
                 />
-                <span className="text-gray-600 text-sm">min</span>
+                <span className="text-iron-gray text-sm uppercase">min</span>
               </div>
             ) : (
-              <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-4 text-white text-center">
-                <div className="text-3xl font-bold">{primary.duration_minutes || '?'}</div>
-                <div className="text-sm opacity-90 mt-1">minutes</div>
+              <div className="bg-iron-orange rounded-xl p-4 text-white text-center">
+                <div className="text-4xl font-heading">{primary.duration_minutes || '?'}</div>
+                <div className="text-sm opacity-90 mt-1 uppercase tracking-wide">minutes</div>
               </div>
             )}
           </div>
 
           {/* Distance */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-iron-gray uppercase tracking-wider mb-2">
               Distance
             </label>
             {editMode ? (
@@ -162,20 +139,20 @@ export default function ActivityPreview({ data, onSave, onEdit }: ActivityPrevie
                   type="number"
                   step="0.1"
                   value={editedFields.distance_miles || ''}
-                  onChange={(e) => updateField('distance_miles', parseFloat(e.target.value))}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  onChange={(e) => updateField('distance_miles', parseFloat(e.target.value) || 0)}
+                  className="w-full px-4 py-3 bg-iron-black text-iron-white border-2 border-iron-gray rounded-xl focus:ring-2 focus:ring-iron-orange focus:border-iron-orange outline-none text-lg"
                   placeholder="4.0"
                 />
-                <span className="text-gray-600 text-sm">mi</span>
+                <span className="text-iron-gray text-sm uppercase">mi</span>
               </div>
             ) : (
-              <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-4 text-white text-center">
-                <div className="text-3xl font-bold">
+              <div className="bg-iron-orange rounded-xl p-4 text-white text-center">
+                <div className="text-4xl font-heading">
                   {primary.distance_miles !== undefined && primary.distance_miles !== null
                     ? primary.distance_miles.toFixed(1)
                     : '?'}
                 </div>
-                <div className="text-sm opacity-90 mt-1">miles</div>
+                <div className="text-sm opacity-90 mt-1 uppercase tracking-wide">miles</div>
               </div>
             )}
           </div>
@@ -183,34 +160,34 @@ export default function ActivityPreview({ data, onSave, onEdit }: ActivityPrevie
 
         {/* Pace (if available) */}
         {primary.pace && (
-          <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg">
+          <div className="bg-iron-gray/50 border-2 border-iron-gray p-4 rounded-xl">
             <div className="flex items-center gap-3">
               <span className="text-2xl">⏱️</span>
               <div>
-                <p className="font-medium text-blue-900">Pace</p>
-                <p className="text-lg text-blue-800">{primary.pace}</p>
+                <p className="text-sm font-medium text-iron-gray uppercase tracking-wider">Pace</p>
+                <p className="text-xl font-heading text-iron-orange">{primary.pace}</p>
               </div>
             </div>
           </div>
         )}
 
         {/* Calories & RPE Grid */}
-        {!data.data.needs_clarification && (secondary.calories_burned || secondary.rpe) && (
+        {(secondary.calories_burned || secondary.rpe) && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-3">
+            <label className="block text-sm font-medium text-iron-gray uppercase tracking-wider mb-3">
               Additional Metrics
             </label>
             <div className="grid grid-cols-2 gap-4">
               {secondary.calories_burned && (
-                <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg p-4 text-white text-center">
-                  <div className="text-3xl font-bold">{secondary.calories_burned}</div>
-                  <div className="text-sm opacity-90 mt-1">Calories</div>
+                <div className="bg-iron-orange rounded-xl p-4 text-white text-center">
+                  <div className="text-3xl font-heading">{secondary.calories_burned}</div>
+                  <div className="text-sm opacity-90 mt-1 uppercase tracking-wide">Calories</div>
                 </div>
               )}
               {secondary.rpe && (
-                <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg p-4 text-white text-center">
-                  <div className="text-3xl font-bold">{secondary.rpe}/10</div>
-                  <div className="text-sm opacity-90 mt-1">RPE</div>
+                <div className="bg-iron-orange rounded-xl p-4 text-white text-center">
+                  <div className="text-3xl font-heading">{secondary.rpe}/10</div>
+                  <div className="text-sm opacity-90 mt-1 uppercase tracking-wide">RPE</div>
                 </div>
               )}
             </div>
@@ -219,14 +196,14 @@ export default function ActivityPreview({ data, onSave, onEdit }: ActivityPrevie
 
         {/* AI Suggestions */}
         {data.suggestions.length > 0 && (
-          <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg">
+          <div className="bg-iron-gray/50 border-2 border-iron-gray p-4 rounded-xl">
             <div className="flex items-start gap-3">
               <span className="text-2xl">💡</span>
               <div className="flex-1">
-                <p className="font-medium text-blue-900 mb-2">AI Suggestions</p>
-                <div className="text-sm text-blue-800 space-y-1">
+                <p className="font-medium text-iron-orange uppercase tracking-wider text-sm mb-2">AI Suggestions</p>
+                <div className="text-sm text-iron-white space-y-1">
                   {data.suggestions.map((suggestion, i) => (
-                    <p key={i}>{suggestion}</p>
+                    <p key={i}>• {suggestion}</p>
                   ))}
                 </div>
               </div>
@@ -235,20 +212,20 @@ export default function ActivityPreview({ data, onSave, onEdit }: ActivityPrevie
         )}
 
         {/* Expand Button for Secondary Details */}
-        {!data.data.needs_clarification && secondary.tags && secondary.tags.length > 0 && (
+        {secondary.tags && secondary.tags.length > 0 && (
           <button
             onClick={() => setExpanded(!expanded)}
-            className="w-full flex items-center justify-center gap-2 text-gray-600 hover:text-gray-900 py-2 rounded-lg hover:bg-gray-50 transition-colors"
+            className="w-full flex items-center justify-center gap-2 text-iron-gray hover:text-iron-white py-2 rounded-xl hover:bg-iron-gray/30 transition-colors uppercase tracking-wide text-sm font-medium"
           >
             {expanded ? (
               <>
                 <ChevronUp size={20} />
-                <span className="font-medium">Less details</span>
+                <span>Less details</span>
               </>
             ) : (
               <>
                 <ChevronDown size={20} />
-                <span className="font-medium">More details</span>
+                <span>More details</span>
               </>
             )}
           </button>
@@ -256,16 +233,16 @@ export default function ActivityPreview({ data, onSave, onEdit }: ActivityPrevie
 
         {/* Expanded Details */}
         {expanded && secondary.tags && (
-          <div className="space-y-4 pt-4 border-t">
+          <div className="space-y-4 pt-4 border-t-2 border-iron-gray">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-iron-gray uppercase tracking-wider mb-2">
                 Tags
               </label>
               <div className="flex flex-wrap gap-2">
                 {secondary.tags.map((tag, i) => (
                   <span
                     key={i}
-                    className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium"
+                    className="px-3 py-1 bg-iron-orange/20 text-iron-orange border border-iron-orange rounded-full text-sm font-medium uppercase tracking-wide"
                   >
                     {tag}
                   </span>
@@ -276,7 +253,7 @@ export default function ActivityPreview({ data, onSave, onEdit }: ActivityPrevie
         )}
 
         {/* Action Buttons */}
-        <div className="flex gap-3 pt-4 border-t">
+        <div className="flex gap-3 pt-4 border-t-2 border-iron-gray">
           {editMode ? (
             <>
               <button
@@ -284,7 +261,7 @@ export default function ActivityPreview({ data, onSave, onEdit }: ActivityPrevie
                   handleSave();
                   setEditMode(false);
                 }}
-                className="flex-1 bg-green-500 text-white py-3 px-4 rounded-lg font-medium hover:bg-green-600 transition-colors flex items-center justify-center gap-2"
+                className="flex-1 bg-iron-orange text-white py-4 px-4 rounded-xl font-bold hover:bg-iron-orange/80 transition-all flex items-center justify-center gap-2 uppercase tracking-wide shadow-xl hover:shadow-2xl transform hover:scale-105 active:scale-95"
               >
                 <Check size={20} />
                 Save Activity
@@ -294,7 +271,7 @@ export default function ActivityPreview({ data, onSave, onEdit }: ActivityPrevie
                   setEditedFields(data.data.primary_fields);
                   setEditMode(false);
                 }}
-                className="flex-1 bg-gray-500 text-white py-3 px-4 rounded-lg font-medium hover:bg-gray-600 transition-colors"
+                className="flex-1 bg-iron-gray text-iron-white py-4 px-4 rounded-xl font-bold hover:bg-iron-gray/80 transition-colors uppercase tracking-wide"
               >
                 Cancel
               </button>
@@ -303,14 +280,14 @@ export default function ActivityPreview({ data, onSave, onEdit }: ActivityPrevie
             <>
               <button
                 onClick={handleSave}
-                className="flex-1 bg-green-500 text-white py-3 px-4 rounded-lg font-medium hover:bg-green-600 transition-colors flex items-center justify-center gap-2"
+                className="flex-1 bg-iron-orange text-white py-4 px-4 rounded-xl font-bold hover:bg-iron-orange/80 transition-all flex items-center justify-center gap-2 uppercase tracking-wide shadow-xl hover:shadow-2xl transform hover:scale-105 active:scale-95"
               >
                 <Check size={20} />
                 Save Activity
               </button>
               <button
                 onClick={() => setEditMode(true)}
-                className="flex-1 bg-blue-500 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-600 transition-colors flex items-center justify-center gap-2"
+                className="flex-1 bg-iron-gray text-iron-white py-4 px-4 rounded-xl font-bold hover:bg-iron-gray/80 transition-colors flex items-center justify-center gap-2 uppercase tracking-wide"
               >
                 <Edit3 size={20} />
                 Edit
