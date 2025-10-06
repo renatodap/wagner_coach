@@ -5,7 +5,17 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { NumberStepper } from '@/components/ui/number-stepper'
+import { TimestampPicker } from '@/components/ui/timestamp-picker'
+import { ConfidenceBadge } from '@/components/ui/confidence-badge'
 import { Plus, X } from 'lucide-react'
 import type { WorkoutData } from '@/lib/api/quick-entry'
 
@@ -41,30 +51,44 @@ export function WorkoutEditor({ data, onChange }: WorkoutEditorProps) {
 
   return (
     <Card className="p-6 space-y-6">
-      <div>
-        <h3 className="text-lg font-semibold mb-4">💪 Workout Details</h3>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold">💪 Workout Details</h3>
+        {(data.confidence !== undefined || data.estimated_from) && (
+          <ConfidenceBadge
+            confidence={data.confidence}
+            estimatedFrom={data.estimated_from}
+          />
+        )}
       </div>
 
-      {/* Workout Name */}
-      <div className="space-y-2">
-        <Label htmlFor="workout-name">Workout Name</Label>
-        <Input
-          id="workout-name"
-          value={data.workout_name || ''}
-          onChange={(e) => updateField('workout_name', e.target.value)}
-          placeholder="e.g., Upper Body Push Day"
-        />
-      </div>
+      {/* Timestamp */}
+      <TimestampPicker
+        id="started-at"
+        label="When did you start?"
+        value={data.started_at}
+        onChange={(value) => updateField('started_at', value)}
+      />
 
       {/* Workout Type */}
       <div className="space-y-2">
         <Label htmlFor="workout-type">Workout Type</Label>
-        <Input
-          id="workout-type"
+        <Select
           value={data.workout_type || ''}
-          onChange={(e) => updateField('workout_type', e.target.value)}
-          placeholder="e.g., Strength, Hypertrophy, Endurance"
-        />
+          onValueChange={(value) => updateField('workout_type', value)}
+        >
+          <SelectTrigger id="workout-type">
+            <SelectValue placeholder="Select workout type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="strength">🏋️ Strength</SelectItem>
+            <SelectItem value="hypertrophy">💪 Hypertrophy</SelectItem>
+            <SelectItem value="endurance">🔥 Endurance</SelectItem>
+            <SelectItem value="cardio">❤️ Cardio</SelectItem>
+            <SelectItem value="flexibility">🧘 Flexibility</SelectItem>
+            <SelectItem value="sports">⚽ Sports</SelectItem>
+            <SelectItem value="other">📝 Other</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Exercises */}
@@ -105,13 +129,13 @@ export function WorkoutEditor({ data, onChange }: WorkoutEditorProps) {
             <div className="grid grid-cols-3 gap-2">
               <div>
                 <Label htmlFor={`sets-${index}`} className="text-xs">Sets</Label>
-                <Input
+                <NumberStepper
                   id={`sets-${index}`}
-                  type="number"
-                  value={exercise.sets || ''}
-                  onChange={(e) => updateExercise(index, 'sets', e.target.value ? parseInt(e.target.value) : undefined)}
-                  placeholder="3"
-                  min="0"
+                  value={exercise.sets}
+                  onChange={(value) => updateExercise(index, 'sets', value)}
+                  min={1}
+                  max={20}
+                  step={1}
                 />
               </div>
               <div>
@@ -125,14 +149,14 @@ export function WorkoutEditor({ data, onChange }: WorkoutEditorProps) {
               </div>
               <div>
                 <Label htmlFor={`weight-${index}`} className="text-xs">Weight (lbs)</Label>
-                <Input
+                <NumberStepper
                   id={`weight-${index}`}
-                  type="number"
-                  value={exercise.weight_lbs || ''}
-                  onChange={(e) => updateExercise(index, 'weight_lbs', e.target.value ? parseFloat(e.target.value) : undefined)}
-                  placeholder="135"
-                  min="0"
-                  step="5"
+                  value={exercise.weight_lbs}
+                  onChange={(value) => updateExercise(index, 'weight_lbs', value)}
+                  min={0}
+                  max={1000}
+                  step={5}
+                  unit="lbs"
                 />
               </div>
             </div>
@@ -147,26 +171,26 @@ export function WorkoutEditor({ data, onChange }: WorkoutEditorProps) {
       {/* Duration and Ratings */}
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="duration">Duration (minutes)</Label>
-          <Input
+          <Label htmlFor="duration">Duration</Label>
+          <NumberStepper
             id="duration"
-            type="number"
-            value={data.duration_minutes || ''}
-            onChange={(e) => updateField('duration_minutes', e.target.value ? parseInt(e.target.value) : undefined)}
-            placeholder="60"
-            min="0"
+            value={data.duration_minutes}
+            onChange={(value) => updateField('duration_minutes', value)}
+            min={1}
+            max={480}
+            step={5}
+            unit="min"
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="rpe">RPE (1-10)</Label>
-          <Input
+          <Label htmlFor="rpe">RPE (effort level)</Label>
+          <NumberStepper
             id="rpe"
-            type="number"
-            value={data.rpe || ''}
-            onChange={(e) => updateField('rpe', e.target.value ? parseInt(e.target.value) : undefined)}
-            placeholder="7"
-            min="1"
-            max="10"
+            value={data.rpe}
+            onChange={(value) => updateField('rpe', value)}
+            min={1}
+            max={10}
+            step={1}
           />
         </div>
       </div>
@@ -182,6 +206,15 @@ export function WorkoutEditor({ data, onChange }: WorkoutEditorProps) {
           rows={3}
         />
       </div>
+
+      {/* Info Banner */}
+      {data.estimated && (
+        <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <span className="text-sm text-blue-800">
+            💡 AI estimated these values. Review and adjust before saving.
+          </span>
+        </div>
+      )}
     </Card>
   )
 }

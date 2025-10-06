@@ -13,6 +13,9 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { NumberStepper } from '@/components/ui/number-stepper'
+import { TimestampPicker } from '@/components/ui/timestamp-picker'
+import { ConfidenceBadge } from '@/components/ui/confidence-badge'
 import { Plus, X } from 'lucide-react'
 import type { MealData } from '@/lib/api/quick-entry'
 
@@ -45,20 +48,23 @@ export function MealEditor({ data, onChange }: MealEditorProps) {
 
   return (
     <Card className="p-6 space-y-6">
-      <div>
-        <h3 className="text-lg font-semibold mb-4">🍽️ Meal Details</h3>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold">🍽️ Meal Details</h3>
+        {(data.confidence !== undefined || data.estimated_from) && (
+          <ConfidenceBadge
+            confidence={data.confidence}
+            estimatedFrom={data.estimated_from}
+          />
+        )}
       </div>
 
-      {/* Meal Name */}
-      <div className="space-y-2">
-        <Label htmlFor="meal-name">Meal Name</Label>
-        <Input
-          id="meal-name"
-          value={data.meal_name || ''}
-          onChange={(e) => updateField('meal_name', e.target.value)}
-          placeholder="e.g., Grilled chicken with rice"
-        />
-      </div>
+      {/* Timestamp */}
+      <TimestampPicker
+        id="logged-at"
+        label="When did you eat?"
+        value={data.logged_at}
+        onChange={(value) => updateField('logged_at', value)}
+      />
 
       {/* Meal Type */}
       <div className="space-y-2">
@@ -125,86 +131,89 @@ export function MealEditor({ data, onChange }: MealEditorProps) {
         )}
       </div>
 
-      {/* Macros Row 1 */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="calories">Calories</Label>
-          <Input
-            id="calories"
-            type="number"
-            value={data.calories || ''}
-            onChange={(e) => updateField('calories', e.target.value ? parseInt(e.target.value) : undefined)}
-            placeholder="0"
-            min="0"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="protein">Protein (g)</Label>
-          <Input
-            id="protein"
-            type="number"
-            value={data.protein_g || ''}
-            onChange={(e) => updateField('protein_g', e.target.value ? parseFloat(e.target.value) : undefined)}
-            placeholder="0"
-            min="0"
-            step="0.1"
-          />
-        </div>
-      </div>
+      {/* Macros */}
+      <div className="space-y-4">
+        <h4 className="font-medium text-sm text-gray-700">Nutrition</h4>
 
-      {/* Macros Row 2 */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="carbs">Carbs (g)</Label>
-          <Input
-            id="carbs"
-            type="number"
-            value={data.carbs_g || ''}
-            onChange={(e) => updateField('carbs_g', e.target.value ? parseFloat(e.target.value) : undefined)}
-            placeholder="0"
-            min="0"
-            step="0.1"
-          />
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="calories">Calories</Label>
+            <NumberStepper
+              id="calories"
+              value={data.calories}
+              onChange={(value) => updateField('calories', value)}
+              min={0}
+              max={10000}
+              step={10}
+              unit="cal"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="protein">Protein</Label>
+            <NumberStepper
+              id="protein"
+              value={data.protein_g}
+              onChange={(value) => updateField('protein_g', value)}
+              min={0}
+              max={1000}
+              step={1}
+              unit="g"
+            />
+          </div>
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="fat">Fat (g)</Label>
-          <Input
-            id="fat"
-            type="number"
-            value={data.fat_g || ''}
-            onChange={(e) => updateField('fat_g', e.target.value ? parseFloat(e.target.value) : undefined)}
-            placeholder="0"
-            min="0"
-            step="0.1"
-          />
-        </div>
-      </div>
 
-      {/* Optional Macros */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="fiber">Fiber (g)</Label>
-          <Input
-            id="fiber"
-            type="number"
-            value={data.fiber_g || ''}
-            onChange={(e) => updateField('fiber_g', e.target.value ? parseFloat(e.target.value) : undefined)}
-            placeholder="0"
-            min="0"
-            step="0.1"
-          />
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="carbs">Carbs</Label>
+            <NumberStepper
+              id="carbs"
+              value={data.carbs_g}
+              onChange={(value) => updateField('carbs_g', value)}
+              min={0}
+              max={1000}
+              step={1}
+              unit="g"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="fat">Fat</Label>
+            <NumberStepper
+              id="fat"
+              value={data.fat_g}
+              onChange={(value) => updateField('fat_g', value)}
+              min={0}
+              max={1000}
+              step={1}
+              unit="g"
+            />
+          </div>
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="sugar">Sugar (g)</Label>
-          <Input
-            id="sugar"
-            type="number"
-            value={data.sugar_g || ''}
-            onChange={(e) => updateField('sugar_g', e.target.value ? parseFloat(e.target.value) : undefined)}
-            placeholder="0"
-            min="0"
-            step="0.1"
-          />
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="fiber">Fiber (optional)</Label>
+            <NumberStepper
+              id="fiber"
+              value={data.fiber_g}
+              onChange={(value) => updateField('fiber_g', value)}
+              min={0}
+              max={200}
+              step={1}
+              unit="g"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="sugar">Sugar (optional)</Label>
+            <NumberStepper
+              id="sugar"
+              value={data.sugar_g}
+              onChange={(value) => updateField('sugar_g', value)}
+              min={0}
+              max={500}
+              step={1}
+              unit="g"
+            />
+          </div>
         </div>
       </div>
 
@@ -220,11 +229,11 @@ export function MealEditor({ data, onChange }: MealEditorProps) {
         />
       </div>
 
-      {/* Estimated Badge */}
+      {/* Info Banner */}
       {data.estimated && (
-        <div className="flex items-center gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-          <span className="text-sm text-yellow-800">
-            ⚠️ These values are AI estimates. Please adjust if needed.
+        <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <span className="text-sm text-blue-800">
+            💡 AI estimated these values. Review and adjust before saving.
           </span>
         </div>
       )}
