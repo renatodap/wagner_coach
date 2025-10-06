@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import QuickEntryPreview from '@/components/quick-entry/QuickEntryPreview';
+import BottomNavigation from '@/app/components/BottomNavigation';
 
 // ============================================================================
 // TYPES
@@ -418,7 +419,7 @@ export default function ChatQuickEntry() {
   return (
     <div className="flex flex-col h-screen bg-iron-black">
       {/* ChatGPT-style centered content */}
-      <div className="flex-1 flex flex-col items-center justify-center overflow-y-auto p-4">
+      <div className="flex-1 flex flex-col items-center justify-center overflow-y-auto p-4 pb-24">
         <div className="w-full max-w-3xl">
           {/* Header - only show when no content */}
           {!hasContent && (
@@ -670,6 +671,9 @@ export default function ChatQuickEntry() {
           </div>
         </div>
       )}
+
+      {/* Bottom Navigation */}
+      <BottomNavigation />
     </div>
   );
 }
