@@ -224,7 +224,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { useToast } from '@/hooks/useToast'
+import { useToast } from '@/hooks/use-toast'
 import { fetchUserMeals } from '@/lib/api/nutrition'
 import type { MealLog } from '@/types/api'
 
@@ -324,7 +324,7 @@ export const env = envSchema.parse({
 ```typescript
 // Always check auth on protected pages
 // middleware.ts
-import { createServerClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
@@ -332,7 +332,7 @@ const publicRoutes = ['/', '/login', '/signup']
 const authRoutes = ['/login', '/signup']
 
 export async function middleware(request: NextRequest) {
-  const supabase = await createServerClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   const isPublicRoute = publicRoutes.includes(request.nextUrl.pathname)
@@ -567,7 +567,7 @@ export function ErrorDisplay({
 ### Feedback Mechanisms
 ```typescript
 // Use toast notifications for feedback
-import { useToast } from '@/hooks/useToast'
+import { useToast } from '@/hooks/use-toast'
 
 const { toast } = useToast()
 

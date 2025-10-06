@@ -6,7 +6,7 @@
  */
 
 import { redirect } from 'next/navigation'
-import { createServerClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import { UnifiedCoachClient } from '@/components/Coach/UnifiedCoachClient'
 
 export const metadata = {
@@ -16,7 +16,7 @@ export const metadata = {
 
 export default async function CoachPage() {
   // Get authenticated user
-  const supabase = await createServerClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) {
