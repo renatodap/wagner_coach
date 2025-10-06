@@ -9,6 +9,7 @@ import React from 'react';
 import { QuickEntryPreviewResponse } from './types';
 import MealPreview from './MealPreview';
 import WorkoutPreview from './WorkoutPreview';
+import ActivityPreview from './ActivityPreview';
 import { AlertTriangle } from 'lucide-react';
 
 interface QuickEntryPreviewProps {
@@ -49,8 +50,7 @@ export default function QuickEntryPreview({ data, onSave, onEdit, onCancel }: Qu
       return <WorkoutPreview data={data} onSave={onSave} onEdit={onEdit} />;
 
     case 'activity':
-      // TODO: Implement ActivityPreview
-      return <GenericPreview data={data} onSave={onSave} onEdit={onEdit} />;
+      return <ActivityPreview data={data} onSave={onSave} onEdit={onEdit} />;
 
     case 'note':
       // TODO: Implement NotePreview
