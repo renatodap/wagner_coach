@@ -38,6 +38,11 @@ interface ProcessedEntry {
   type: string;
   confidence: number;
   data: Record<string, any>;
+  validation?: {
+    errors: string[];
+    warnings: string[];
+    missing_critical: string[];
+  };
   suggestions?: string[];
   extracted_text?: string;
 }
@@ -276,9 +281,15 @@ export default function ChatQuickEntry() {
 
       const data = await response.json();
 
+      // Map entry_type to type for compatibility
+      const processedData = {
+        ...data,
+        type: data.entry_type || data.type // Backend uses entry_type, we use type
+      };
+
       // Show confirmation modal
-      setProcessedEntry(data);
-      setEditedData(data.data);
+      setProcessedEntry(processedData);
+      setEditedData(processedData.data);
       setShowConfirmation(true);
 
     } catch (err) {
@@ -624,7 +635,7 @@ export default function ChatQuickEntry() {
                   entry_type: processedEntry.type as any,
                   confidence: processedEntry.confidence,
                   data: processedEntry.data,
-                  validation: {
+                  validation: processedEntry.validation || {
                     errors: [],
                     warnings: [],
                     missing_critical: []
