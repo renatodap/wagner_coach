@@ -35,6 +35,7 @@ import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
 import { UnifiedMessageBubble } from './UnifiedMessageBubble'
 import { LogPreviewCard } from './LogPreviewCard'
+import BottomNavigation from '@/app/components/BottomNavigation'
 import {
   sendMessage,
   confirmLog,
@@ -388,7 +389,7 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
     return (
       <div className="flex flex-col h-screen bg-iron-black">
         {/* ChatGPT-style centered content */}
-        <div className="flex-1 flex flex-col items-center justify-center overflow-y-auto p-4 pb-24">
+        <div className="flex-1 flex flex-col items-center justify-center overflow-y-auto p-4 pb-32">
           <div className="w-full max-w-3xl">
             {/* Header - only show when no content */}
             {!hasContent && (
@@ -560,6 +561,9 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
             </div>
           </div>
         </div>
+
+        {/* Bottom Navigation */}
+        <BottomNavigation />
       </div>
     )
   }
@@ -605,7 +609,7 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
       {/* Messages Container */}
       <div
         ref={messagesContainerRef}
-        className="flex-1 overflow-y-auto pb-4"
+        className="flex-1 overflow-y-auto pb-24"
         data-testid="messages-container"
       >
         <div className="max-w-4xl mx-auto px-4 py-6">
@@ -818,6 +822,9 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
           </div>
         </div>
       </div>
+
+      {/* Bottom Navigation */}
+      <BottomNavigation />
     </div>
   )
 }
