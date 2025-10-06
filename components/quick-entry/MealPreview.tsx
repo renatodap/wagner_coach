@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ChevronDown, ChevronUp, Check, Edit3, AlertTriangle, Zap, Star } from 'lucide-react';
+import { ChevronDown, ChevronUp, Check, Edit3, AlertTriangle, Zap } from 'lucide-react';
 import { MealPrimaryFields, MealSecondaryFields, QuickEntryPreviewResponse } from './types';
 
 interface MealPreviewProps {
@@ -26,29 +26,22 @@ export default function MealPreview({ data, onSave, onEdit }: MealPreviewProps) 
     onSave(editedFields);
   };
 
-  return (
-    <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-purple-500 to-purple-600 px-6 py-4 text-white flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <span className="text-2xl">🍽️</span>
-          <h3 className="text-lg font-semibold">Meal Entry</h3>
-        </div>
-        {data.data.estimated && (
-          <div className="flex items-center gap-2 bg-amber-500 px-3 py-1 rounded-full text-sm">
-            <Zap size={14} />
-            <span>Estimated • {Math.round(data.confidence * 100)}% confidence</span>
-          </div>
-        )}
-      </div>
+  const mealTypeEmojis: Record<string, string> = {
+    breakfast: '🍳',
+    lunch: '🥗',
+    dinner: '🍽️',
+    snack: '🍎'
+  };
 
+  return (
+    <div className="bg-iron-gray/30 border-2 border-iron-gray rounded-3xl overflow-hidden shadow-2xl">
       {/* Warnings */}
       {data.validation.warnings.length > 0 && (
-        <div className="bg-amber-50 border-l-4 border-amber-500 px-6 py-3 flex items-start gap-3">
-          <AlertTriangle size={20} className="text-amber-600 mt-0.5 flex-shrink-0" />
+        <div className="bg-amber-900/20 border-b-2 border-amber-600 px-6 py-3 flex items-start gap-3">
+          <AlertTriangle size={20} className="text-amber-500 mt-0.5 flex-shrink-0" />
           <div className="flex-1">
-            <p className="font-medium text-amber-900">Needs Clarification</p>
-            <ul className="text-sm text-amber-800 mt-1 space-y-1">
+            <p className="font-medium text-amber-400">Needs Clarification</p>
+            <ul className="text-sm text-amber-300 mt-1 space-y-1">
               {data.validation.warnings.map((warning, i) => (
                 <li key={i}>• {warning}</li>
               ))}
@@ -59,9 +52,9 @@ export default function MealPreview({ data, onSave, onEdit }: MealPreviewProps) 
 
       {/* Critical Missing Data */}
       {data.data.needs_clarification && (
-        <div className="bg-red-50 border-l-4 border-red-500 px-6 py-3">
-          <p className="text-red-900 font-medium">⚠️ Missing Details</p>
-          <p className="text-sm text-red-800 mt-1">
+        <div className="bg-red-900/20 border-b-2 border-red-600 px-6 py-3">
+          <p className="text-red-400 font-medium">⚠️ Missing Details</p>
+          <p className="text-sm text-red-300 mt-1">
             Add portions for accurate nutrition tracking
           </p>
         </div>
@@ -70,7 +63,7 @@ export default function MealPreview({ data, onSave, onEdit }: MealPreviewProps) 
       <div className="p-6 space-y-6">
         {/* Meal Name */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-iron-gray uppercase tracking-wider mb-2">
             Meal Name
           </label>
           {editMode ? (
@@ -78,10 +71,11 @@ export default function MealPreview({ data, onSave, onEdit }: MealPreviewProps) 
               type="text"
               value={editedFields.meal_name || ''}
               onChange={(e) => updateField('meal_name', e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              className="w-full px-4 py-3 bg-iron-black text-iron-white border-2 border-iron-gray rounded-xl focus:ring-2 focus:ring-iron-orange focus:border-iron-orange outline-none text-lg"
+              placeholder="Enter meal name"
             />
           ) : (
-            <div className="text-lg font-medium text-gray-900">
+            <div className="text-2xl font-heading text-iron-orange uppercase">
               {primary.meal_name}
             </div>
           )}
@@ -89,26 +83,27 @@ export default function MealPreview({ data, onSave, onEdit }: MealPreviewProps) 
 
         {/* Meal Type */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-iron-gray uppercase tracking-wider mb-2">
             Meal Type
           </label>
-          <div className="flex gap-2">
+          <div className="grid grid-cols-2 gap-2">
             {['breakfast', 'lunch', 'dinner', 'snack'].map((type) => (
               <button
                 key={type}
                 onClick={() => editMode && updateField('meal_type', type)}
                 disabled={!editMode}
                 className={`
-                  flex-1 py-2 px-4 rounded-lg font-medium transition-all
+                  py-3 px-4 rounded-xl font-medium transition-all text-sm uppercase tracking-wide
                   ${
                     (editedFields.meal_type || primary.meal_type) === type
-                      ? 'bg-purple-500 text-white shadow-md'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      ? 'bg-iron-orange text-white shadow-lg'
+                      : 'bg-iron-gray text-iron-white hover:bg-iron-gray/70'
                   }
                   ${!editMode && 'cursor-default'}
                 `}
               >
-                {type.charAt(0).toUpperCase() + type.slice(1)}
+                <span className="mr-1 text-lg">{mealTypeEmojis[type]}</span>
+                {type}
               </button>
             ))}
           </div>
@@ -116,24 +111,24 @@ export default function MealPreview({ data, onSave, onEdit }: MealPreviewProps) 
 
         {/* Foods */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-iron-gray uppercase tracking-wider mb-2">
             Foods
           </label>
           <div className="space-y-2">
             {primary.foods?.map((food, index) => (
               <div
                 key={index}
-                className="flex items-center gap-3 bg-gray-50 px-4 py-3 rounded-lg"
+                className="flex items-center gap-3 bg-iron-black/50 px-4 py-3 rounded-xl border border-iron-gray"
               >
-                <span className="text-purple-600">•</span>
+                <span className="text-iron-orange text-xl">•</span>
                 <span className="flex-1">
-                  <span className="font-medium">{food.name}</span>
+                  <span className="font-medium text-iron-white">{food.name}</span>
                   {food.quantity && food.quantity !== 'not specified' && (
-                    <span className="text-gray-600 ml-2">({food.quantity})</span>
+                    <span className="text-iron-gray ml-2">({food.quantity})</span>
                   )}
                 </span>
                 {editMode && (
-                  <button className="text-gray-400 hover:text-red-500">
+                  <button className="text-iron-gray hover:text-red-500 transition-colors">
                     <Edit3 size={16} />
                   </button>
                 )}
@@ -145,124 +140,89 @@ export default function MealPreview({ data, onSave, onEdit }: MealPreviewProps) 
         {/* Nutrition Cards */}
         {(primary.calories !== null || !data.data.needs_clarification) && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-3">
+            <label className="block text-sm font-medium text-iron-gray uppercase tracking-wider mb-3">
               Nutrition Summary
             </label>
             <div className="grid grid-cols-3 gap-4">
-              <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg p-4 text-white text-center">
-                <div className="text-3xl font-bold">{primary.calories || '?'}</div>
-                <div className="text-sm opacity-90 mt-1">Calories</div>
+              <div className="bg-iron-orange rounded-xl p-4 text-white text-center">
+                <div className="text-4xl font-heading">{primary.calories || '?'}</div>
+                <div className="text-sm opacity-90 mt-1 uppercase tracking-wide">Calories</div>
               </div>
-              <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-lg p-4 text-white text-center">
-                <div className="text-3xl font-bold">{primary.protein_g || '?'}g</div>
-                <div className="text-sm opacity-90 mt-1">Protein</div>
+              <div className="bg-iron-orange rounded-xl p-4 text-white text-center">
+                <div className="text-4xl font-heading">{primary.protein_g || '?'}g</div>
+                <div className="text-sm opacity-90 mt-1 uppercase tracking-wide">Protein</div>
               </div>
-              <div className="bg-gradient-to-br from-amber-500 to-amber-600 rounded-lg p-4 text-white text-center">
-                <div className="text-3xl font-bold">{secondary.carbs_g || '?'}g</div>
-                <div className="text-sm opacity-90 mt-1">Carbs</div>
+              <div className="bg-iron-orange rounded-xl p-4 text-white text-center">
+                <div className="text-4xl font-heading">{secondary.carbs_g || '?'}g</div>
+                <div className="text-sm opacity-90 mt-1 uppercase tracking-wide">Carbs</div>
               </div>
             </div>
           </div>
         )}
 
-        {/* Missing Nutrition - Quick Estimate */}
-        {primary.calories === null && data.suggestions.length > 0 && (
-          <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg">
+        {/* AI Suggestions */}
+        {data.suggestions.length > 0 && !data.data.needs_clarification && (
+          <div className="bg-iron-gray/50 border-2 border-iron-gray p-4 rounded-xl">
             <div className="flex items-start gap-3">
               <span className="text-2xl">💡</span>
               <div className="flex-1">
-                <p className="font-medium text-blue-900 mb-2">Quick Estimate</p>
-                <div className="text-sm text-blue-800 space-y-1">
+                <p className="font-medium text-iron-orange uppercase tracking-wider text-sm mb-2">AI Insights</p>
+                <div className="text-sm text-iron-white space-y-1">
                   {data.suggestions.map((suggestion, i) => (
-                    <p key={i}>{suggestion}</p>
+                    <p key={i}>• {suggestion}</p>
                   ))}
                 </div>
-                <button className="mt-3 bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-600 transition-colors">
-                  Use This Estimate
-                </button>
               </div>
             </div>
           </div>
         )}
 
-        {/* Expand Button */}
-        {!data.data.needs_clarification && (
+        {/* Expand Button for Details */}
+        {!data.data.needs_clarification && (secondary.fat_g !== undefined || secondary.tags?.length > 0) && (
           <button
             onClick={() => setExpanded(!expanded)}
-            className="w-full flex items-center justify-center gap-2 text-gray-600 hover:text-gray-900 py-2 rounded-lg hover:bg-gray-50 transition-colors"
+            className="w-full flex items-center justify-center gap-2 text-iron-gray hover:text-iron-white py-2 rounded-xl hover:bg-iron-gray/30 transition-colors uppercase tracking-wide text-sm font-medium"
           >
             {expanded ? (
               <>
                 <ChevronUp size={20} />
-                <span className="font-medium">Less details</span>
+                <span>Less details</span>
               </>
             ) : (
               <>
                 <ChevronDown size={20} />
-                <span className="font-medium">More details</span>
+                <span>More details</span>
               </>
             )}
           </button>
         )}
 
-        {/* Expanded Section */}
+        {/* Expanded Details */}
         {expanded && (
-          <div className="space-y-6 pt-4 border-t border-gray-200 animate-in slide-in-from-top">
+          <div className="space-y-4 pt-4 border-t-2 border-iron-gray">
             {/* Detailed Nutrition */}
             {secondary.fat_g !== undefined && (
               <div>
-                <h4 className="font-medium text-gray-900 mb-3">Detailed Nutrition</h4>
+                <label className="block text-sm font-medium text-iron-gray uppercase tracking-wider mb-2">
+                  Detailed Nutrition
+                </label>
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-gray-50 px-4 py-3 rounded-lg">
-                    <div className="text-sm text-gray-600">Fat</div>
-                    <div className="text-lg font-semibold text-gray-900">{secondary.fat_g}g</div>
+                  <div className="bg-iron-gray/50 px-4 py-3 rounded-xl">
+                    <div className="text-xs text-iron-gray uppercase tracking-wide">Fat</div>
+                    <div className="text-2xl font-heading text-iron-orange">{secondary.fat_g}g</div>
                   </div>
-                  <div className="bg-gray-50 px-4 py-3 rounded-lg">
-                    <div className="text-sm text-gray-600">Fiber</div>
-                    <div className="text-lg font-semibold text-gray-900">{secondary.fiber_g || 0}g</div>
+                  <div className="bg-iron-gray/50 px-4 py-3 rounded-xl">
+                    <div className="text-xs text-iron-gray uppercase tracking-wide">Fiber</div>
+                    <div className="text-2xl font-heading text-iron-orange">{secondary.fiber_g || 0}g</div>
                   </div>
-                  <div className="bg-gray-50 px-4 py-3 rounded-lg">
-                    <div className="text-sm text-gray-600">Sugar</div>
-                    <div className="text-lg font-semibold text-gray-900">{secondary.sugar_g || 0}g</div>
+                  <div className="bg-iron-gray/50 px-4 py-3 rounded-xl">
+                    <div className="text-xs text-iron-gray uppercase tracking-wide">Sugar</div>
+                    <div className="text-2xl font-heading text-iron-orange">{secondary.sugar_g || 0}g</div>
                   </div>
-                  <div className="bg-gray-50 px-4 py-3 rounded-lg">
-                    <div className="text-sm text-gray-600">Sodium</div>
-                    <div className="text-lg font-semibold text-gray-900">{secondary.sodium_mg || 0}mg</div>
+                  <div className="bg-iron-gray/50 px-4 py-3 rounded-xl">
+                    <div className="text-xs text-iron-gray uppercase tracking-wide">Sodium</div>
+                    <div className="text-2xl font-heading text-iron-orange">{secondary.sodium_mg || 0}mg</div>
                   </div>
-                </div>
-              </div>
-            )}
-
-            {/* Individual Foods Breakdown */}
-            {secondary.foods_detailed && secondary.foods_detailed.length > 0 && (
-              <div>
-                <h4 className="font-medium text-gray-900 mb-3">Food Breakdown</h4>
-                <div className="space-y-3">
-                  {secondary.foods_detailed.map((food, index) => (
-                    <div key={index} className="bg-gray-50 rounded-lg p-4">
-                      <div className="font-medium text-gray-900 mb-2">
-                        {food.name} ({food.quantity})
-                      </div>
-                      <div className="grid grid-cols-4 gap-2 text-sm">
-                        <div>
-                          <span className="text-gray-600">{food.calories}</span>
-                          <span className="text-gray-500 text-xs ml-1">cal</span>
-                        </div>
-                        <div>
-                          <span className="text-gray-600">{food.protein_g}g</span>
-                          <span className="text-gray-500 text-xs ml-1">PRO</span>
-                        </div>
-                        <div>
-                          <span className="text-gray-600">{food.carbs_g}g</span>
-                          <span className="text-gray-500 text-xs ml-1">CARB</span>
-                        </div>
-                        <div>
-                          <span className="text-gray-600">{food.fat_g}g</span>
-                          <span className="text-gray-500 text-xs ml-1">FAT</span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
                 </div>
               </div>
             )}
@@ -270,12 +230,14 @@ export default function MealPreview({ data, onSave, onEdit }: MealPreviewProps) 
             {/* Tags */}
             {secondary.tags && secondary.tags.length > 0 && (
               <div>
-                <h4 className="font-medium text-gray-900 mb-3">Tags</h4>
+                <label className="block text-sm font-medium text-iron-gray uppercase tracking-wider mb-2">
+                  Tags
+                </label>
                 <div className="flex flex-wrap gap-2">
-                  {secondary.tags.map((tag, index) => (
+                  {secondary.tags.map((tag, i) => (
                     <span
-                      key={index}
-                      className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium"
+                      key={i}
+                      className="px-3 py-1 bg-iron-orange/20 text-iron-orange border border-iron-orange rounded-full text-sm font-medium uppercase tracking-wide"
                     >
                       {tag}
                     </span>
@@ -285,36 +247,50 @@ export default function MealPreview({ data, onSave, onEdit }: MealPreviewProps) 
             )}
           </div>
         )}
-
-        {/* Suggestions */}
-        {data.suggestions.length > 0 && !data.data.needs_clarification && (
-          <div className="bg-green-50 rounded-lg p-4">
-            <p className="font-medium text-green-900 mb-2">✨ Insights</p>
-            <ul className="text-sm text-green-800 space-y-1">
-              {data.suggestions.map((suggestion, i) => (
-                <li key={i}>• {suggestion}</li>
-              ))}
-            </ul>
-          </div>
-        )}
       </div>
 
       {/* Action Buttons */}
-      <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex gap-3">
-        <button
-          onClick={handleSave}
-          className="flex-1 bg-green-500 text-white py-3 px-6 rounded-lg font-medium hover:bg-green-600 transition-colors flex items-center justify-center gap-2"
-        >
-          <Check size={20} />
-          Save Entry
-        </button>
-        <button
-          onClick={() => setEditMode(!editMode)}
-          className="flex-1 bg-blue-500 text-white py-3 px-6 rounded-lg font-medium hover:bg-blue-600 transition-colors flex items-center justify-center gap-2"
-        >
-          <Edit3 size={20} />
-          {editMode ? 'Done Editing' : 'Edit'}
-        </button>
+      <div className="flex gap-3 p-6 pt-0">
+        {editMode ? (
+          <>
+            <button
+              onClick={() => {
+                handleSave();
+                setEditMode(false);
+              }}
+              className="flex-1 bg-iron-orange text-white py-4 px-4 rounded-xl font-bold hover:bg-iron-orange/80 transition-all flex items-center justify-center gap-2 uppercase tracking-wide shadow-xl hover:shadow-2xl transform hover:scale-105 active:scale-95"
+            >
+              <Check size={20} />
+              Save Meal
+            </button>
+            <button
+              onClick={() => {
+                setEditedFields(data.data.primary_fields);
+                setEditMode(false);
+              }}
+              className="flex-1 bg-iron-gray text-iron-white py-4 px-4 rounded-xl font-bold hover:bg-iron-gray/80 transition-colors uppercase tracking-wide"
+            >
+              Cancel
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              onClick={handleSave}
+              className="flex-1 bg-iron-orange text-white py-4 px-4 rounded-xl font-bold hover:bg-iron-orange/80 transition-all flex items-center justify-center gap-2 uppercase tracking-wide shadow-xl hover:shadow-2xl transform hover:scale-105 active:scale-95"
+            >
+              <Check size={20} />
+              Save Meal
+            </button>
+            <button
+              onClick={() => setEditMode(true)}
+              className="flex-1 bg-iron-gray text-iron-white py-4 px-4 rounded-xl font-bold hover:bg-iron-gray/80 transition-colors flex items-center justify-center gap-2 uppercase tracking-wide"
+            >
+              <Edit3 size={20} />
+              Edit
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
