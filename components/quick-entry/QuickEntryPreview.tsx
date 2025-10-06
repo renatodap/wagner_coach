@@ -63,18 +63,18 @@ export default function QuickEntryPreview({ data, onSave, onEdit, onCancel }: Qu
     case 'unknown':
     default:
       return (
-        <div className="bg-white rounded-lg shadow-lg p-6">
+        <div className="bg-amber-50 border-2 border-amber-500 rounded-lg shadow-lg p-6">
           <div className="flex items-start gap-3">
-            <AlertTriangle size={24} className="text-amber-500" />
+            <AlertTriangle size={24} className="text-amber-600" />
             <div>
-              <h3 className="font-semibold text-lg">Unclear Entry Type</h3>
-              <p className="text-sm text-gray-600 mt-1">
+              <h3 className="font-semibold text-lg text-amber-900">Unclear Entry Type</h3>
+              <p className="text-sm text-amber-800 mt-1">
                 Could not determine the type of entry. Please try being more specific.
               </p>
               <div className="mt-4 space-x-2">
                 <button
                   onClick={onCancel}
-                  className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600"
+                  className="bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 font-medium"
                 >
                   Try Again
                 </button>
