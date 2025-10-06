@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { ChevronDown, ChevronUp, Check, Edit3, TrendingUp, AlertTriangle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ChevronDown, ChevronUp, Check, Edit3, TrendingUp, AlertTriangle, Trash2, Plus, GripVertical } from 'lucide-react';
 import { WorkoutPrimaryFields, WorkoutSecondaryFields, QuickEntryPreviewResponse } from './types';
 
 interface WorkoutPreviewProps {
@@ -10,20 +10,128 @@ interface WorkoutPreviewProps {
   onEdit: () => void;
 }
 
+interface ExerciseSet {
+  reps: number;
+  weight_lbs: number;
+}
+
+interface EditableExercise {
+  name: string;
+  sets: ExerciseSet[];
+  note?: string;
+}
+
 export default function WorkoutPreview({ data, onSave, onEdit }: WorkoutPreviewProps) {
   const [expanded, setExpanded] = useState(false);
   const [editMode, setEditMode] = useState(false);
-  const [editedFields, setEditedFields] = useState<any>(data.data.primary_fields);
+  const [workoutName, setWorkoutName] = useState('');
+  const [durationMinutes, setDurationMinutes] = useState(0);
+  const [rpe, setRpe] = useState(0);
+  const [exercises, setExercises] = useState<EditableExercise[]>([]);
 
   const primary = data.data.primary_fields as WorkoutPrimaryFields;
   const secondary = data.data.secondary_fields as WorkoutSecondaryFields;
 
-  const updateField = (field: string, value: any) => {
-    setEditedFields({ ...editedFields, [field]: value });
-  };
+  // Initialize state from props
+  useEffect(() => {
+    setWorkoutName(primary.workout_name || '');
+    setDurationMinutes(primary.duration_minutes || 0);
+    setRpe(secondary.rpe || 0);
+
+    // Transform exercises from flat structure to per-set structure
+    const transformedExercises: EditableExercise[] = (primary.exercises || []).map(ex => {
+      const numSets = ex.sets || 3;
+      const repsPerSet = typeof ex.reps === 'number' ? ex.reps : parseInt(ex.reps) || 10;
+      const weightPerSet = ex.weight_lbs || 0;
+
+      return {
+        name: ex.name,
+        note: ex.note,
+        sets: Array.from({ length: numSets }, () => ({
+          reps: repsPerSet,
+          weight_lbs: weightPerSet
+        }))
+      };
+    });
+
+    setExercises(transformedExercises);
+  }, [primary, secondary]);
 
   const handleSave = () => {
-    onSave(editedFields);
+    // Transform back to backend format
+    const backendFormat = {
+      workout_name: workoutName,
+      duration_minutes: durationMinutes,
+      rpe: rpe,
+      exercises: exercises.map(ex => ({
+        name: ex.name,
+        sets: ex.sets.length,
+        reps: ex.sets[0]?.reps || 10,  // Use first set's reps as default
+        weight_lbs: ex.sets[0]?.weight_lbs || 0,  // Use first set's weight as default
+        note: ex.note,
+        // Include full sets array for backend
+        sets_detail: ex.sets
+      }))
+    };
+
+    onSave(backendFormat);
+  };
+
+  // Exercise editing functions
+  const updateExerciseName = (index: number, name: string) => {
+    const updated = [...exercises];
+    updated[index].name = name;
+    setExercises(updated);
+  };
+
+  const updateExerciseNote = (index: number, note: string) => {
+    const updated = [...exercises];
+    updated[index].note = note;
+    setExercises(updated);
+  };
+
+  const updateSet = (exerciseIndex: number, setIndex: number, field: 'reps' | 'weight_lbs', value: number) => {
+    const updated = [...exercises];
+    updated[exerciseIndex].sets[setIndex][field] = value;
+    setExercises(updated);
+  };
+
+  const addSet = (exerciseIndex: number) => {
+    const updated = [...exercises];
+    const lastSet = updated[exerciseIndex].sets[updated[exerciseIndex].sets.length - 1];
+    updated[exerciseIndex].sets.push({
+      reps: lastSet?.reps || 10,
+      weight_lbs: lastSet?.weight_lbs || 0
+    });
+    setExercises(updated);
+  };
+
+  const removeSet = (exerciseIndex: number, setIndex: number) => {
+    const updated = [...exercises];
+    if (updated[exerciseIndex].sets.length > 1) {
+      updated[exerciseIndex].sets.splice(setIndex, 1);
+      setExercises(updated);
+    }
+  };
+
+  const deleteExercise = (index: number) => {
+    const updated = exercises.filter((_, i) => i !== index);
+    setExercises(updated);
+  };
+
+  const addExercise = () => {
+    setExercises([...exercises, {
+      name: 'New Exercise',
+      sets: [{ reps: 10, weight_lbs: 0 }]
+    }]);
+  };
+
+  // Calculate total volume
+  const calculateTotalVolume = () => {
+    return exercises.reduce((total, ex) => {
+      const exerciseVolume = ex.sets.reduce((sum, set) => sum + (set.reps * set.weight_lbs), 0);
+      return total + exerciseVolume;
+    }, 0);
   };
 
   return (
@@ -52,14 +160,14 @@ export default function WorkoutPreview({ data, onSave, onEdit }: WorkoutPreviewP
           {editMode ? (
             <input
               type="text"
-              value={editedFields.workout_name || ''}
-              onChange={(e) => updateField('workout_name', e.target.value)}
+              value={workoutName}
+              onChange={(e) => setWorkoutName(e.target.value)}
               className="w-full px-4 py-3 bg-iron-black text-iron-white border-2 border-iron-gray rounded-xl focus:ring-2 focus:ring-iron-orange focus:border-iron-orange outline-none text-lg"
               placeholder="Enter workout name"
             />
           ) : (
             <div className="text-2xl font-heading text-iron-orange uppercase">
-              {primary.workout_name}
+              {workoutName}
             </div>
           )}
         </div>
@@ -75,8 +183,8 @@ export default function WorkoutPreview({ data, onSave, onEdit }: WorkoutPreviewP
               <div className="flex items-center gap-2">
                 <input
                   type="number"
-                  value={editedFields.duration_minutes || ''}
-                  onChange={(e) => updateField('duration_minutes', parseInt(e.target.value) || 0)}
+                  value={durationMinutes || ''}
+                  onChange={(e) => setDurationMinutes(parseInt(e.target.value) || 0)}
                   className="w-full px-4 py-3 bg-iron-black text-iron-white border-2 border-iron-gray rounded-xl focus:ring-2 focus:ring-iron-orange focus:border-iron-orange outline-none text-lg"
                   placeholder="45"
                 />
@@ -84,7 +192,7 @@ export default function WorkoutPreview({ data, onSave, onEdit }: WorkoutPreviewP
               </div>
             ) : (
               <div className="bg-iron-orange rounded-xl p-4 text-white text-center">
-                <div className="text-4xl font-heading">{primary.duration_minutes || '?'}</div>
+                <div className="text-4xl font-heading">{durationMinutes || '?'}</div>
                 <div className="text-sm opacity-90 mt-1 uppercase tracking-wide">minutes</div>
               </div>
             )}
@@ -101,15 +209,15 @@ export default function WorkoutPreview({ data, onSave, onEdit }: WorkoutPreviewP
                   type="number"
                   min="1"
                   max="10"
-                  value={editedFields.rpe || secondary.rpe || ''}
-                  onChange={(e) => updateField('rpe', parseInt(e.target.value) || 0)}
+                  value={rpe || ''}
+                  onChange={(e) => setRpe(parseInt(e.target.value) || 0)}
                   className="w-full px-4 py-3 bg-iron-black text-iron-white border-2 border-iron-gray rounded-xl focus:ring-2 focus:ring-iron-orange focus:border-iron-orange outline-none text-lg"
                   placeholder="1-10"
                 />
               </div>
-            ) : secondary.rpe ? (
+            ) : rpe ? (
               <div className="bg-iron-orange rounded-xl p-4 text-white text-center">
-                <div className="text-4xl font-heading">{secondary.rpe}/10</div>
+                <div className="text-4xl font-heading">{rpe}/10</div>
                 <div className="text-sm opacity-90 mt-1 uppercase tracking-wide">effort</div>
               </div>
             ) : null}
@@ -122,60 +230,156 @@ export default function WorkoutPreview({ data, onSave, onEdit }: WorkoutPreviewP
             Exercises
           </label>
           <div className="space-y-3">
-            {primary.exercises?.map((exercise, index) => (
-              <div key={index} className="bg-iron-black/50 rounded-xl p-4 border-2 border-iron-gray">
-                <div className="flex items-start justify-between mb-2">
-                  <div className="font-heading text-xl text-iron-orange uppercase">{exercise.name}</div>
+            {exercises.map((exercise, exIndex) => (
+              <div key={exIndex} className="bg-iron-black/50 rounded-xl p-4 border-2 border-iron-gray">
+                {/* Exercise Header */}
+                <div className="flex items-start justify-between mb-3">
+                  {editMode ? (
+                    <input
+                      type="text"
+                      value={exercise.name}
+                      onChange={(e) => updateExerciseName(exIndex, e.target.value)}
+                      className="flex-1 px-3 py-2 bg-iron-black text-iron-orange border border-iron-gray rounded-lg focus:ring-2 focus:ring-iron-orange outline-none font-heading text-lg uppercase"
+                      placeholder="Exercise name"
+                    />
+                  ) : (
+                    <div className="font-heading text-xl text-iron-orange uppercase">{exercise.name}</div>
+                  )}
+
                   {editMode && (
-                    <button className="text-iron-gray hover:text-red-500 transition-colors">
-                      <Edit3 size={16} />
+                    <button
+                      onClick={() => deleteExercise(exIndex)}
+                      className="ml-3 text-iron-gray hover:text-red-500 transition-colors"
+                      aria-label="Delete exercise"
+                    >
+                      <Trash2 size={18} />
                     </button>
                   )}
                 </div>
-                <div className="text-sm text-iron-white space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-heading text-2xl text-iron-orange">{exercise.sets}</span>
-                    <span className="text-iron-gray">sets ×</span>
-                    <span className="font-heading text-2xl text-iron-orange">{exercise.reps}</span>
-                    <span className="text-iron-gray">reps @</span>
-                    <span className="font-heading text-2xl text-iron-orange">{exercise.weight_lbs}</span>
-                    <span className="text-iron-gray">lbs</span>
+
+                {/* Sets */}
+                {editMode ? (
+                  <div className="space-y-2">
+                    {exercise.sets.map((set, setIndex) => (
+                      <div key={setIndex} className="flex items-center gap-2">
+                        <span className="text-iron-gray text-sm font-medium w-12">Set {setIndex + 1}</span>
+
+                        {/* Reps */}
+                        <input
+                          type="number"
+                          value={set.reps}
+                          onChange={(e) => updateSet(exIndex, setIndex, 'reps', parseInt(e.target.value) || 0)}
+                          className="w-20 px-3 py-2 bg-iron-black text-iron-white border border-iron-gray rounded-lg focus:ring-2 focus:ring-iron-orange outline-none text-center"
+                          placeholder="reps"
+                        />
+                        <span className="text-iron-gray text-sm">reps</span>
+
+                        <span className="text-iron-gray">@</span>
+
+                        {/* Weight */}
+                        <input
+                          type="number"
+                          value={set.weight_lbs}
+                          onChange={(e) => updateSet(exIndex, setIndex, 'weight_lbs', parseInt(e.target.value) || 0)}
+                          className="w-24 px-3 py-2 bg-iron-black text-iron-white border border-iron-gray rounded-lg focus:ring-2 focus:ring-iron-orange outline-none text-center"
+                          placeholder="weight"
+                        />
+                        <span className="text-iron-gray text-sm">lbs</span>
+
+                        {/* Delete Set Button */}
+                        {exercise.sets.length > 1 && (
+                          <button
+                            onClick={() => removeSet(exIndex, setIndex)}
+                            className="ml-auto text-iron-gray hover:text-red-500 transition-colors"
+                            aria-label="Remove set"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+
+                    {/* Add Set Button */}
+                    <button
+                      onClick={() => addSet(exIndex)}
+                      className="w-full py-2 mt-2 border border-dashed border-iron-gray rounded-lg text-iron-gray hover:border-iron-orange hover:text-iron-orange transition-colors text-sm uppercase tracking-wide font-medium flex items-center justify-center gap-2"
+                    >
+                      <Plus size={16} />
+                      Add Set
+                    </button>
                   </div>
-                  {exercise.weight_per_side && (
-                    <div className="text-iron-gray text-xs">
-                      ({exercise.weight_per_side} lbs per side)
+                ) : (
+                  // View Mode - Show sets summary
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-heading text-2xl text-iron-orange">{exercise.sets.length}</span>
+                      <span className="text-iron-gray">sets</span>
                     </div>
-                  )}
-                  {exercise.note && (
-                    <div className="text-iron-gray italic mt-2">{exercise.note}</div>
-                  )}
-                  <div className="bg-iron-orange/20 text-iron-orange px-3 py-1 rounded-full inline-block mt-2 text-xs uppercase tracking-wide font-medium">
-                    Volume: {(exercise.sets * (typeof exercise.reps === 'number' ? exercise.reps : 8) * exercise.weight_lbs).toLocaleString()} lbs 💪
+
+                    {/* Show each set */}
+                    {exercise.sets.map((set, setIndex) => (
+                      <div key={setIndex} className="flex items-center gap-2 text-sm">
+                        <span className="text-iron-gray w-12">Set {setIndex + 1}:</span>
+                        <span className="text-iron-white font-medium">{set.reps} reps</span>
+                        <span className="text-iron-gray">@</span>
+                        <span className="text-iron-white font-medium">{set.weight_lbs} lbs</span>
+                        <span className="text-iron-gray ml-auto">
+                          {(set.reps * set.weight_lbs).toLocaleString()} lbs volume
+                        </span>
+                      </div>
+                    ))}
+
+                    {/* Total volume for this exercise */}
+                    <div className="bg-iron-orange/20 text-iron-orange px-3 py-1 rounded-full inline-block mt-2 text-xs uppercase tracking-wide font-medium">
+                      Exercise Volume: {exercise.sets.reduce((sum, set) => sum + (set.reps * set.weight_lbs), 0).toLocaleString()} lbs 💪
+                    </div>
                   </div>
-                </div>
+                )}
+
+                {/* Exercise Note */}
+                {editMode && (
+                  <div className="mt-3">
+                    <input
+                      type="text"
+                      value={exercise.note || ''}
+                      onChange={(e) => updateExerciseNote(exIndex, e.target.value)}
+                      className="w-full px-3 py-2 bg-iron-black text-iron-gray border border-iron-gray rounded-lg focus:ring-2 focus:ring-iron-orange outline-none text-sm italic"
+                      placeholder="Add note (optional)"
+                    />
+                  </div>
+                )}
+                {!editMode && exercise.note && (
+                  <div className="text-iron-gray italic mt-2 text-sm">{exercise.note}</div>
+                )}
               </div>
             ))}
           </div>
+
+          {/* Add Exercise Button */}
           {editMode && (
-            <button className="mt-3 w-full py-3 border-2 border-dashed border-iron-gray rounded-xl text-iron-gray hover:border-iron-orange hover:text-iron-orange transition-colors uppercase tracking-wide font-medium">
-              + Add Exercise
+            <button
+              onClick={addExercise}
+              className="mt-3 w-full py-3 border-2 border-dashed border-iron-gray rounded-xl text-iron-gray hover:border-iron-orange hover:text-iron-orange transition-colors uppercase tracking-wide font-medium flex items-center justify-center gap-2"
+            >
+              <Plus size={20} />
+              Add Exercise
             </button>
           )}
         </div>
 
         {/* Total Volume */}
-        {secondary.volume_load && (
+        {exercises.length > 0 && (
           <div className="bg-iron-orange rounded-xl p-6 text-white text-center">
             <div className="text-sm opacity-90 uppercase tracking-wide">Total Volume</div>
             <div className="text-5xl font-heading mt-2">
-              {secondary.volume_load.toLocaleString()}
+              {calculateTotalVolume().toLocaleString()}
             </div>
             <div className="text-sm opacity-90 mt-1 uppercase tracking-wide">lbs 💪</div>
           </div>
         )}
 
         {/* Progressive Overload Badge */}
-        {secondary.volume_load && (
+        {calculateTotalVolume() > 0 && (
           <div className="flex items-center justify-center gap-2 bg-iron-gray/50 text-iron-orange px-4 py-3 rounded-xl border-2 border-iron-gray">
             <TrendingUp size={20} />
             <span className="font-medium uppercase tracking-wide">
@@ -300,7 +504,27 @@ export default function WorkoutPreview({ data, onSave, onEdit }: WorkoutPreviewP
             </button>
             <button
               onClick={() => {
-                setEditedFields(data.data.primary_fields);
+                // Reset to original data
+                setWorkoutName(primary.workout_name || '');
+                setDurationMinutes(primary.duration_minutes || 0);
+                setRpe(secondary.rpe || 0);
+
+                const transformedExercises: EditableExercise[] = (primary.exercises || []).map(ex => {
+                  const numSets = ex.sets || 3;
+                  const repsPerSet = typeof ex.reps === 'number' ? ex.reps : parseInt(ex.reps) || 10;
+                  const weightPerSet = ex.weight_lbs || 0;
+
+                  return {
+                    name: ex.name,
+                    note: ex.note,
+                    sets: Array.from({ length: numSets }, () => ({
+                      reps: repsPerSet,
+                      weight_lbs: weightPerSet
+                    }))
+                  };
+                });
+
+                setExercises(transformedExercises);
                 setEditMode(false);
               }}
               className="flex-1 bg-iron-gray text-iron-white py-4 px-4 rounded-xl font-bold hover:bg-iron-gray/80 transition-colors uppercase tracking-wide"
