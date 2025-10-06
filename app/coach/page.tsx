@@ -1,39 +1,36 @@
-import { createClient } from '@/lib/supabase/server';
-import { redirect } from 'next/navigation';
-import CoachClient from './CoachClient';
+/**
+ * Unified Coach Page
+ *
+ * Single interface for AI Coach - replaces AI Chat + Quick Entry.
+ * Auto-detects chat vs logging with proactive assistance.
+ */
+
+import { redirect } from 'next/navigation'
+import { createServerClient } from '@/lib/supabase/server'
+import { UnifiedCoachClient } from '@/components/Coach/UnifiedCoachClient'
+
+export const metadata = {
+  title: 'Coach | Wagner Coach',
+  description: 'Your AI fitness and nutrition coach - chat, log meals, track workouts, all in one place',
+}
 
 export default async function CoachPage() {
-  const supabase = await createClient();
+  // Get authenticated user
+  const supabase = await createServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
 
-  // Check authentication
-  const { data: { user }, error } = await supabase.auth.getUser();
-
-  if (error || !user) {
-    redirect('/auth');
+  if (!user) {
+    redirect('/login')
   }
 
-  // Get user profile for context
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single();
-
-  // Get previous conversations
-  const { data: conversations } = await supabase
-    .from('ai_conversations')
-    .select('*')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
-    .limit(1);
-
-  const previousConversation = conversations?.[0] || null;
+  // TODO: Load most recent conversation ID (Phase 2 - conversation history)
+  // For now, always start new conversation
+  const initialConversationId = null
 
   return (
-    <CoachClient
+    <UnifiedCoachClient
       userId={user.id}
-      profile={profile || undefined}
-      previousConversation={previousConversation || undefined}
+      initialConversationId={initialConversationId}
     />
-  );
+  )
 }
