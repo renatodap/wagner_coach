@@ -26,6 +26,7 @@ import {
   FileText
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import QuickEntryPreview from '@/components/quick-entry/QuickEntryPreview';
 
 // ============================================================================
 // TYPES
@@ -616,106 +617,45 @@ export default function ChatQuickEntry() {
 
             {/* Modal Content */}
             <div className="p-6">
-              {/* Extracted Data */}
-              {processedEntry.data && Object.keys(processedEntry.data).length > 0 && (
-                <div className="mb-6">
-                  <h3 className="text-sm font-semibold text-iron-white mb-4 uppercase tracking-wider">
-                    📊 Extracted Information
-                  </h3>
-                  <div className="bg-iron-gray/50 p-5 space-y-3 rounded-2xl">
-                    {Object.entries(isEditing ? editedData : processedEntry.data).map(([key, value]) => {
-                      if (typeof value === 'object' && value !== null) {
-                        return (
-                          <div key={key} className="border-l-4 border-iron-orange pl-4">
-                            <p className="text-xs text-iron-gray uppercase font-semibold">{key.replace(/_/g, ' ')}</p>
-                            <pre className="text-sm text-iron-white mt-2 whitespace-pre-wrap font-mono bg-iron-black/50 p-3 rounded-lg">
-                              {JSON.stringify(value, null, 2)}
-                            </pre>
-                          </div>
-                        );
-                      }
-
-                      return (
-                        <div key={key} className="flex justify-between items-center gap-4">
-                          <span className="text-sm text-iron-gray capitalize font-medium">
-                            {key.replace(/_/g, ' ')}:
-                          </span>
-                          {isEditing ? (
-                            <input
-                              type="text"
-                              value={String(value)}
-                              onChange={(e) => setEditedData(prev => ({
-                                ...prev,
-                                [key]: e.target.value
-                              }))}
-                              className="bg-iron-black text-iron-white px-3 py-2 text-sm border-2 border-iron-gray focus:border-iron-orange rounded-lg outline-none"
-                            />
-                          ) : (
-                            <span className="text-sm text-iron-white font-semibold">
-                              {String(value)}
-                            </span>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Suggestions */}
-              {processedEntry.suggestions && processedEntry.suggestions.length > 0 && (
-                <div className="mb-6">
-                  <h3 className="text-sm font-semibold text-iron-white mb-4 uppercase tracking-wider">
-                    💡 AI Suggestions
-                  </h3>
-                  <ul className="space-y-2">
-                    {processedEntry.suggestions.map((suggestion, i) => (
-                      <li key={i} className="text-sm text-iron-gray flex items-start gap-3 bg-iron-gray/30 p-3 rounded-xl">
-                        <span className="text-iron-orange text-lg">•</span>
-                        <span>{suggestion}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+              {/* Use proper preview component instead of raw JSON */}
+              <QuickEntryPreview
+                data={{
+                  success: true,
+                  entry_type: processedEntry.type as any,
+                  confidence: processedEntry.confidence,
+                  data: processedEntry.data,
+                  validation: {
+                    errors: [],
+                    warnings: [],
+                    missing_critical: []
+                  },
+                  suggestions: processedEntry.suggestions || [],
+                  extracted_text: processedEntry.extracted_text
+                }}
+                onSave={(editedFields) => {
+                  // Update edited data and trigger save
+                  setEditedData(editedFields);
+                  handleConfirmAndLog();
+                }}
+                onEdit={() => setIsEditing(true)}
+                onCancel={() => {
+                  setShowConfirmation(false);
+                  setProcessedEntry(null);
+                  setIsEditing(false);
+                }}
+              />
 
               {/* Error in modal */}
               {error && (
-                <div className="mb-6 p-4 bg-red-900/20 border-2 border-red-500 rounded-xl flex items-start gap-3">
+                <div className="mt-4 p-4 bg-red-900/20 border-2 border-red-500 rounded-xl flex items-start gap-3">
                   <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
                   <p className="text-sm text-red-300">{error}</p>
                 </div>
               )}
             </div>
 
-            {/* Modal Actions */}
-            <div className="p-6 border-t-2 border-iron-gray flex gap-3">
-              <button
-                onClick={() => setIsEditing(!isEditing)}
-                disabled={isSaving}
-                className="flex-1 p-4 bg-iron-gray hover:bg-iron-gray/80 text-iron-white font-bold transition-colors disabled:opacity-50 flex items-center justify-center gap-2 rounded-2xl text-base uppercase tracking-wide"
-              >
-                <Edit3 className="w-5 h-5" />
-                {isEditing ? 'Done Editing' : 'Edit Details'}
-              </button>
-              <button
-                onClick={handleConfirmAndLog}
-                disabled={isSaving}
-                className="flex-1 p-4 bg-iron-orange hover:bg-iron-orange/80 text-white font-bold transition-all disabled:opacity-50 flex items-center justify-center gap-2 rounded-2xl text-base uppercase tracking-wide shadow-xl hover:shadow-2xl transform hover:scale-105 active:scale-95"
-              >
-                {isSaving ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <Check className="w-5 h-5" />
-                    Confirm & Log
-                  </>
-                )}
-              </button>
-            </div>
+            {/* Modal Actions - Hidden since preview components have their own buttons */}
+            {/* The QuickEntryPreview components (ActivityPreview, MealPreview, etc.) have built-in Save/Edit buttons */}
           </div>
         </div>
       )}
