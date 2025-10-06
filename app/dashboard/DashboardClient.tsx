@@ -130,52 +130,6 @@ export default function DashboardClient({
 
       {/* Main Content */}
       <div className="max-w-4xl mx-auto px-4 pb-24">
-        {/* AI COACH - PRIMARY FEATURE */}
-        <div className="mt-6 mb-8">
-          <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-            <Users className="w-5 h-5 text-iron-orange" />
-            AI Coach
-          </h2>
-          <button
-            onClick={() => router.push('/coach')}
-            className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-iron-orange/20 to-orange-500/10 border-2 border-iron-orange/50 hover:border-iron-orange p-6 text-left transition-all duration-300 hover:scale-[1.02] w-full"
-          >
-            <div className="flex items-start justify-between mb-4">
-              <div className="w-12 h-12 rounded-full bg-iron-orange/20 flex items-center justify-center">
-                <Users className="w-6 h-6 text-iron-orange" />
-              </div>
-              <ArrowRight className="w-5 h-5 text-iron-orange group-hover:translate-x-1 transition-transform" />
-            </div>
-            <h3 className="text-xl font-bold text-white mb-2">Chat with AI Coach</h3>
-            <p className="text-orange-200 text-sm mb-3">Get personalized fitness and nutrition guidance, workout advice, and meal planning support</p>
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-iron-orange/20 rounded-full">
-              <div className="w-2 h-2 rounded-full bg-iron-orange animate-pulse" />
-              <span className="text-xs text-orange-300 font-semibold">Available Now</span>
-            </div>
-          </button>
-        </div>
-
-        {/* CREATE PROGRAM - PROMINENT CTA */}
-        <div className="mb-8">
-          <button
-            onClick={() => router.push('/programs/create')}
-            className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-purple-600/20 to-blue-600/10 border-2 border-purple-500/50 hover:border-purple-500 p-6 text-left transition-all duration-300 hover:scale-[1.02] w-full"
-          >
-            <div className="flex items-start justify-between mb-4">
-              <div className="w-12 h-12 rounded-full bg-purple-500/20 flex items-center justify-center">
-                <Sparkles className="w-6 h-6 text-purple-400" />
-              </div>
-              <ArrowRight className="w-5 h-5 text-purple-400 group-hover:translate-x-1 transition-transform" />
-            </div>
-            <h3 className="text-xl font-bold text-white mb-2">Create AI-Generated Program</h3>
-            <p className="text-purple-200 text-sm mb-3">Generate a personalized {stats.activePrograms === 0 ? 'training and nutrition program' : 'new program'} tailored to your specific goals and preferences</p>
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-purple-500/20 rounded-full">
-              <Sparkles className="w-3 h-3 text-purple-400" />
-              <span className="text-xs text-purple-300 font-semibold">AI-Powered</span>
-            </div>
-          </button>
-        </div>
-
         {/* Quick Actions */}
         <div className="mb-8">
           <h2 className="text-lg font-bold text-white mb-4">Quick Actions</h2>
