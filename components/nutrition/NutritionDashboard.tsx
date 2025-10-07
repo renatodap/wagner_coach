@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Meal } from '@/types/nutrition';
-import { Plus, Apple, Trash2, Edit2, Copy, Clock } from 'lucide-react';
+import { Plus, Apple, Trash2, Edit2, Copy, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import BottomNavigation from '@/app/components/BottomNavigation';
 import { QuickMealEntry } from './QuickMealEntry';
@@ -12,6 +12,7 @@ import { QuickMealEntry } from './QuickMealEntry';
 export function NutritionDashboard() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [todaysMeals, setTodaysMeals] = useState<Meal[]>([]);
   const [yesterdaysMeals, setYesterdaysMeals] = useState<Meal[]>([]);
   const [error, setError] = useState<string>('');
@@ -19,25 +20,60 @@ export function NutritionDashboard() {
   const supabase = createClient();
 
   useEffect(() => {
-    fetchMeals();
-  }, []);
+    async function loadMeals() {
+      try {
+        setLoading(true);
+        setError('');
+
+        // Format selected date
+        const dateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
+
+        // Fetch selected date's meals
+        const todayResponse = await fetch(`/api/nutrition/meals?date=${dateStr}`);
+        if (!todayResponse.ok) {
+          throw new Error('Failed to fetch meals');
+        }
+        const todayData = await todayResponse.json();
+        setTodaysMeals(todayData.meals || []);
+
+        // Fetch previous day's meals for copying
+        const yesterday = new Date(selectedDate);
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
+        const yesterdayResponse = await fetch(`/api/nutrition/meals?date=${yesterdayStr}`);
+        if (yesterdayResponse.ok) {
+          const yesterdayData = await yesterdayResponse.json();
+          setYesterdaysMeals(yesterdayData.meals || []);
+        }
+      } catch (err) {
+        console.error('Error fetching meals:', err);
+        setError('Failed to load nutrition data');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadMeals();
+  }, [selectedDate]);
 
   const fetchMeals = async () => {
     try {
-      // Get today's date in local timezone
-      const today = new Date();
-      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      setLoading(true);
+      setError('');
 
-      // Fetch today's meals with explicit date parameter
-      const todayResponse = await fetch(`/api/nutrition/meals?date=${todayStr}`);
+      // Format selected date
+      const dateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
+
+      // Fetch selected date's meals
+      const todayResponse = await fetch(`/api/nutrition/meals?date=${dateStr}`);
       if (!todayResponse.ok) {
-        throw new Error('Failed to fetch today\'s meals');
+        throw new Error('Failed to fetch meals');
       }
       const todayData = await todayResponse.json();
       setTodaysMeals(todayData.meals || []);
 
-      // Fetch yesterday's meals for copying
-      const yesterday = new Date();
+      // Fetch previous day's meals for copying
+      const yesterday = new Date(selectedDate);
       yesterday.setDate(yesterday.getDate() - 1);
       const yesterdayStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
       const yesterdayResponse = await fetch(`/api/nutrition/meals?date=${yesterdayStr}`);
@@ -51,6 +87,47 @@ export function NutritionDashboard() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const goToPreviousDay = () => {
+    const newDate = new Date(selectedDate);
+    newDate.setDate(newDate.getDate() - 1);
+    setSelectedDate(newDate);
+  };
+
+  const goToNextDay = () => {
+    const newDate = new Date(selectedDate);
+    newDate.setDate(newDate.getDate() + 1);
+    setSelectedDate(newDate);
+  };
+
+  const goToToday = () => {
+    setSelectedDate(new Date());
+  };
+
+  const isToday = () => {
+    const today = new Date();
+    return selectedDate.toDateString() === today.toDateString();
+  };
+
+  const formatSelectedDate = () => {
+    const today = new Date();
+    if (selectedDate.toDateString() === today.toDateString()) {
+      return 'TODAY';
+    }
+
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    if (selectedDate.toDateString() === yesterday.toDateString()) {
+      return 'YESTERDAY';
+    }
+
+    return selectedDate.toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      year: selectedDate.getFullYear() !== today.getFullYear() ? 'numeric' : undefined
+    }).toUpperCase();
   };
 
   const handleDeleteMeal = async (mealId: string) => {
@@ -95,12 +172,14 @@ export function NutritionDashboard() {
 
   const handleCopyMeal = async (meal: Meal) => {
     try {
-      // Create a copy of the meal for today with current time
-      const now = new Date();
+      // Create a copy of the meal for the selected date with current time
+      const copyTime = new Date(selectedDate);
+      copyTime.setHours(new Date().getHours(), new Date().getMinutes(), new Date().getSeconds());
+
       const mealCopy = {
         meal_name: meal.meal_name,
         meal_category: meal.meal_category,
-        logged_at: now.toISOString(),
+        logged_at: copyTime.toISOString(),
         calories: meal.calories,
         protein_g: meal.protein_g,
         carbs_g: meal.carbs_g,
@@ -194,7 +273,7 @@ export function NutritionDashboard() {
       {/* Header */}
       <header className="border-b border-iron-gray">
         <div className="max-w-6xl mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mb-4">
             <h1 className="font-heading text-4xl text-iron-orange">NUTRITION</h1>
             <div className="flex gap-2">
               <Link
@@ -214,15 +293,48 @@ export function NutritionDashboard() {
               </Link>
             </div>
           </div>
+
+          {/* Date Navigation */}
+          <div className="flex items-center justify-between">
+            <button
+              onClick={goToPreviousDay}
+              className="text-iron-gray hover:text-iron-orange transition-colors p-2 hover:bg-iron-gray/10 rounded"
+              aria-label="Previous day"
+            >
+              <ChevronLeft className="w-6 h-6" />
+            </button>
+
+            <div className="flex items-center gap-3">
+              <h2 className="font-heading text-xl text-iron-white">
+                {formatSelectedDate()}
+              </h2>
+              {!isToday() && (
+                <button
+                  onClick={goToToday}
+                  className="text-sm text-iron-orange hover:text-orange-400 underline"
+                >
+                  Today
+                </button>
+              )}
+            </div>
+
+            <button
+              onClick={goToNextDay}
+              className="text-iron-gray hover:text-iron-orange transition-colors p-2 hover:bg-iron-gray/10 rounded"
+              aria-label="Next day"
+            >
+              <ChevronRight className="w-6 h-6" />
+            </button>
+          </div>
         </div>
       </header>
 
       <main className="max-w-6xl mx-auto px-4 py-8 pb-24 space-y-8">
-        {/* Today's Summary */}
+        {/* Summary */}
         <div className="border border-iron-gray p-6">
           <h2 className="font-heading text-2xl text-iron-white mb-4 flex items-center gap-2">
             <Apple className="w-5 h-5 text-iron-orange" />
-            TODAY&apos;S NUTRITION
+            {isToday() ? "TODAY'S" : formatSelectedDate()} NUTRITION
           </h2>
 
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
@@ -254,7 +366,7 @@ export function NutritionDashboard() {
           <div>
             <h2 className="font-heading text-xl text-iron-white mb-3">QUICK ACTIONS</h2>
             <div className="border border-iron-gray/50 p-4">
-              <p className="text-iron-gray text-sm mb-3">Copy from yesterday:</p>
+              <p className="text-iron-gray text-sm mb-3">Copy from previous day to {isToday() ? 'today' : formatSelectedDate().toLowerCase()}:</p>
               <div className="flex flex-wrap gap-2">
                 {yesterdaysMeals.slice(0, 3).map((meal) => (
                   <button
@@ -271,19 +383,25 @@ export function NutritionDashboard() {
           </div>
         )}
 
-        {/* Today's Meals by Category */}
+        {/* Meals by Category */}
         <div>
-          <h2 className="font-heading text-2xl text-iron-white mb-4">TODAY&apos;S MEALS</h2>
+          <h2 className="font-heading text-2xl text-iron-white mb-4">
+            {isToday() ? "TODAY'S" : formatSelectedDate()} MEALS
+          </h2>
 
           {!todaysMeals || todaysMeals.length === 0 ? (
             <div className="border border-iron-gray p-8 text-center">
-              <p className="text-iron-gray mb-4">No meals logged today</p>
-              <Link
-                href="/nutrition/add"
-                className="inline-block bg-iron-orange text-iron-black px-6 py-2 font-heading uppercase tracking-wider hover:bg-orange-600 transition-colors"
-              >
-                Log Your First Meal
-              </Link>
+              <p className="text-iron-gray mb-4">
+                No meals logged {isToday() ? 'today' : 'for this date'}
+              </p>
+              {isToday() && (
+                <Link
+                  href="/nutrition/add"
+                  className="inline-block bg-iron-orange text-iron-black px-6 py-2 font-heading uppercase tracking-wider hover:bg-orange-600 transition-colors"
+                >
+                  Log Your First Meal
+                </Link>
+              )}
             </div>
           ) : (
             <div className="space-y-6">

@@ -120,7 +120,15 @@ export default function DashboardClient({
 
             {/* Nutrition Progress */}
             <div className="space-y-8">
-              <h2 className="text-xl font-semibold text-white">Today's Nutrition</h2>
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold text-white">Today's Nutrition</h2>
+                <button
+                  onClick={() => router.push('/nutrition')}
+                  className="text-sm text-iron-orange hover:text-orange-400 underline"
+                >
+                  View All
+                </button>
+              </div>
 
               {/* Calories - Large Circle */}
               <div className="flex justify-center">
