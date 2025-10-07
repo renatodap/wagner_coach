@@ -754,14 +754,8 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                   <button
                     type="button"
                     onClick={() => setShowTypeDropdown(!showTypeDropdown)}
-                    onTouchEnd={(e) => {
-                      e.preventDefault()
-                      if (!isLoading) {
-                        setShowTypeDropdown(!showTypeDropdown)
-                      }
-                    }}
                     disabled={isLoading}
-                    className="p-2 hover:bg-iron-black/50 transition-colors disabled:opacity-50 rounded touch-manipulation"
+                    className="p-2 hover:bg-iron-black/50 transition-colors disabled:opacity-50 rounded"
                     title="Select log type"
                     aria-label={`Select log type. Current: ${getLogTypeLabel(selectedLogType)}`}
                     aria-haspopup="listbox"
@@ -804,15 +798,8 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  onTouchEnd={(e) => {
-                    // Fallback for mobile browsers
-                    e.preventDefault()
-                    if (!isLoading) {
-                      fileInputRef.current?.click()
-                    }
-                  }}
                   disabled={isLoading}
-                  className="relative z-10 p-2 hover:bg-iron-black/50 transition-colors disabled:opacity-50 rounded touch-manipulation"
+                  className="relative z-10 p-2 hover:bg-iron-black/50 transition-colors disabled:opacity-50 rounded"
                   title="Attach file"
                   aria-label="Attach file"
                 >
@@ -823,7 +810,6 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                   type="file"
                   accept="image/*,audio/*,application/pdf"
                   multiple
-                  capture="environment"
                   className="hidden"
                   onChange={(e) => e.target.files && handleFileSelect(e.target.files)}
                   aria-label="File upload input"
@@ -853,14 +839,8 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                   <button
                     type="button"
                     onClick={startVoiceRecording}
-                    onTouchEnd={(e) => {
-                      e.preventDefault()
-                      if (!isLoading) {
-                        startVoiceRecording()
-                      }
-                    }}
                     disabled={isLoading}
-                    className="relative z-10 p-2 hover:bg-iron-black/50 transition-colors disabled:opacity-50 rounded touch-manipulation"
+                    className="relative z-10 p-2 hover:bg-iron-black/50 transition-colors disabled:opacity-50 rounded"
                     title="Voice input"
                     aria-label="Start voice input"
                   >
@@ -870,11 +850,7 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                   <button
                     type="button"
                     onClick={stopVoiceRecording}
-                    onTouchEnd={(e) => {
-                      e.preventDefault()
-                      stopVoiceRecording()
-                    }}
-                    className="relative z-10 p-2 bg-red-500 animate-pulse touch-manipulation"
+                    className="relative z-10 p-2 bg-red-500 animate-pulse"
                     title="Stop recording"
                     aria-label="Stop recording"
                   >
@@ -886,15 +862,8 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                 <button
                   type="button"
                   onClick={handleSendMessage}
-                  onTouchEnd={(e) => {
-                    // Fallback for mobile browsers
-                    e.preventDefault()
-                    if (!isLoading && (text || attachedFiles.length > 0)) {
-                      handleSendMessage()
-                    }
-                  }}
                   disabled={(!text && attachedFiles.length === 0) || isLoading}
-                  className="relative z-10 p-3 bg-gradient-to-r from-iron-orange to-orange-600 hover:from-orange-600 hover:to-iron-orange transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95 border-2 border-orange-700 touch-manipulation"
+                  className="relative z-10 p-3 bg-gradient-to-r from-iron-orange to-orange-600 hover:from-orange-600 hover:to-iron-orange transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95 border-2 border-orange-700"
                   title="Submit"
                   aria-label="Send message"
                 >
@@ -1256,14 +1225,8 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                   <button
                     type="button"
                     onClick={() => setShowTypeDropdown(!showTypeDropdown)}
-                    onTouchEnd={(e) => {
-                      e.preventDefault()
-                      if (!isLoading && !pendingLogPreview) {
-                        setShowTypeDropdown(!showTypeDropdown)
-                      }
-                    }}
                     disabled={isLoading || !!pendingLogPreview}
-                    className="p-2 hover:bg-iron-gray/50 transition-colors disabled:opacity-50 rounded touch-manipulation"
+                    className="p-2 hover:bg-iron-gray/50 transition-colors disabled:opacity-50 rounded"
                     title="Select log type"
                     aria-label={`Select log type. Current: ${getLogTypeLabel(selectedLogType)}`}
                     aria-haspopup="listbox"
@@ -1306,15 +1269,8 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  onTouchEnd={(e) => {
-                    // Fallback for mobile browsers
-                    e.preventDefault()
-                    if (!isLoading && !pendingLogPreview) {
-                      fileInputRef.current?.click()
-                    }
-                  }}
                   disabled={isLoading || !!pendingLogPreview}
-                  className="relative z-10 p-2 hover:bg-iron-gray/50 transition-colors disabled:opacity-50 rounded touch-manipulation"
+                  className="relative z-10 p-2 hover:bg-iron-gray/50 transition-colors disabled:opacity-50 rounded"
                   title="Attach file"
                   aria-label="Attach file"
                 >
@@ -1325,7 +1281,6 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                   type="file"
                   accept="image/*,audio/*,application/pdf"
                   multiple
-                  capture="environment"
                   className="hidden"
                   onChange={(e) => e.target.files && handleFileSelect(e.target.files)}
                   aria-label="File upload input"
@@ -1359,14 +1314,8 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                   <button
                     type="button"
                     onClick={startVoiceRecording}
-                    onTouchEnd={(e) => {
-                      e.preventDefault()
-                      if (!isLoading && !pendingLogPreview) {
-                        startVoiceRecording()
-                      }
-                    }}
                     disabled={isLoading || !!pendingLogPreview}
-                    className="relative z-10 p-2 hover:bg-iron-gray/50 transition-colors disabled:opacity-50 rounded touch-manipulation"
+                    className="relative z-10 p-2 hover:bg-iron-gray/50 transition-colors disabled:opacity-50 rounded"
                     title="Voice input"
                     aria-label="Start voice input"
                   >
@@ -1376,11 +1325,7 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                   <button
                     type="button"
                     onClick={stopVoiceRecording}
-                    onTouchEnd={(e) => {
-                      e.preventDefault()
-                      stopVoiceRecording()
-                    }}
-                    className="relative z-10 p-2 bg-red-500 animate-pulse touch-manipulation"
+                    className="relative z-10 p-2 bg-red-500 animate-pulse"
                     title="Stop recording"
                     aria-label="Stop recording"
                   >
@@ -1392,15 +1337,8 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                 <button
                   type="button"
                   onClick={handleSendMessage}
-                  onTouchEnd={(e) => {
-                    // Fallback for mobile browsers
-                    e.preventDefault()
-                    if (!isLoading && !pendingLogPreview && (text || attachedFiles.length > 0)) {
-                      handleSendMessage()
-                    }
-                  }}
                   disabled={(!text && attachedFiles.length === 0) || isLoading || !!pendingLogPreview}
-                  className="relative z-10 p-3 bg-gradient-to-r from-iron-orange to-orange-600 hover:from-orange-600 hover:to-iron-orange transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95 border-2 border-orange-700 touch-manipulation"
+                  className="relative z-10 p-3 bg-gradient-to-r from-iron-orange to-orange-600 hover:from-orange-600 hover:to-iron-orange transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95 border-2 border-orange-700"
                   title="Submit"
                   aria-label="Send message"
                 >
