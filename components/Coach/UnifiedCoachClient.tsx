@@ -38,11 +38,13 @@ import { LogPreviewCard } from './LogPreviewCard'
 import BottomNavigation from '@/app/components/BottomNavigation'
 import {
   sendMessage,
+  sendMessageStreaming,
   confirmLog,
   type UnifiedMessage,
   type LogPreview,
   type SendMessageResponse
 } from '@/lib/api/unified-coach'
+import { uploadFiles, validateFile } from '@/lib/utils/file-upload'
 
 interface UnifiedCoachClientProps {
   userId: string
@@ -236,50 +238,109 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
 
     setMessages(prev => [...prev, optimisticUserMessage])
 
+    // Store message text for later
+    const messageText = text
+
     try {
-      // TODO: Handle image URLs from attachedFiles
-      const imageUrls = undefined // Backend integration needed
+      // Upload files to Supabase Storage if any
+      let imageUrls: string[] | undefined = undefined
 
-      // Send to backend
-      const response: SendMessageResponse = await sendMessage({
-        message: text,
-        conversation_id: conversationId,
-        has_image: !!attachedFiles.length,
-        image_urls: imageUrls
-      })
+      if (attachedFiles.length > 0) {
+        // Validate files first
+        for (const { file } of attachedFiles) {
+          const validation = validateFile(file, {
+            maxSizeMB: 10,
+            allowedTypes: ['image/*', 'audio/*', 'application/pdf']
+          })
 
-      // Update conversation ID if new
-      if (!conversationId) {
-        setConversationId(response.conversation_id)
+          if (!validation.valid) {
+            throw new Error(validation.error)
+          }
+        }
+
+        // Upload files and get URLs
+        const files = attachedFiles.map(af => af.file)
+        imageUrls = await uploadFiles(files, 'user-uploads', 'coach-messages')
       }
 
-      // Replace temp user message with real one
-      setMessages(prev =>
-        prev.map(msg =>
-          msg.id === tempUserMessageId
-            ? { ...msg, id: response.message_id }
-            : msg
-        )
-      )
+      // Create streaming request
+      const request = {
+        message: messageText,
+        conversation_id: conversationId,
+        has_image: !!imageUrls?.length,
+        image_urls: imageUrls
+      }
 
-      // Handle response
-      if (response.is_log_preview && response.log_preview) {
-        // Show log preview card
-        setPendingLogPreview({
-          preview: response.log_preview,
-          userMessageId: response.message_id
-        })
-      } else if (response.message) {
-        // Add AI chat response
-        const aiMessage: UnifiedMessage = {
-          id: response.message_id,
-          role: 'assistant',
-          content: response.message,
-          message_type: 'chat',
-          is_vectorized: false,
-          created_at: new Date().toISOString()
+      // Use streaming API
+      let firstChunk = true
+      let accumulatedContent = ''
+      let aiMessageId = ''
+      let newConversationId = conversationId
+
+      for await (const chunk of sendMessageStreaming(request)) {
+        if (firstChunk) {
+          // First chunk contains metadata
+          firstChunk = false
+          aiMessageId = chunk.message_id
+          newConversationId = chunk.conversation_id
+
+          // Update conversation ID if new
+          if (!conversationId) {
+            setConversationId(newConversationId)
+          }
+
+          // Replace temp user message with real one
+          setMessages(prev =>
+            prev.map(msg =>
+              msg.id === tempUserMessageId
+                ? { ...msg, id: chunk.message_id }
+                : msg
+            )
+          )
+
+          // Check if it's a log preview
+          if (chunk.is_log_preview && chunk.log_preview) {
+            // Show log preview card
+            setPendingLogPreview({
+              preview: chunk.log_preview,
+              userMessageId: chunk.message_id
+            })
+
+            // Clear input
+            setText('')
+            setAttachedFiles([])
+            setIsLoading(false)
+            return
+          }
+
+          // If it's a chat message, create AI message bubble
+          if (chunk.message) {
+            accumulatedContent = chunk.message
+            const aiMessage: UnifiedMessage = {
+              id: aiMessageId,
+              role: 'assistant',
+              content: accumulatedContent,
+              message_type: 'chat',
+              is_vectorized: false,
+              created_at: new Date().toISOString()
+            }
+            setMessages(prev => [...prev, aiMessage])
+          }
+        } else {
+          // Subsequent chunks contain content updates
+          if (chunk.message) {
+            accumulatedContent += chunk.message
+
+            // Update existing AI message
+            setMessages(prev =>
+              prev.map(msg =>
+                msg.id === aiMessageId
+                  ? { ...msg, content: accumulatedContent }
+                  : msg
+              )
+            )
+          }
         }
-        setMessages(prev => [...prev, aiMessage])
       }
 
       // Clear input

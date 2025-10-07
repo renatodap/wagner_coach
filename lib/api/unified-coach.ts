@@ -151,10 +151,88 @@ export async function sendMessage(request: SendMessageRequest): Promise<SendMess
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ error: 'Request failed' }))
-    throw new Error(error.error || `HTTP ${response.status}`)
+    throw new Error(error.error || error.detail || `HTTP ${response.status}`)
   }
 
   return response.json()
+}
+
+/**
+ * Send a message with streaming support (for chat responses)
+ *
+ * Returns an async generator that yields response chunks as they arrive.
+ * Use this for real-time chat experiences.
+ *
+ * @example
+ * for await (const chunk of sendMessageStreaming({ message: "Tell me about protein" })) {
+ *   console.log(chunk) // Display each chunk as it arrives
+ * }
+ */
+export async function* sendMessageStreaming(
+  request: SendMessageRequest
+): AsyncGenerator<SendMessageResponse, void, unknown> {
+  const headers = await getAuthHeaders()
+
+  const response = await fetch(`${API_BASE}/api/v1/coach/message`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(request),
+  })
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Request failed' }))
+    throw new Error(error.error || error.detail || `HTTP ${response.status}`)
+  }
+
+  // Check if response is streaming (chat) or JSON (log preview)
+  const contentType = response.headers.get('content-type') || ''
+
+  if (contentType.includes('application/json')) {
+    // Log preview - return single JSON response
+    const data = await response.json()
+    yield data
+    return
+  }
+
+  // Streaming chat response
+  const reader = response.body?.getReader()
+  const decoder = new TextDecoder()
+
+  if (!reader) {
+    throw new Error('Response body is not readable')
+  }
+
+  let buffer = ''
+
+  while (true) {
+    const { done, value } = await reader.read()
+
+    if (done) break
+
+    buffer += decoder.decode(value, { stream: true })
+    const lines = buffer.split('\n')
+
+    // Keep the last incomplete line in the buffer
+    buffer = lines.pop() || ''
+
+    for (const line of lines) {
+      if (line.startsWith('data: ')) {
+        const data = line.slice(6).trim()
+
+        if (data === '[DONE]') {
+          return
+        }
+
+        try {
+          const parsed = JSON.parse(data)
+          yield parsed
+        } catch (e) {
+          // Skip invalid JSON
+          console.warn('Failed to parse SSE data:', data)
+        }
+      }
+    }
+  }
 }
 
 /**
