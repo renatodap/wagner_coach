@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft, Save, CheckCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { FoodSearchV2 } from '@/components/nutrition/FoodSearchV2'
 import { MealEditor, foodToMealFood, type MealFood } from '@/components/nutrition/MealEditor'
 import { createMeal } from '@/lib/api/meals'
+import { confirmLog } from '@/lib/api/unified-coach'
 import type { Food } from '@/lib/api/foods'
 import { createClient } from '@/lib/supabase/client'
 
@@ -16,6 +17,14 @@ type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack'
 
 export default function LogMealPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+
+  // Get URL parameters for pre-filled data and return navigation
+  const returnTo = searchParams.get('returnTo') || '/nutrition'
+  const conversationId = searchParams.get('conversationId')
+  const userMessageId = searchParams.get('userMessageId')
+  const previewDataStr = searchParams.get('previewData')
+
   const [mealType, setMealType] = useState<MealType>('breakfast')
   const [mealTime, setMealTime] = useState(() => {
     const now = new Date()
@@ -26,6 +35,44 @@ export default function LogMealPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+
+  // Pre-fill data from URL parameters (from coach meal preview)
+  useEffect(() => {
+    if (previewDataStr) {
+      try {
+        const previewData = JSON.parse(previewDataStr)
+
+        if (previewData.meal_type) {
+          setMealType(previewData.meal_type as MealType)
+        }
+
+        if (previewData.notes) {
+          setNotes(previewData.notes)
+        }
+
+        // Convert preview foods to MealFood format
+        if (previewData.foods && Array.isArray(previewData.foods)) {
+          const mealFoods: MealFood[] = previewData.foods.map((food: any) => ({
+            food_id: food.food_id || `temp-${Date.now()}-${Math.random()}`,
+            name: food.name,
+            brand: food.brand || null,
+            quantity: food.quantity || 1,
+            unit: food.unit || 'serving',
+            serving_size: food.serving_size || 100,
+            serving_unit: food.serving_unit || 'g',
+            calories: food.calories || 0,
+            protein_g: food.protein_g || 0,
+            carbs_g: food.carbs_g || 0,
+            fat_g: food.fat_g || 0,
+            fiber_g: food.fiber_g || 0
+          }))
+          setFoods(mealFoods)
+        }
+      } catch (err) {
+        console.error('Failed to parse preview data:', err)
+      }
+    }
+  }, [previewDataStr])
 
   function handleSelectFood(food: Food) {
     // Use last logged quantity/unit if available, otherwise use serving
@@ -55,27 +102,37 @@ export default function LogMealPage() {
         throw new Error('Not authenticated')
       }
 
-      // Create meal via API
-      await createMeal(
-        {
-          category: mealType,
-          logged_at: new Date(mealTime).toISOString(),
-          notes: notes || undefined,
-          foods: foods.map((f) => ({
-            food_id: f.food_id,
-            quantity: f.quantity,
-            unit: f.unit
-          }))
-        },
-        session.access_token
-      )
+      // Prepare meal data
+      const mealData = {
+        category: mealType,
+        logged_at: new Date(mealTime).toISOString(),
+        notes: notes || undefined,
+        foods: foods.map((f) => ({
+          food_id: f.food_id,
+          quantity: f.quantity,
+          unit: f.unit
+        }))
+      }
+
+      // If coming from coach, use confirm-log API (which saves and updates conversation)
+      if (conversationId && userMessageId) {
+        await confirmLog({
+          conversation_id: conversationId,
+          log_data: mealData,
+          log_type: 'meal',
+          user_message_id: userMessageId
+        })
+      } else {
+        // Otherwise, just create meal normally
+        await createMeal(mealData, session.access_token)
+      }
 
       setSuccess(true)
 
-      // Redirect after 2 seconds
+      // Redirect after 1.5 seconds to returnTo URL
       setTimeout(() => {
-        router.push('/nutrition')
-      }, 2000)
+        router.push(returnTo)
+      }, 1500)
     } catch (err) {
       console.error('Error saving meal:', err)
       setError(err instanceof Error ? err.message : 'Failed to save meal')
@@ -90,7 +147,9 @@ export default function LogMealPage() {
         <div className="bg-iron-black/50 backdrop-blur-sm border-2 border-iron-orange p-8 rounded-lg text-center w-full max-w-md">
           <CheckCircle className="mx-auto h-16 w-16 text-iron-orange mb-4" />
           <p className="text-2xl font-bold text-white mb-2">Meal Logged Successfully!</p>
-          <p className="text-iron-gray">Redirecting to nutrition page...</p>
+          <p className="text-iron-gray">
+            {conversationId ? 'Returning to coach...' : 'Redirecting to nutrition page...'}
+          </p>
         </div>
       </div>
     )

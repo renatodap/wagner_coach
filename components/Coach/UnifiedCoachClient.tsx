@@ -44,6 +44,7 @@ import { useToast } from '@/hooks/use-toast'
 import { UnifiedMessageBubble } from './UnifiedMessageBubble'
 import QuickEntryPreview from '@/components/quick-entry/QuickEntryPreview'
 import { MealLogPreview } from './MealLogPreview'
+import { MealPreviewCardV2 } from './MealPreviewCardV2'
 import BottomNavigation from '@/app/components/BottomNavigation'
 import {
   Sheet,
@@ -1048,14 +1049,16 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                   </div>
                 )}
 
-                {/* Log Preview - Use MealLogPreview for meals, QuickEntryPreview for others */}
+                {/* Log Preview - Use streamlined MealPreviewCardV2 for meals */}
                 {pendingLogPreview && (
                   <div className="mt-4">
                     {pendingLogPreview.preview.log_type === 'meal' ? (
-                      <MealLogPreview
-                        initialData={pendingLogPreview.preview.data}
-                        onSave={async (editedData) => {
-                          await handleConfirmLog(editedData)
+                      <MealPreviewCardV2
+                        preview={pendingLogPreview.preview}
+                        conversationId={conversationId || ''}
+                        userMessageId={pendingLogPreview.userMessageId}
+                        onQuickLog={async () => {
+                          await handleConfirmLog(pendingLogPreview.preview.data)
                         }}
                         onCancel={handleCancelLog}
                       />
