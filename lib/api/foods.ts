@@ -59,7 +59,10 @@ export async function searchFoods(
     include_recent: (options.includeRecent !== false).toString(),
   })
 
-  const response = await fetch(`${API_BASE_URL}/api/v1/foods/search?${params}`, {
+  const url = `${API_BASE_URL}/api/v1/foods/search?${params}`
+  console.log('🔍 [Foods API] Searching foods:', { url, hasToken: !!options.token, tokenLength: options.token?.length })
+
+  const response = await fetch(url, {
     method: 'GET',
     headers: {
       'Authorization': `Bearer ${options.token}`,
@@ -68,7 +71,16 @@ export async function searchFoods(
   })
 
   if (!response.ok) {
-    throw new Error(`Food search failed: ${response.statusText}`)
+    const errorBody = await response.text()
+    console.error('❌ [Foods API] Search failed:', {
+      status: response.status,
+      statusText: response.statusText,
+      url,
+      errorBody,
+      hasToken: !!options.token,
+      tokenPrefix: options.token?.substring(0, 20) + '...'
+    })
+    throw new Error(`Food search failed (${response.status}): ${errorBody || response.statusText}`)
   }
 
   return response.json()
@@ -87,7 +99,10 @@ export async function getRecentFoods(
     limit: (options.limit || 20).toString(),
   })
 
-  const response = await fetch(`${API_BASE_URL}/api/v1/foods/recent?${params}`, {
+  const url = `${API_BASE_URL}/api/v1/foods/recent?${params}`
+  console.log('🕐 [Foods API] Fetching recent foods:', { url, hasToken: !!options.token, tokenLength: options.token?.length })
+
+  const response = await fetch(url, {
     method: 'GET',
     headers: {
       'Authorization': `Bearer ${options.token}`,
@@ -96,7 +111,16 @@ export async function getRecentFoods(
   })
 
   if (!response.ok) {
-    throw new Error(`Failed to fetch recent foods: ${response.statusText}`)
+    const errorBody = await response.text()
+    console.error('❌ [Foods API] Recent foods failed:', {
+      status: response.status,
+      statusText: response.statusText,
+      url,
+      errorBody,
+      hasToken: !!options.token,
+      tokenPrefix: options.token?.substring(0, 20) + '...'
+    })
+    throw new Error(`Failed to fetch recent foods (${response.status}): ${errorBody || response.statusText}`)
   }
 
   return response.json()
@@ -109,7 +133,10 @@ export async function getFoodById(
   foodId: string,
   token: string
 ): Promise<Food> {
-  const response = await fetch(`${API_BASE_URL}/api/v1/foods/${foodId}`, {
+  const url = `${API_BASE_URL}/api/v1/foods/${foodId}`
+  console.log('🍎 [Foods API] Fetching food by ID:', { url, foodId, hasToken: !!token, tokenLength: token?.length })
+
+  const response = await fetch(url, {
     method: 'GET',
     headers: {
       'Authorization': `Bearer ${token}`,
@@ -118,7 +145,16 @@ export async function getFoodById(
   })
 
   if (!response.ok) {
-    throw new Error(`Failed to fetch food: ${response.statusText}`)
+    const errorBody = await response.text()
+    console.error('❌ [Foods API] Get food failed:', {
+      status: response.status,
+      statusText: response.statusText,
+      url,
+      errorBody,
+      hasToken: !!token,
+      tokenPrefix: token?.substring(0, 20) + '...'
+    })
+    throw new Error(`Failed to fetch food (${response.status}): ${errorBody || response.statusText}`)
   }
 
   return response.json()
