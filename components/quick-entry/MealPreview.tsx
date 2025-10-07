@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { ChevronDown, ChevronUp, Check, Edit3, AlertTriangle, X, Plus } from 'lucide-react';
+import { ChevronDown, ChevronUp, Check, Edit3, AlertTriangle, X, Plus, Minus } from 'lucide-react';
 import { MealPrimaryFields, MealSecondaryFields, QuickEntryPreviewResponse } from './types';
 
 interface MealPreviewProps {
@@ -13,7 +13,8 @@ interface MealPreviewProps {
 interface FoodItem {
   name: string;
   quantity: string;
-  calories?: number;
+  servings?: number;  // Multiplier for scaling nutrition
+  calories?: number;  // Base nutrition per original quantity
   protein_g?: number;
   carbs_g?: number;
   fat_g?: number;
@@ -30,7 +31,7 @@ export default function MealPreview({ data, onSave, onEdit }: MealPreviewProps) 
   const primary = data.data.primary_fields as MealPrimaryFields;
   const secondary = data.data.secondary_fields as MealSecondaryFields;
 
-  // Calculate totals from foods array
+  // Calculate totals from foods array with servings multiplier
   const calculatedTotals = useMemo(() => {
     const foods = editedFields.foods || [];
 
@@ -45,11 +46,12 @@ export default function MealPreview({ data, onSave, onEdit }: MealPreviewProps) 
     foods.forEach((food: any) => {
       // Only sum if food has nutrition data (object with calories)
       if (typeof food === 'object' && food.calories !== undefined) {
-        totals.calories += food.calories || 0;
-        totals.protein_g += food.protein_g || 0;
-        totals.carbs_g += food.carbs_g || 0;
-        totals.fat_g += food.fat_g || 0;
-        totals.fiber_g += food.fiber_g || 0;
+        const servings = food.servings || 1.0;  // Default to 1 serving
+        totals.calories += (food.calories || 0) * servings;
+        totals.protein_g += (food.protein_g || 0) * servings;
+        totals.carbs_g += (food.carbs_g || 0) * servings;
+        totals.fat_g += (food.fat_g || 0) * servings;
+        totals.fiber_g += (food.fiber_g || 0) * servings;
       }
     });
 
@@ -88,12 +90,14 @@ export default function MealPreview({ data, onSave, onEdit }: MealPreviewProps) 
     if (typeof food === 'string') {
       setEditingFood({
         name: food,
-        quantity: 'not specified'
+        quantity: 'not specified',
+        servings: 1.0
       });
     } else {
       setEditingFood({
         name: food.name || '',
         quantity: food.quantity || 'not specified',
+        servings: food.servings || 1.0,
         calories: food.calories,
         protein_g: food.protein_g,
         carbs_g: food.carbs_g,
@@ -101,6 +105,13 @@ export default function MealPreview({ data, onSave, onEdit }: MealPreviewProps) 
         fiber_g: food.fiber_g
       });
     }
+  };
+
+  const adjustServings = (delta: number) => {
+    setEditingFood(prev => ({
+      ...prev,
+      servings: Math.max(0.25, (prev.servings || 1.0) + delta)
+    }));
   };
 
   const saveEditedFood = () => {
@@ -121,7 +132,8 @@ export default function MealPreview({ data, onSave, onEdit }: MealPreviewProps) 
   const addNewFood = () => {
     const newFood: FoodItem = {
       name: 'New food',
-      quantity: 'not specified',
+      quantity: '1 serving',
+      servings: 1.0,
       calories: 0,
       protein_g: 0,
       carbs_g: 0,
@@ -261,13 +273,59 @@ export default function MealPreview({ data, onSave, onEdit }: MealPreviewProps) 
                       placeholder="Food name"
                       className="w-full px-3 py-2 bg-iron-gray text-iron-white border border-iron-gray rounded-lg focus:border-iron-orange outline-none"
                     />
-                    <input
-                      type="text"
-                      value={editingFood.quantity}
-                      onChange={(e) => setEditingFood({ ...editingFood, quantity: e.target.value })}
-                      placeholder="Quantity (e.g., 2 cups, 100g, 1 medium)"
-                      className="w-full px-3 py-2 bg-iron-gray text-iron-white border border-iron-gray rounded-lg focus:border-iron-orange outline-none"
-                    />
+
+                    {/* Servings Adjuster */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-sm text-iron-gray">Amount:</span>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => adjustServings(-0.5)}
+                            className="p-2 bg-iron-gray hover:bg-iron-gray/70 text-iron-white rounded-lg transition-colors"
+                            aria-label="Decrease amount"
+                          >
+                            <Minus size={16} />
+                          </button>
+                          <div className="px-4 py-2 bg-iron-black border border-iron-gray rounded-lg min-w-[80px] text-center">
+                            <span className="text-iron-white font-medium">{editingFood.servings?.toFixed(1)}×</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => adjustServings(0.5)}
+                            className="p-2 bg-iron-gray hover:bg-iron-gray/70 text-iron-white rounded-lg transition-colors"
+                            aria-label="Increase amount"
+                          >
+                            <Plus size={16} />
+                          </button>
+                        </div>
+                      </div>
+                      <div className="text-xs text-iron-gray text-right">
+                        = {editingFood.quantity} × {editingFood.servings?.toFixed(1)}
+                      </div>
+
+                      {/* Show calculated nutrition for this food */}
+                      {editingFood.calories !== undefined && (
+                        <div className="grid grid-cols-4 gap-2 pt-2 border-t border-iron-gray/30">
+                          <div className="text-center">
+                            <div className="text-iron-orange font-bold">{Math.round((editingFood.calories || 0) * (editingFood.servings || 1))}</div>
+                            <div className="text-xs text-iron-gray">cal</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-iron-orange font-bold">{Math.round((editingFood.protein_g || 0) * (editingFood.servings || 1))}g</div>
+                            <div className="text-xs text-iron-gray">pro</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-iron-orange font-bold">{Math.round((editingFood.carbs_g || 0) * (editingFood.servings || 1))}g</div>
+                            <div className="text-xs text-iron-gray">carb</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-iron-orange font-bold">{Math.round((editingFood.fat_g || 0) * (editingFood.servings || 1))}g</div>
+                            <div className="text-xs text-iron-gray">fat</div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                     <div className="flex gap-2">
                       <button
                         onClick={saveEditedFood}
@@ -295,8 +353,20 @@ export default function MealPreview({ data, onSave, onEdit }: MealPreviewProps) 
                       <span className="font-medium text-iron-white">
                         {typeof food === 'string' ? food : food.name}
                       </span>
-                      {food.quantity && food.quantity !== 'not specified' && (
-                        <span className="text-iron-gray ml-2">({food.quantity})</span>
+                      {typeof food === 'object' && food.quantity && food.quantity !== 'not specified' && (
+                        <span className="text-iron-gray ml-2">
+                          ({food.quantity}
+                          {food.servings && food.servings !== 1.0 && ` × ${food.servings.toFixed(1)}`})
+                        </span>
+                      )}
+                      {/* Show calculated nutrition in display mode */}
+                      {typeof food === 'object' && food.calories !== undefined && (
+                        <div className="text-xs text-iron-gray mt-1 flex gap-3">
+                          <span>{Math.round((food.calories || 0) * (food.servings || 1))} cal</span>
+                          <span>{Math.round((food.protein_g || 0) * (food.servings || 1))}g pro</span>
+                          <span>{Math.round((food.carbs_g || 0) * (food.servings || 1))}g carb</span>
+                          <span>{Math.round((food.fat_g || 0) * (food.servings || 1))}g fat</span>
+                        </div>
                       )}
                     </span>
                     {editMode && (
