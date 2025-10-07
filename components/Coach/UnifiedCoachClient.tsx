@@ -42,6 +42,7 @@ import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
 import { UnifiedMessageBubble } from './UnifiedMessageBubble'
 import QuickEntryPreview from '@/components/quick-entry/QuickEntryPreview'
+import { MealLogPreview } from './MealLogPreview'
 import BottomNavigation from '@/app/components/BottomNavigation'
 import {
   Sheet,
@@ -965,30 +966,42 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
               </div>
             )}
 
-            {/* Log Preview - Using QuickEntry Preview Components (EXACTLY like old Quick Entry) */}
+            {/* Log Preview - Use MealLogPreview for meals, QuickEntryPreview for others */}
             {pendingLogPreview && (
-              <div className="mt-4 bg-iron-black border-2 border-iron-orange rounded-3xl p-6 shadow-2xl">
-                <QuickEntryPreview
-                  data={{
-                    success: true,
-                    entry_type: pendingLogPreview.preview.log_type as any,
-                    confidence: pendingLogPreview.preview.confidence,
-                    data: pendingLogPreview.preview.data,
-                    validation: (pendingLogPreview.preview as any).validation || {
-                      errors: [],
-                      warnings: [],
-                      missing_critical: []
-                    },
-                    suggestions: (pendingLogPreview.preview as any).suggestions || []
-                  }}
-                  onSave={async (editedData) => {
-                    await handleConfirmLog(editedData)
-                  }}
-                  onEdit={() => {
-                    // Edit mode is handled within the preview components
-                  }}
-                  onCancel={handleCancelLog}
-                />
+              <div className="mt-4">
+                {pendingLogPreview.preview.log_type === 'meal' ? (
+                  <MealLogPreview
+                    initialData={pendingLogPreview.preview.data}
+                    onSave={async (editedData) => {
+                      await handleConfirmLog(editedData)
+                    }}
+                    onCancel={handleCancelLog}
+                  />
+                ) : (
+                  <div className="bg-iron-black border-2 border-iron-orange rounded-3xl p-6 shadow-2xl">
+                    <QuickEntryPreview
+                      data={{
+                        success: true,
+                        entry_type: pendingLogPreview.preview.log_type as any,
+                        confidence: pendingLogPreview.preview.confidence,
+                        data: pendingLogPreview.preview.data,
+                        validation: (pendingLogPreview.preview as any).validation || {
+                          errors: [],
+                          warnings: [],
+                          missing_critical: []
+                        },
+                        suggestions: (pendingLogPreview.preview as any).suggestions || []
+                      }}
+                      onSave={async (editedData) => {
+                        await handleConfirmLog(editedData)
+                      }}
+                      onEdit={() => {
+                        // Edit mode is handled within the preview components
+                      }}
+                      onCancel={handleCancelLog}
+                    />
+                  </div>
+                )}
               </div>
             )}
 
