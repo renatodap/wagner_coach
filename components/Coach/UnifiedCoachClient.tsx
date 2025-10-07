@@ -43,8 +43,6 @@ import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
 import { UnifiedMessageBubble } from './UnifiedMessageBubble'
 import QuickEntryPreview from '@/components/quick-entry/QuickEntryPreview'
-import { MealLogPreview } from './MealLogPreview'
-import { MealPreviewCardV2 } from './MealPreviewCardV2'
 import BottomNavigation from '@/app/components/BottomNavigation'
 import {
   Sheet,
@@ -393,8 +391,29 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
             )
           )
 
-          // Check if it's a log preview
+          // Check if it's a log preview - REDIRECT to /nutrition/log instead of showing card
           if (chunk.is_log_preview && chunk.log_preview) {
+            // For meals, redirect immediately to meal log page with pre-filled data
+            if (chunk.log_preview.log_type === 'meal') {
+              const params = new URLSearchParams({
+                previewData: JSON.stringify(chunk.log_preview.data),
+                returnTo: '/coach',
+                conversationId: newConversationId || '',
+                userMessageId: chunk.message_id,
+                logType: 'meal'
+              })
+
+              setText('')
+              setAttachedFiles([])
+              setIsLoading(false)
+              setIsStreaming(false)
+
+              // Redirect to meal log page
+              router.push(`/nutrition/log?${params.toString()}`)
+              return
+            }
+
+            // For other log types (workout, activity, etc), show preview card
             setPendingLogPreview({
               preview: chunk.log_preview,
               userMessageId: chunk.message_id
@@ -1049,44 +1068,30 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                   </div>
                 )}
 
-                {/* Log Preview - Use streamlined MealPreviewCardV2 for meals */}
+                {/* Log Preview - For non-meal logs (workout, activity, measurement) */}
                 {pendingLogPreview && (
-                  <div className="mt-4">
-                    {pendingLogPreview.preview.log_type === 'meal' ? (
-                      <MealPreviewCardV2
-                        preview={pendingLogPreview.preview}
-                        conversationId={conversationId || ''}
-                        userMessageId={pendingLogPreview.userMessageId}
-                        onQuickLog={async () => {
-                          await handleConfirmLog(pendingLogPreview.preview.data)
-                        }}
-                        onCancel={handleCancelLog}
-                      />
-                    ) : (
-                      <div className="bg-iron-black border-2 border-iron-orange rounded-3xl p-6 shadow-2xl">
-                        <QuickEntryPreview
-                          data={{
-                            success: true,
-                            entry_type: pendingLogPreview.preview.log_type as any,
-                            confidence: pendingLogPreview.preview.confidence,
-                            data: pendingLogPreview.preview.data,
-                            validation: (pendingLogPreview.preview as any).validation || {
-                              errors: [],
-                              warnings: [],
-                              missing_critical: []
-                            },
-                            suggestions: (pendingLogPreview.preview as any).suggestions || []
-                          }}
-                          onSave={async (editedData) => {
-                            await handleConfirmLog(editedData)
-                          }}
-                          onEdit={() => {
-                            // Edit mode is handled within the preview components
-                          }}
-                          onCancel={handleCancelLog}
-                        />
-                      </div>
-                    )}
+                  <div className="mt-4 bg-iron-black border-2 border-iron-orange rounded-3xl p-6 shadow-2xl">
+                    <QuickEntryPreview
+                      data={{
+                        success: true,
+                        entry_type: pendingLogPreview.preview.log_type as any,
+                        confidence: pendingLogPreview.preview.confidence,
+                        data: pendingLogPreview.preview.data,
+                        validation: (pendingLogPreview.preview as any).validation || {
+                          errors: [],
+                          warnings: [],
+                          missing_critical: []
+                        },
+                        suggestions: (pendingLogPreview.preview as any).suggestions || []
+                      }}
+                      onSave={async (editedData) => {
+                        await handleConfirmLog(editedData)
+                      }}
+                      onEdit={() => {
+                        // Edit mode is handled within the preview components
+                      }}
+                      onCancel={handleCancelLog}
+                    />
                   </div>
                 )}
 

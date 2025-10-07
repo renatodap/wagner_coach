@@ -85,6 +85,17 @@ export interface ConfirmLogResponse {
   error?: string
 }
 
+export interface CancelLogRequest {
+  conversation_id: string
+  user_message_id: string
+}
+
+export interface CancelLogResponse {
+  success: boolean
+  message: string
+  message_id: string
+}
+
 export interface ConversationSummary {
   id: string
   title?: string
@@ -263,6 +274,34 @@ export async function confirmLog(request: ConfirmLogRequest): Promise<ConfirmLog
   const headers = await getAuthHeaders()
 
   const response = await fetch(`${API_BASE}/api/v1/coach/confirm-log`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(request),
+  })
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Request failed' }))
+    throw new Error(error.error || `HTTP ${response.status}`)
+  }
+
+  return response.json()
+}
+
+/**
+ * Cancel a detected log (e.g., when user cancels from meal preview page)
+ *
+ * Adds a coach acknowledgment message to the conversation.
+ *
+ * @example
+ * await cancelLog({
+ *   conversation_id: "conv-123",
+ *   user_message_id: "msg-456"
+ * })
+ */
+export async function cancelLog(request: CancelLogRequest): Promise<CancelLogResponse> {
+  const headers = await getAuthHeaders()
+
+  const response = await fetch(`${API_BASE}/api/v1/coach/cancel-log`, {
     method: 'POST',
     headers,
     body: JSON.stringify(request),

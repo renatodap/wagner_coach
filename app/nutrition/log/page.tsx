@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { FoodSearchV2 } from '@/components/nutrition/FoodSearchV2'
 import { MealEditor, foodToMealFood, type MealFood } from '@/components/nutrition/MealEditor'
 import { createMeal } from '@/lib/api/meals'
-import { confirmLog } from '@/lib/api/unified-coach'
+import { confirmLog, cancelLog } from '@/lib/api/unified-coach'
 import type { Food } from '@/lib/api/foods'
 import { createClient } from '@/lib/supabase/client'
 
@@ -139,6 +139,24 @@ function LogMealForm() {
     } finally {
       setLoading(false)
     }
+  }
+
+  async function handleCancel() {
+    // If coming from coach, call cancel API to add acknowledgment message
+    if (conversationId && userMessageId) {
+      try {
+        await cancelLog({
+          conversation_id: conversationId,
+          user_message_id: userMessageId
+        })
+      } catch (err) {
+        console.error('Failed to cancel log:', err)
+        // Continue with redirect even if API call fails
+      }
+    }
+
+    // Redirect to returnTo URL
+    router.push(returnTo)
   }
 
   if (success) {
@@ -271,7 +289,7 @@ function LogMealForm() {
           <Button
             type="button"
             variant="outline"
-            onClick={() => router.back()}
+            onClick={handleCancel}
             disabled={loading}
             className="px-6 h-12 border-iron-gray/30 text-iron-gray hover:bg-iron-gray/20"
           >
