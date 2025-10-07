@@ -750,22 +750,23 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                 <div className="absolute inset-0 bg-[url('/textures/metal.png')] opacity-5 mix-blend-overlay pointer-events-none" />
 
                 {/* Log Type Selector */}
-                <div className="relative z-10" ref={dropdownRef}>
+                <div className="relative z-50" ref={dropdownRef}>
                   <button
                     type="button"
-                    onClick={() => setShowTypeDropdown(!showTypeDropdown)}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setShowTypeDropdown(!showTypeDropdown)
+                    }}
                     disabled={isLoading}
-                    className="min-h-[44px] min-w-[44px] p-3 hover:bg-iron-black/50 transition-colors disabled:opacity-50 rounded flex items-center justify-center cursor-pointer"
-                    style={{ WebkitTapHighlightColor: 'transparent' }}
+                    className="min-h-[44px] min-w-[44px] p-3 hover:bg-iron-black/50 transition-colors disabled:opacity-50 rounded flex items-center justify-center gap-1 cursor-pointer"
+                    style={{ WebkitTapHighlightColor: 'transparent', pointerEvents: 'auto' }}
                     title="Select log type"
                     aria-label={`Select log type. Current: ${getLogTypeLabel(selectedLogType)}`}
                     aria-haspopup="listbox"
                     aria-expanded={showTypeDropdown}
                   >
-                    <div className="flex items-center gap-1">
-                      <span className="text-2xl">{getLogTypeIcon(selectedLogType)}</span>
-                      <ChevronDown className="w-4 h-4 text-iron-white" />
-                    </div>
+                    <span className="text-2xl pointer-events-none">{getLogTypeIcon(selectedLogType)}</span>
+                    <ChevronDown className="w-4 h-4 text-iron-white pointer-events-none" />
                   </button>
 
                   {showTypeDropdown && (
@@ -798,14 +799,17 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                 {/* File Attachment */}
                 <button
                   type="button"
-                  onClick={() => fileInputRef.current?.click()}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    fileInputRef.current?.click()
+                  }}
                   disabled={isLoading}
-                  className="relative z-10 min-h-[44px] min-w-[44px] p-3 hover:bg-iron-black/50 transition-colors disabled:opacity-50 rounded flex items-center justify-center cursor-pointer"
-                  style={{ WebkitTapHighlightColor: 'transparent' }}
+                  className="relative z-50 min-h-[44px] min-w-[44px] p-3 hover:bg-iron-black/50 transition-colors disabled:opacity-50 rounded flex items-center justify-center cursor-pointer"
+                  style={{ WebkitTapHighlightColor: 'transparent', pointerEvents: 'auto' }}
                   title="Attach file"
                   aria-label="Attach file"
                 >
-                  <Paperclip className="w-5 h-5 text-iron-white" />
+                  <Paperclip className="w-5 h-5 text-iron-white pointer-events-none" />
                 </button>
                 <input
                   ref={fileInputRef}
@@ -840,42 +844,51 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                 {!isRecording ? (
                   <button
                     type="button"
-                    onClick={startVoiceRecording}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      startVoiceRecording()
+                    }}
                     disabled={isLoading}
-                    className="relative z-10 min-h-[44px] min-w-[44px] p-3 hover:bg-iron-black/50 transition-colors disabled:opacity-50 rounded flex items-center justify-center cursor-pointer"
-                    style={{ WebkitTapHighlightColor: 'transparent' }}
+                    className="relative z-50 min-h-[44px] min-w-[44px] p-3 hover:bg-iron-black/50 transition-colors disabled:opacity-50 rounded flex items-center justify-center cursor-pointer"
+                    style={{ WebkitTapHighlightColor: 'transparent', pointerEvents: 'auto' }}
                     title="Voice input"
                     aria-label="Start voice input"
                   >
-                    <Mic className="w-5 h-5 text-iron-white" />
+                    <Mic className="w-5 h-5 text-iron-white pointer-events-none" />
                   </button>
                 ) : (
                   <button
                     type="button"
-                    onClick={stopVoiceRecording}
-                    className="relative z-10 min-h-[44px] min-w-[44px] p-3 bg-red-500 animate-pulse flex items-center justify-center cursor-pointer"
-                    style={{ WebkitTapHighlightColor: 'transparent' }}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      stopVoiceRecording()
+                    }}
+                    className="relative z-50 min-h-[44px] min-w-[44px] p-3 bg-red-500 animate-pulse flex items-center justify-center cursor-pointer"
+                    style={{ WebkitTapHighlightColor: 'transparent', pointerEvents: 'auto' }}
                     title="Stop recording"
                     aria-label="Stop recording"
                   >
-                    <Mic className="w-5 h-5 text-white" />
+                    <Mic className="w-5 h-5 text-white pointer-events-none" />
                   </button>
                 )}
 
                 {/* Submit Button with aggressive styling */}
                 <button
                   type="button"
-                  onClick={handleSendMessage}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleSendMessage()
+                  }}
                   disabled={(!text && attachedFiles.length === 0) || isLoading}
-                  className="relative z-10 min-h-[44px] min-w-[44px] p-3 bg-gradient-to-r from-iron-orange to-orange-600 hover:from-orange-600 hover:to-iron-orange transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl active:scale-95 border-2 border-orange-700 flex items-center justify-center cursor-pointer"
-                  style={{ WebkitTapHighlightColor: 'transparent' }}
+                  className="relative z-50 min-h-[44px] min-w-[44px] p-3 bg-gradient-to-r from-iron-orange to-orange-600 hover:from-orange-600 hover:to-iron-orange transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl active:scale-95 border-2 border-orange-700 flex items-center justify-center cursor-pointer"
+                  style={{ WebkitTapHighlightColor: 'transparent', pointerEvents: 'auto' }}
                   title="Submit"
                   aria-label="Send message"
                 >
                   {isLoading ? (
-                    <Loader2 className="w-5 h-5 text-white animate-spin" />
+                    <Loader2 className="w-5 h-5 text-white animate-spin pointer-events-none" />
                   ) : (
-                    <Send className="w-5 h-5 text-white" />
+                    <Send className="w-5 h-5 text-white pointer-events-none" />
                   )}
                 </button>
               </div>
@@ -1226,22 +1239,23 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                 <div className="absolute inset-0 bg-[url('/textures/metal.png')] opacity-5 mix-blend-overlay pointer-events-none" />
 
                 {/* Log Type Selector */}
-                <div className="relative z-10" ref={dropdownRef}>
+                <div className="relative z-50" ref={dropdownRef}>
                   <button
                     type="button"
-                    onClick={() => setShowTypeDropdown(!showTypeDropdown)}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setShowTypeDropdown(!showTypeDropdown)
+                    }}
                     disabled={isLoading || !!pendingLogPreview}
-                    className="min-h-[44px] min-w-[44px] p-3 hover:bg-iron-gray/50 transition-colors disabled:opacity-50 rounded flex items-center justify-center cursor-pointer"
-                    style={{ WebkitTapHighlightColor: 'transparent' }}
+                    className="min-h-[44px] min-w-[44px] p-3 hover:bg-iron-gray/50 transition-colors disabled:opacity-50 rounded flex items-center justify-center gap-1 cursor-pointer"
+                    style={{ WebkitTapHighlightColor: 'transparent', pointerEvents: 'auto' }}
                     title="Select log type"
                     aria-label={`Select log type. Current: ${getLogTypeLabel(selectedLogType)}`}
                     aria-haspopup="listbox"
                     aria-expanded={showTypeDropdown}
                   >
-                    <div className="flex items-center gap-1">
-                      <span className="text-2xl">{getLogTypeIcon(selectedLogType)}</span>
-                      <ChevronDown className="w-4 h-4 text-iron-white" />
-                    </div>
+                    <span className="text-2xl pointer-events-none">{getLogTypeIcon(selectedLogType)}</span>
+                    <ChevronDown className="w-4 h-4 text-iron-white pointer-events-none" />
                   </button>
 
                   {showTypeDropdown && (
@@ -1274,14 +1288,17 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                 {/* File Attachment */}
                 <button
                   type="button"
-                  onClick={() => fileInputRef.current?.click()}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    fileInputRef.current?.click()
+                  }}
                   disabled={isLoading || !!pendingLogPreview}
-                  className="relative z-10 min-h-[44px] min-w-[44px] p-3 hover:bg-iron-gray/50 transition-colors disabled:opacity-50 rounded flex items-center justify-center cursor-pointer"
-                  style={{ WebkitTapHighlightColor: 'transparent' }}
+                  className="relative z-50 min-h-[44px] min-w-[44px] p-3 hover:bg-iron-gray/50 transition-colors disabled:opacity-50 rounded flex items-center justify-center cursor-pointer"
+                  style={{ WebkitTapHighlightColor: 'transparent', pointerEvents: 'auto' }}
                   title="Attach file"
                   aria-label="Attach file"
                 >
-                  <Paperclip className="w-5 h-5 text-iron-white" />
+                  <Paperclip className="w-5 h-5 text-iron-white pointer-events-none" />
                 </button>
                 <input
                   ref={fileInputRef}
@@ -1320,42 +1337,51 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                 {!isRecording ? (
                   <button
                     type="button"
-                    onClick={startVoiceRecording}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      startVoiceRecording()
+                    }}
                     disabled={isLoading || !!pendingLogPreview}
-                    className="relative z-10 min-h-[44px] min-w-[44px] p-3 hover:bg-iron-gray/50 transition-colors disabled:opacity-50 rounded flex items-center justify-center cursor-pointer"
-                    style={{ WebkitTapHighlightColor: 'transparent' }}
+                    className="relative z-50 min-h-[44px] min-w-[44px] p-3 hover:bg-iron-gray/50 transition-colors disabled:opacity-50 rounded flex items-center justify-center cursor-pointer"
+                    style={{ WebkitTapHighlightColor: 'transparent', pointerEvents: 'auto' }}
                     title="Voice input"
                     aria-label="Start voice input"
                   >
-                    <Mic className="w-5 h-5 text-iron-white" />
+                    <Mic className="w-5 h-5 text-iron-white pointer-events-none" />
                   </button>
                 ) : (
                   <button
                     type="button"
-                    onClick={stopVoiceRecording}
-                    className="relative z-10 min-h-[44px] min-w-[44px] p-3 bg-red-500 animate-pulse flex items-center justify-center cursor-pointer"
-                    style={{ WebkitTapHighlightColor: 'transparent' }}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      stopVoiceRecording()
+                    }}
+                    className="relative z-50 min-h-[44px] min-w-[44px] p-3 bg-red-500 animate-pulse flex items-center justify-center cursor-pointer"
+                    style={{ WebkitTapHighlightColor: 'transparent', pointerEvents: 'auto' }}
                     title="Stop recording"
                     aria-label="Stop recording"
                   >
-                    <Mic className="w-5 h-5 text-white" />
+                    <Mic className="w-5 h-5 text-white pointer-events-none" />
                   </button>
                 )}
 
                 {/* Submit Button */}
                 <button
                   type="button"
-                  onClick={handleSendMessage}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleSendMessage()
+                  }}
                   disabled={(!text && attachedFiles.length === 0) || isLoading || !!pendingLogPreview}
-                  className="relative z-10 min-h-[44px] min-w-[44px] p-3 bg-gradient-to-r from-iron-orange to-orange-600 hover:from-orange-600 hover:to-iron-orange transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl active:scale-95 border-2 border-orange-700 flex items-center justify-center cursor-pointer"
-                  style={{ WebkitTapHighlightColor: 'transparent' }}
+                  className="relative z-50 min-h-[44px] min-w-[44px] p-3 bg-gradient-to-r from-iron-orange to-orange-600 hover:from-orange-600 hover:to-iron-orange transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl active:scale-95 border-2 border-orange-700 flex items-center justify-center cursor-pointer"
+                  style={{ WebkitTapHighlightColor: 'transparent', pointerEvents: 'auto' }}
                   title="Submit"
                   aria-label="Send message"
                 >
                   {isLoading ? (
-                    <Loader2 className="w-5 h-5 text-white animate-spin" />
+                    <Loader2 className="w-5 h-5 text-white animate-spin pointer-events-none" />
                   ) : (
-                    <Send className="w-5 h-5 text-white" />
+                    <Send className="w-5 h-5 text-white pointer-events-none" />
                   )}
                 </button>
               </div>
