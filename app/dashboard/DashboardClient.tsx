@@ -95,9 +95,35 @@ export default function DashboardClient({
             <Loader2 className="w-12 h-12 text-iron-orange animate-spin" />
           </div>
         ) : nutritionData ? (
-          <div className="space-y-12">
-            {/* Calories - Large Circle */}
-            <div className="flex justify-center">
+          <div className="space-y-8">
+            {/* Quick Actions Section */}
+            <div className="bg-iron-black/50 backdrop-blur-sm border border-iron-gray/20 rounded-lg p-4">
+              <h2 className="text-lg font-semibold text-white mb-3">Quick Actions</h2>
+              <div className="grid grid-cols-2 gap-3">
+                <Button
+                  onClick={() => router.push('/nutrition/log')}
+                  className="bg-iron-orange hover:bg-iron-orange/90 text-white font-medium h-auto py-4 flex flex-col items-center gap-2"
+                >
+                  <UtensilsCrossed size={24} />
+                  <span>Log Meal</span>
+                </Button>
+                <Button
+                  onClick={() => router.push('/coach')}
+                  variant="outline"
+                  className="border-iron-gray/30 text-white hover:bg-iron-gray/20 h-auto py-4 flex flex-col items-center gap-2"
+                >
+                  <Plus size={24} />
+                  <span>Ask Coach</span>
+                </Button>
+              </div>
+            </div>
+
+            {/* Nutrition Progress */}
+            <div className="space-y-8">
+              <h2 className="text-xl font-semibold text-white">Today's Nutrition</h2>
+
+              {/* Calories - Large Circle */}
+              <div className="flex justify-center">
               <CircularProgress
                 value={nutritionData.current.calories}
                 max={nutritionData.targets.calories}
@@ -134,6 +160,7 @@ export default function DashboardClient({
                 color="#f59e0b" // amber
                 unit="g"
               />
+            </div>
             </div>
           </div>
         ) : (
