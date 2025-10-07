@@ -314,24 +314,27 @@ export function NutritionDashboard() {
     <div className="min-h-screen bg-iron-black text-iron-white">
       {/* Header */}
       <header className="border-b border-iron-gray">
-        <div className="max-w-6xl mx-auto px-4 py-6">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="font-heading text-4xl text-iron-orange">NUTRITION</h1>
-            <div className="flex gap-2">
+        <div className="max-w-6xl mx-auto px-4 py-4 sm:py-6">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <h1 className="font-heading text-2xl sm:text-3xl lg:text-4xl text-iron-orange">NUTRITION</h1>
+            <div className="flex gap-1 sm:gap-2">
               <Link
                 href="/nutrition/history"
-                className="text-iron-gray hover:text-iron-orange transition-colors"
+                className="text-iron-gray hover:text-iron-orange transition-colors p-2 sm:p-1"
                 title="View History"
+                aria-label="View history"
               >
-                <Clock className="w-6 h-6" />
+                <Clock className="w-5 h-5 sm:w-6 sm:h-6" />
               </Link>
               <QuickMealEntry onMealAdded={fetchMeals} />
               <Link
                 href="/nutrition/add"
-                className="bg-iron-orange text-iron-black px-4 py-2 font-heading uppercase tracking-wider hover:bg-orange-600 transition-colors flex items-center gap-2"
+                className="bg-iron-orange text-iron-black px-2 sm:px-4 py-2 font-heading text-xs sm:text-sm uppercase tracking-wider hover:bg-orange-600 transition-colors flex items-center gap-1 sm:gap-2"
+                aria-label="Add meal"
               >
-                <Plus className="w-5 h-5" />
-                Add Meal
+                <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="hidden sm:inline">Add Meal</span>
+                <span className="sm:hidden">Add</span>
               </Link>
             </div>
           </div>
@@ -340,20 +343,20 @@ export function NutritionDashboard() {
           <div className="flex items-center justify-between">
             <button
               onClick={goToPreviousDay}
-              className="text-iron-gray hover:text-iron-orange transition-colors p-2 hover:bg-iron-gray/10 rounded"
+              className="text-iron-gray hover:text-iron-orange transition-colors p-1 sm:p-2 hover:bg-iron-gray/10 rounded min-w-[44px] min-h-[44px] flex items-center justify-center"
               aria-label="Previous day"
             >
-              <ChevronLeft className="w-6 h-6" />
+              <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
             </button>
 
-            <div className="flex items-center gap-3">
-              <h2 className="font-heading text-xl text-iron-white">
+            <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-3">
+              <h2 className="font-heading text-sm sm:text-base lg:text-xl text-iron-white text-center">
                 {formatSelectedDate()}
               </h2>
               {!isToday() && (
                 <button
                   onClick={goToToday}
-                  className="text-sm text-iron-orange hover:text-orange-400 underline"
+                  className="text-xs sm:text-sm text-iron-orange hover:text-orange-400 underline whitespace-nowrap"
                 >
                   Today
                 </button>
@@ -362,43 +365,43 @@ export function NutritionDashboard() {
 
             <button
               onClick={goToNextDay}
-              className="text-iron-gray hover:text-iron-orange transition-colors p-2 hover:bg-iron-gray/10 rounded"
+              className="text-iron-gray hover:text-iron-orange transition-colors p-1 sm:p-2 hover:bg-iron-gray/10 rounded min-w-[44px] min-h-[44px] flex items-center justify-center"
               aria-label="Next day"
             >
-              <ChevronRight className="w-6 h-6" />
+              <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6" />
             </button>
           </div>
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 py-8 pb-24 space-y-8">
+      <main className="max-w-6xl mx-auto px-4 py-6 sm:py-8 pb-24 space-y-6 sm:space-y-8">
         {/* Summary */}
-        <div className="border border-iron-gray p-6">
-          <h2 className="font-heading text-2xl text-iron-white mb-4 flex items-center gap-2">
-            <Apple className="w-5 h-5 text-iron-orange" />
+        <div className="border border-iron-gray p-4 sm:p-6">
+          <h2 className="font-heading text-lg sm:text-xl lg:text-2xl text-iron-white mb-3 sm:mb-4 flex items-center gap-2">
+            <Apple className="w-4 h-4 sm:w-5 sm:h-5 text-iron-orange" />
             {isToday() ? "TODAY'S" : formatSelectedDate()} NUTRITION
           </h2>
 
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
             <div>
               <p className="text-iron-gray text-xs uppercase">Calories</p>
-              <p className="text-2xl font-bold text-iron-white">{Math.round(totals.calories)}</p>
+              <p className="text-xl sm:text-2xl font-bold text-iron-white">{Math.round(totals.calories)}</p>
             </div>
             <div>
               <p className="text-iron-gray text-xs uppercase">Protein</p>
-              <p className="text-2xl font-bold text-iron-white">{Math.round(totals.protein)}g</p>
+              <p className="text-xl sm:text-2xl font-bold text-iron-white">{Math.round(totals.protein)}g</p>
             </div>
             <div>
               <p className="text-iron-gray text-xs uppercase">Carbs</p>
-              <p className="text-2xl font-bold text-iron-white">{Math.round(totals.carbs)}g</p>
+              <p className="text-xl sm:text-2xl font-bold text-iron-white">{Math.round(totals.carbs)}g</p>
             </div>
             <div>
               <p className="text-iron-gray text-xs uppercase">Fat</p>
-              <p className="text-2xl font-bold text-iron-white">{Math.round(totals.fat)}g</p>
+              <p className="text-xl sm:text-2xl font-bold text-iron-white">{Math.round(totals.fat)}g</p>
             </div>
-            <div>
+            <div className="col-span-2 sm:col-span-1">
               <p className="text-iron-gray text-xs uppercase">Fiber</p>
-              <p className="text-2xl font-bold text-iron-white">{Math.round(totals.fiber)}g</p>
+              <p className="text-xl sm:text-2xl font-bold text-iron-white">{Math.round(totals.fiber)}g</p>
             </div>
           </div>
         </div>
@@ -406,18 +409,18 @@ export function NutritionDashboard() {
         {/* Quick Actions */}
         {yesterdaysMeals.length > 0 && (
           <div>
-            <h2 className="font-heading text-xl text-iron-white mb-3">QUICK ACTIONS</h2>
-            <div className="border border-iron-gray/50 p-4">
-              <p className="text-iron-gray text-sm mb-3">Copy from previous day to {isToday() ? 'today' : formatSelectedDate().toLowerCase()}:</p>
+            <h2 className="font-heading text-lg sm:text-xl text-iron-white mb-2 sm:mb-3">QUICK ACTIONS</h2>
+            <div className="border border-iron-gray/50 p-3 sm:p-4">
+              <p className="text-iron-gray text-xs sm:text-sm mb-2 sm:mb-3">Copy from previous day to {isToday() ? 'today' : formatSelectedDate().toLowerCase()}:</p>
               <div className="flex flex-wrap gap-2">
                 {yesterdaysMeals.slice(0, 3).map((meal) => (
                   <button
                     key={meal.id}
                     onClick={() => handleCopyMeal(meal)}
-                    className="text-iron-white bg-iron-gray/20 hover:bg-iron-gray/40 px-3 py-1 text-sm transition-colors flex items-center gap-2"
+                    className="text-iron-white bg-iron-gray/20 hover:bg-iron-gray/40 px-2 sm:px-3 py-1 text-xs sm:text-sm transition-colors flex items-center gap-1 sm:gap-2 min-h-[36px]"
                   >
                     <Copy className="w-3 h-3" />
-                    {meal.name || 'Meal'}
+                    <span className="truncate max-w-[120px] sm:max-w-none">{meal.name || 'Meal'}</span>
                   </button>
                 ))}
               </div>
@@ -427,19 +430,19 @@ export function NutritionDashboard() {
 
         {/* Meals by Category */}
         <div>
-          <h2 className="font-heading text-2xl text-iron-white mb-4">
+          <h2 className="font-heading text-lg sm:text-xl lg:text-2xl text-iron-white mb-3 sm:mb-4">
             {isToday() ? "TODAY'S" : formatSelectedDate()} MEALS
           </h2>
 
           {!todaysMeals || todaysMeals.length === 0 ? (
-            <div className="border border-iron-gray p-8 text-center">
-              <p className="text-iron-gray mb-4">
+            <div className="border border-iron-gray p-6 sm:p-8 text-center">
+              <p className="text-iron-gray mb-3 sm:mb-4 text-sm sm:text-base">
                 No meals logged {isToday() ? 'today' : 'for this date'}
               </p>
               {isToday() && (
                 <Link
                   href="/nutrition/add"
-                  className="inline-block bg-iron-orange text-iron-black px-6 py-2 font-heading uppercase tracking-wider hover:bg-orange-600 transition-colors"
+                  className="inline-block bg-iron-orange text-iron-black px-4 sm:px-6 py-2 font-heading text-sm sm:text-base uppercase tracking-wider hover:bg-orange-600 transition-colors"
                 >
                   Log Your First Meal
                 </Link>
@@ -453,38 +456,70 @@ export function NutritionDashboard() {
 
                 return (
                   <div key={category}>
-                    <h3 className="text-iron-orange font-heading uppercase text-sm mb-2">
+                    <h3 className="text-iron-orange font-heading uppercase text-xs sm:text-sm mb-2">
                       {category.replace('_', ' ')}
                     </h3>
                     <div className="space-y-3">
                       {meals.map((meal) => (
-                        <div key={meal.id} className="border border-iron-gray p-4 hover:border-iron-orange/50 transition-colors">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <h4 className="text-iron-white font-medium">{meal.name || 'Meal'}</h4>
-                              <p className="text-iron-gray text-sm">
-                                {new Date(meal.logged_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                              </p>
+                        <div key={meal.id} className="border border-iron-gray p-3 sm:p-4 hover:border-iron-orange/50 transition-colors">
+                          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start justify-between sm:block">
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="text-iron-white font-medium text-sm sm:text-base truncate pr-2 sm:pr-0">{meal.name || 'Meal'}</h4>
+                                  <p className="text-iron-gray text-xs sm:text-sm mt-0.5">
+                                    {new Date(meal.logged_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                  </p>
+                                </div>
+                                {/* Mobile Action Buttons */}
+                                <div className="flex gap-1 sm:hidden">
+                                  <button
+                                    onClick={() => handleCopyMeal(meal)}
+                                    className="text-iron-gray hover:text-iron-orange transition-colors p-2 min-w-[36px] min-h-[36px] flex items-center justify-center"
+                                    title="Copy meal"
+                                    aria-label="Copy meal"
+                                  >
+                                    <Copy className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleEditMeal(meal.id)}
+                                    className="text-iron-gray hover:text-iron-orange transition-colors p-2 min-w-[36px] min-h-[36px] flex items-center justify-center"
+                                    title="Edit meal"
+                                    aria-label="Edit meal"
+                                  >
+                                    <Edit2 className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteMeal(meal.id)}
+                                    disabled={deletingId === meal.id}
+                                    className="text-iron-gray hover:text-red-500 transition-colors disabled:opacity-50 p-2 min-w-[36px] min-h-[36px] flex items-center justify-center"
+                                    title="Delete meal"
+                                    aria-label="Delete meal"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              </div>
 
                               {(meal.total_calories || meal.total_protein_g || meal.total_carbs_g || meal.total_fat_g) && (
-                                <div className="flex gap-4 text-sm mt-2">
-                                  {meal.total_calories && (
-                                    <span className="text-iron-gray">
+                                <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs sm:text-sm mt-2">
+                                  {meal.total_calories > 0 && (
+                                    <span className="text-iron-gray whitespace-nowrap">
                                       <span className="text-iron-white">{Math.round(meal.total_calories)}</span> cal
                                     </span>
                                   )}
-                                  {meal.total_protein_g && (
-                                    <span className="text-iron-gray">
+                                  {meal.total_protein_g > 0 && (
+                                    <span className="text-iron-gray whitespace-nowrap">
                                       <span className="text-iron-white">{Math.round(meal.total_protein_g)}g</span> protein
                                     </span>
                                   )}
-                                  {meal.total_carbs_g && (
-                                    <span className="text-iron-gray">
+                                  {meal.total_carbs_g > 0 && (
+                                    <span className="text-iron-gray whitespace-nowrap">
                                       <span className="text-iron-white">{Math.round(meal.total_carbs_g)}g</span> carbs
                                     </span>
                                   )}
-                                  {meal.total_fat_g && (
-                                    <span className="text-iron-gray">
+                                  {meal.total_fat_g > 0 && (
+                                    <span className="text-iron-gray whitespace-nowrap">
                                       <span className="text-iron-white">{Math.round(meal.total_fat_g)}g</span> fat
                                     </span>
                                   )}
@@ -492,31 +527,34 @@ export function NutritionDashboard() {
                               )}
 
                               {meal.notes && (
-                                <p className="text-iron-gray text-sm mt-2">{meal.notes}</p>
+                                <p className="text-iron-gray text-xs sm:text-sm mt-2 line-clamp-2">{meal.notes}</p>
                               )}
                             </div>
 
-                            {/* Action Buttons */}
-                            <div className="flex gap-2">
+                            {/* Desktop Action Buttons */}
+                            <div className="hidden sm:flex gap-2 flex-shrink-0">
                               <button
                                 onClick={() => handleCopyMeal(meal)}
-                                className="text-iron-gray hover:text-iron-orange transition-colors"
+                                className="text-iron-gray hover:text-iron-orange transition-colors p-2"
                                 title="Copy meal"
+                                aria-label="Copy meal"
                               >
                                 <Copy className="w-4 h-4" />
                               </button>
                               <button
                                 onClick={() => handleEditMeal(meal.id)}
-                                className="text-iron-gray hover:text-iron-orange transition-colors"
+                                className="text-iron-gray hover:text-iron-orange transition-colors p-2"
                                 title="Edit meal"
+                                aria-label="Edit meal"
                               >
                                 <Edit2 className="w-4 h-4" />
                               </button>
                               <button
                                 onClick={() => handleDeleteMeal(meal.id)}
                                 disabled={deletingId === meal.id}
-                                className="text-iron-gray hover:text-red-500 transition-colors disabled:opacity-50"
+                                className="text-iron-gray hover:text-red-500 transition-colors disabled:opacity-50 p-2"
                                 title="Delete meal"
+                                aria-label="Delete meal"
                               >
                                 <Trash2 className="w-4 h-4" />
                               </button>
