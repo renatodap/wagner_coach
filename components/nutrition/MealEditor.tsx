@@ -76,36 +76,33 @@ export function MealEditor({ foods, onFoodsChange, showTotals = true }: MealEdit
     const food = foods[index]
     const newFoods = [...foods]
 
-    // Recalculate nutrition based on new quantity/unit
-    const scaleFactor = calculateScaleFactor(
-      quantity,
-      editUnit,
-      food.serving_size,
-      food.serving_unit
-    )
+    // Recalculate nutrition based on new quantity/unit (same logic as foodToMealFood)
+    const convertedQuantity = convertToBaseUnit(quantity, editUnit, food.serving_unit)
+    const quantityMultiplier = food.serving_size > 0 ? convertedQuantity / food.serving_size : 1
+
+    // Get base nutrition values from food record (divide current values by old multiplier)
+    const oldConvertedQuantity = convertToBaseUnit(food.quantity, food.unit, food.serving_unit)
+    const oldMultiplier = food.serving_size > 0 ? oldConvertedQuantity / food.serving_size : 1
+
+    const baseCalories = oldMultiplier !== 0 ? food.calories / oldMultiplier : food.calories
+    const baseProtein = oldMultiplier !== 0 ? food.protein_g / oldMultiplier : food.protein_g
+    const baseCarbs = oldMultiplier !== 0 ? food.carbs_g / oldMultiplier : food.carbs_g
+    const baseFat = oldMultiplier !== 0 ? food.fat_g / oldMultiplier : food.fat_g
+    const baseFiber = oldMultiplier !== 0 ? food.fiber_g / oldMultiplier : food.fiber_g
 
     newFoods[index] = {
       ...food,
       quantity,
       unit: editUnit,
-      calories: food.calories * scaleFactor / calculateScaleFactor(food.quantity, food.unit, food.serving_size, food.serving_unit),
-      protein_g: food.protein_g * scaleFactor / calculateScaleFactor(food.quantity, food.unit, food.serving_size, food.serving_unit),
-      carbs_g: food.carbs_g * scaleFactor / calculateScaleFactor(food.quantity, food.unit, food.serving_size, food.serving_unit),
-      fat_g: food.fat_g * scaleFactor / calculateScaleFactor(food.quantity, food.unit, food.serving_size, food.serving_unit),
-      fiber_g: food.fiber_g * scaleFactor / calculateScaleFactor(food.quantity, food.unit, food.serving_size, food.serving_unit)
+      calories: baseCalories * quantityMultiplier,
+      protein_g: baseProtein * quantityMultiplier,
+      carbs_g: baseCarbs * quantityMultiplier,
+      fat_g: baseFat * quantityMultiplier,
+      fiber_g: baseFiber * quantityMultiplier
     }
 
     onFoodsChange(newFoods)
     cancelEditing()
-  }
-
-  function calculateScaleFactor(quantity: number, unit: string, servingSize: number, servingUnit: string): number {
-    // Simplified scale calculation - just use quantity as multiplier for now
-    // In production, this would handle unit conversions properly
-    if (unit === 'serving') {
-      return quantity
-    }
-    return quantity / servingSize
   }
 
   if (foods.length === 0) {
@@ -255,6 +252,10 @@ export function MealEditor({ foods, onFoodsChange, showTotals = true }: MealEdit
 export function foodToMealFood(food: Food, quantity: number = 1, unit?: string): MealFood {
   const selectedUnit = unit || food.serving_unit || 'serving'
 
+  // Calculate nutrition scaling (same logic as backend trigger)
+  const convertedQuantity = convertToBaseUnit(quantity, selectedUnit, food.serving_unit)
+  const quantityMultiplier = food.serving_size > 0 ? convertedQuantity / food.serving_size : 1
+
   return {
     food_id: food.id,
     name: food.name,
@@ -263,10 +264,63 @@ export function foodToMealFood(food: Food, quantity: number = 1, unit?: string):
     unit: selectedUnit,
     serving_size: food.serving_size,
     serving_unit: food.serving_unit,
-    calories: food.calories || 0,
-    protein_g: food.protein_g || 0,
-    carbs_g: food.carbs_g || 0,
-    fat_g: food.fat_g || 0,
-    fiber_g: food.fiber_g || 0
+    calories: (food.calories || 0) * quantityMultiplier,
+    protein_g: (food.protein_g || 0) * quantityMultiplier,
+    carbs_g: (food.carbs_g || 0) * quantityMultiplier,
+    fat_g: (food.fat_g || 0) * quantityMultiplier,
+    fiber_g: (food.fiber_g || 0) * quantityMultiplier
+  }
+}
+
+// Unit conversion function (mirrors backend convert_to_base_unit)
+function convertToBaseUnit(quantity: number, fromUnit: string, toUnit: string): number {
+  if (fromUnit === toUnit) {
+    return quantity
+  }
+
+  // Convert to grams first
+  let grams: number
+  switch (fromUnit) {
+    case 'g': grams = quantity; break
+    case 'kg': grams = quantity * 1000; break
+    case 'mg': grams = quantity / 1000; break
+    case 'oz': grams = quantity * 28.3495; break
+    case 'lb': grams = quantity * 453.592; break
+    case 'ml': grams = quantity; break
+    case 'l': grams = quantity * 1000; break
+    case 'fl oz': grams = quantity * 29.5735; break
+    case 'cup': grams = quantity * 240; break
+    case 'tbsp': grams = quantity * 15; break
+    case 'tsp': grams = quantity * 5; break
+    case 'serving':
+    case 'piece':
+    case 'slice':
+    case 'item':
+      grams = quantity
+      break
+    default:
+      grams = quantity
+  }
+
+  // Convert from grams to target unit
+  switch (toUnit) {
+    case 'g': return grams
+    case 'kg': return grams / 1000
+    case 'mg': return grams * 1000
+    case 'oz': return grams / 28.3495
+    case 'lb': return grams / 453.592
+    case 'ml': return grams
+    case 'l': return grams / 1000
+    case 'fl oz': return grams / 29.5735
+    case 'cup': return grams / 240
+    case 'tbsp': return grams / 15
+    case 'tsp': return grams / 5
+    case 'serving':
+    case 'piece':
+    case 'slice':
+    case 'item':
+      return grams
+    default:
+      return grams
   }
 }
