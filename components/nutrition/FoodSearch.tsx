@@ -17,7 +17,7 @@ export function FoodSearch({ onSelectFood, placeholder = "Search foods..." }: Fo
   const [loading, setLoading] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [foodService] = useState(() => new FoodService());
-  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0, maxHeight: 384, openUpward: false });
   const inputRef = useRef<HTMLInputElement>(null);
   const [mounted, setMounted] = useState(false);
 
@@ -90,10 +90,25 @@ export function FoodSearch({ onSelectFood, placeholder = "Search foods..." }: Fo
   const updateDropdownPosition = () => {
     if (inputRef.current) {
       const rect = inputRef.current.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      const spaceBelow = viewportHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      const dropdownMaxHeight = 384; // 96 * 4 (max-h-96 in Tailwind)
+      const padding = 16; // Extra padding for safety
+
+      // Decide if we should open upward or downward
+      const shouldOpenUpward = spaceBelow < dropdownMaxHeight + padding && spaceAbove > spaceBelow;
+
+      // Calculate actual max height based on available space
+      const availableSpace = shouldOpenUpward ? spaceAbove : spaceBelow;
+      const calculatedMaxHeight = Math.min(dropdownMaxHeight, availableSpace - padding);
+
       setDropdownPosition({
-        top: rect.bottom + window.scrollY,
+        top: shouldOpenUpward ? rect.top + window.scrollY : rect.bottom + window.scrollY,
         left: rect.left + window.scrollX,
         width: rect.width,
+        maxHeight: Math.max(200, calculatedMaxHeight), // Minimum 200px
+        openUpward: shouldOpenUpward,
       });
     }
   };
@@ -144,12 +159,14 @@ export function FoodSearch({ onSelectFood, placeholder = "Search foods..." }: Fo
       id="food-search-dropdown"
       style={{
         position: 'fixed',
-        top: `${dropdownPosition.top}px`,
+        top: dropdownPosition.openUpward ? 'auto' : `${dropdownPosition.top}px`,
+        bottom: dropdownPosition.openUpward ? `${window.innerHeight - dropdownPosition.top}px` : 'auto',
         left: `${dropdownPosition.left}px`,
         width: `${dropdownPosition.width}px`,
+        maxHeight: `${dropdownPosition.maxHeight}px`,
         zIndex: 9999,
       }}
-      className="mt-1 bg-iron-black border border-iron-gray max-h-96 overflow-y-auto shadow-2xl"
+      className={`bg-iron-black border border-iron-gray overflow-y-auto shadow-2xl ${dropdownPosition.openUpward ? 'mb-1' : 'mt-1'}`}
     >
       {loading ? (
         <div className="p-4 text-center text-iron-gray">
