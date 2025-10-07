@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { ChevronDown, ChevronUp, Check, Edit3, AlertTriangle, X, Plus } from 'lucide-react';
 import { MealPrimaryFields, MealSecondaryFields, QuickEntryPreviewResponse } from './types';
 
@@ -13,6 +13,11 @@ interface MealPreviewProps {
 interface FoodItem {
   name: string;
   quantity: string;
+  calories?: number;
+  protein_g?: number;
+  carbs_g?: number;
+  fat_g?: number;
+  fiber_g?: number;
 }
 
 export default function MealPreview({ data, onSave, onEdit }: MealPreviewProps) {
@@ -25,6 +30,52 @@ export default function MealPreview({ data, onSave, onEdit }: MealPreviewProps) 
   const primary = data.data.primary_fields as MealPrimaryFields;
   const secondary = data.data.secondary_fields as MealSecondaryFields;
 
+  // Calculate totals from foods array
+  const calculatedTotals = useMemo(() => {
+    const foods = editedFields.foods || [];
+
+    const totals = {
+      calories: 0,
+      protein_g: 0,
+      carbs_g: 0,
+      fat_g: 0,
+      fiber_g: 0
+    };
+
+    foods.forEach((food: any) => {
+      // Only sum if food has nutrition data (object with calories)
+      if (typeof food === 'object' && food.calories !== undefined) {
+        totals.calories += food.calories || 0;
+        totals.protein_g += food.protein_g || 0;
+        totals.carbs_g += food.carbs_g || 0;
+        totals.fat_g += food.fat_g || 0;
+        totals.fiber_g += food.fiber_g || 0;
+      }
+    });
+
+    return totals;
+  }, [editedFields.foods]);
+
+  // Use calculated totals if foods have nutrition, otherwise fall back to primary fields
+  const displayTotals = useMemo(() => {
+    const hasFoodNutrition = editedFields.foods?.some((f: any) =>
+      typeof f === 'object' && f.calories !== undefined
+    );
+
+    if (hasFoodNutrition) {
+      return calculatedTotals;
+    }
+
+    // Fallback to original totals
+    return {
+      calories: primary.calories,
+      protein_g: primary.protein_g,
+      carbs_g: secondary.carbs_g,
+      fat_g: primary.fat_g || secondary.fat_g,
+      fiber_g: secondary.fiber_g
+    };
+  }, [calculatedTotals, primary, secondary, editedFields.foods]);
+
   const updateField = (field: string, value: any) => {
     setEditedFields({ ...editedFields, [field]: value });
   };
@@ -32,16 +83,32 @@ export default function MealPreview({ data, onSave, onEdit }: MealPreviewProps) 
   const startEditingFood = (index: number) => {
     const food = editedFields.foods[index];
     setEditingFoodIndex(index);
-    setEditingFood({
-      name: food.name || food,
-      quantity: food.quantity || 'not specified'
-    });
+
+    // Handle both string format (old) and object format (new with nutrition)
+    if (typeof food === 'string') {
+      setEditingFood({
+        name: food,
+        quantity: 'not specified'
+      });
+    } else {
+      setEditingFood({
+        name: food.name || '',
+        quantity: food.quantity || 'not specified',
+        calories: food.calories,
+        protein_g: food.protein_g,
+        carbs_g: food.carbs_g,
+        fat_g: food.fat_g,
+        fiber_g: food.fiber_g
+      });
+    }
   };
 
   const saveEditedFood = () => {
     if (editingFoodIndex !== null) {
       const updatedFoods = [...editedFields.foods];
+      // Preserve nutrition data when editing
       updatedFoods[editingFoodIndex] = {
+        ...editingFood,
         name: editingFood.name,
         quantity: editingFood.quantity
       };
@@ -52,9 +119,14 @@ export default function MealPreview({ data, onSave, onEdit }: MealPreviewProps) 
   };
 
   const addNewFood = () => {
-    const newFood = {
+    const newFood: FoodItem = {
       name: 'New food',
-      quantity: 'not specified'
+      quantity: 'not specified',
+      calories: 0,
+      protein_g: 0,
+      carbs_g: 0,
+      fat_g: 0,
+      fiber_g: 0
     };
     updateField('foods', [...(editedFields.foods || []), newFood]);
   };
@@ -65,7 +137,16 @@ export default function MealPreview({ data, onSave, onEdit }: MealPreviewProps) 
   };
 
   const handleSave = () => {
-    onSave(editedFields);
+    // Include calculated totals when saving
+    const dataToSave = {
+      ...editedFields,
+      calories: displayTotals.calories,
+      protein_g: displayTotals.protein_g,
+      carbs_g: displayTotals.carbs_g,
+      fat_g: displayTotals.fat_g,
+      fiber_g: displayTotals.fiber_g
+    };
+    onSave(dataToSave);
   };
 
   const mealTypeEmojis: Record<string, string> = {
@@ -242,22 +323,22 @@ export default function MealPreview({ data, onSave, onEdit }: MealPreviewProps) 
         </div>
 
         {/* Nutrition Cards */}
-        {(primary.calories !== null || !data.data.needs_clarification) && (
+        {(displayTotals.calories !== null || !data.data.needs_clarification) && (
           <div>
             <label className="block text-sm font-medium text-iron-gray uppercase tracking-wider mb-3">
               Nutrition Summary
             </label>
             <div className="grid grid-cols-3 gap-4">
               <div className="bg-iron-orange rounded-xl p-4 text-white text-center">
-                <div className="text-4xl font-heading">{primary.calories || '?'}</div>
+                <div className="text-4xl font-heading">{Math.round(displayTotals.calories) || '?'}</div>
                 <div className="text-sm opacity-90 mt-1 uppercase tracking-wide">Calories</div>
               </div>
               <div className="bg-iron-orange rounded-xl p-4 text-white text-center">
-                <div className="text-4xl font-heading">{primary.protein_g || '?'}g</div>
+                <div className="text-4xl font-heading">{Math.round(displayTotals.protein_g) || '?'}g</div>
                 <div className="text-sm opacity-90 mt-1 uppercase tracking-wide">Protein</div>
               </div>
               <div className="bg-iron-orange rounded-xl p-4 text-white text-center">
-                <div className="text-4xl font-heading">{secondary.carbs_g || '?'}g</div>
+                <div className="text-4xl font-heading">{Math.round(displayTotals.carbs_g) || '?'}g</div>
                 <div className="text-sm opacity-90 mt-1 uppercase tracking-wide">Carbs</div>
               </div>
             </div>
