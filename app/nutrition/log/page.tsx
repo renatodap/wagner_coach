@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ArrowLeft, Save, CheckCircle } from 'lucide-react'
+import { ArrowLeft, Save, CheckCircle, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -15,7 +15,7 @@ import { createClient } from '@/lib/supabase/client'
 
 type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack'
 
-export default function LogMealPage() {
+function LogMealForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -280,5 +280,27 @@ export default function LogMealPage() {
         </div>
       </form>
     </div>
+  )
+}
+
+// Loading fallback for Suspense boundary
+function LoadingFallback() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-iron-black to-neutral-900 flex items-center justify-center p-4">
+      <div className="bg-iron-black/50 backdrop-blur-sm border-2 border-iron-orange p-8 rounded-lg text-center w-full max-w-md">
+        <Loader2 className="mx-auto h-16 w-16 text-iron-orange mb-4 animate-spin" />
+        <p className="text-xl font-bold text-white mb-2">Loading...</p>
+        <p className="text-iron-gray">Preparing meal log form</p>
+      </div>
+    </div>
+  )
+}
+
+// Export default page wrapped in Suspense for useSearchParams
+export default function LogMealPage() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <LogMealForm />
+    </Suspense>
   )
 }
