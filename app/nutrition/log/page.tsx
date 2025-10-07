@@ -1,81 +1,46 @@
 'use client'
 
-import { useState, useMemo } from 'react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { ArrowLeft, Save, CheckCircle } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { FoodSearchV2 } from '@/components/nutrition/FoodSearchV2'
+import { MealEditor, foodToMealFood, type MealFood } from '@/components/nutrition/MealEditor'
+import { createMeal } from '@/lib/api/meals'
+import type { Food } from '@/lib/api/foods'
+import { createClient } from '@/lib/supabase/client'
 
 type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack'
-
-interface FoodItem {
-  id: string
-  name: string
-  calories: number
-  protein: number
-  carbs: number
-  fats: number
-}
 
 export default function LogMealPage() {
   const router = useRouter()
   const [mealType, setMealType] = useState<MealType>('breakfast')
-  const [foodItems, setFoodItems] = useState<FoodItem[]>([
-    { id: '1', name: '', calories: 0, protein: 0, carbs: 0, fats: 0 }
-  ])
+  const [mealTime, setMealTime] = useState(() => {
+    const now = new Date()
+    return now.toISOString().slice(0, 16) // Format for datetime-local input
+  })
+  const [notes, setNotes] = useState('')
+  const [foods, setFoods] = useState<MealFood[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
 
-  // Real-time totals calculation
-  const totals = useMemo(() => {
-    return foodItems.reduce(
-      (acc, item) => ({
-        calories: acc.calories + (item.calories || 0),
-        protein: acc.protein + (item.protein || 0),
-        carbs: acc.carbs + (item.carbs || 0),
-        fats: acc.fats + (item.fats || 0)
-      }),
-      { calories: 0, protein: 0, carbs: 0, fats: 0 }
-    )
-  }, [foodItems])
+  function handleSelectFood(food: Food) {
+    // Use last logged quantity/unit if available, otherwise use serving
+    const quantity = food.last_quantity || 1
+    const unit = food.last_unit || food.serving_unit || 'serving'
 
-  const addFoodItem = () => {
-    setFoodItems([
-      ...foodItems,
-      { id: Date.now().toString(), name: '', calories: 0, protein: 0, carbs: 0, fats: 0 }
-    ])
+    const mealFood = foodToMealFood(food, quantity, unit)
+    setFoods([...foods, mealFood])
   }
 
-  const removeFoodItem = (id: string) => {
-    if (foodItems.length > 1) {
-      setFoodItems(foodItems.filter(item => item.id !== id))
-    }
-  }
-
-  const updateFoodItem = (id: string, field: keyof FoodItem, value: string | number) => {
-    setFoodItems(foodItems.map(item =>
-      item.id === id ? { ...item, [field]: value } : item
-    ))
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
 
-    // Validation
-    const validFoodItems = foodItems.filter(item => item.name.trim())
-    if (validFoodItems.length === 0) {
+    if (foods.length === 0) {
       setError('Please add at least one food item')
-      return
-    }
-
-    // Check if all valid food items have some nutritional data
-    const hasNutritionData = validFoodItems.every(
-      item => item.calories > 0 || item.protein > 0 || item.carbs > 0 || item.fats > 0
-    )
-
-    if (!hasNutritionData) {
-      setError('Please enter nutritional information for all food items')
       return
     }
 
@@ -83,17 +48,27 @@ export default function LogMealPage() {
     setError(null)
 
     try {
-      // For INCREMENT 3: Just simulate save with console log
-      // In a real implementation, this would call a backend API
-      console.log('Saving meal:', {
-        mealType,
-        foodItems: validFoodItems,
-        totals,
-        timestamp: new Date().toISOString()
-      })
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
 
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500))
+      if (!session?.access_token) {
+        throw new Error('Not authenticated')
+      }
+
+      // Create meal via API
+      await createMeal(
+        {
+          category: mealType,
+          logged_at: new Date(mealTime).toISOString(),
+          notes: notes || undefined,
+          foods: foods.map((f) => ({
+            food_id: f.food_id,
+            quantity: f.quantity,
+            unit: f.unit
+          }))
+        },
+        session.access_token
+      )
 
       setSuccess(true)
 
@@ -101,7 +76,6 @@ export default function LogMealPage() {
       setTimeout(() => {
         router.push('/nutrition')
       }, 2000)
-
     } catch (err) {
       console.error('Error saving meal:', err)
       setError(err instanceof Error ? err.message : 'Failed to save meal')
@@ -112,181 +86,133 @@ export default function LogMealPage() {
 
   if (success) {
     return (
-      <div className="max-w-2xl mx-auto p-4">
-        <div className="bg-green-100 border border-green-400 text-green-700 p-4 rounded-lg text-center">
-          <p className="text-lg font-bold mb-2">Meal Logged Successfully!</p>
-          <p>Redirecting to nutrition page...</p>
+      <div className="max-w-2xl mx-auto p-4 min-h-screen flex items-center justify-center">
+        <div className="bg-green-50 border-2 border-green-500 text-green-800 p-8 rounded-lg text-center w-full max-w-md">
+          <CheckCircle className="mx-auto h-16 w-16 text-green-600 mb-4" />
+          <p className="text-2xl font-bold mb-2">Meal Logged Successfully!</p>
+          <p className="text-green-700">Redirecting to nutrition page...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="max-w-2xl mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Log Meal</h1>
+    <div className="max-w-4xl mx-auto p-4 pb-24">
+      {/* Header */}
+      <div className="flex items-center gap-4 mb-6">
+        <button
+          onClick={() => router.back()}
+          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          aria-label="Go back"
+        >
+          <ArrowLeft size={24} />
+        </button>
+        <h1 className="text-3xl font-bold text-gray-900">Log Meal</h1>
+      </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Meal Type Selector */}
-        <div>
-          <Label htmlFor="mealType">Meal Type</Label>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2">
-            {(['breakfast', 'lunch', 'dinner', 'snack'] as MealType[]).map((type) => (
-              <button
-                key={type}
-                type="button"
-                onClick={() => setMealType(type)}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors capitalize ${
-                  mealType === type
-                    ? 'bg-green-500 text-white'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
-              >
-                {type}
-              </button>
-            ))}
+        {/* Meal Type & Time */}
+        <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-4">
+          <div>
+            <Label htmlFor="mealType" className="text-base font-semibold">Meal Type</Label>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2">
+              {(['breakfast', 'lunch', 'dinner', 'snack'] as MealType[]).map((type) => (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => setMealType(type)}
+                  className={`px-4 py-3 rounded-lg font-medium transition-all capitalize ${
+                    mealType === type
+                      ? 'bg-green-600 text-white shadow-md'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {type}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="mealTime" className="text-base font-semibold">Time</Label>
+            <input
+              type="datetime-local"
+              id="mealTime"
+              value={mealTime}
+              onChange={(e) => setMealTime(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-4 py-2 mt-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+            />
           </div>
         </div>
 
-        {/* Food Items */}
-        <div>
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">Food Items</h2>
-            <Button type="button" onClick={addFoodItem} variant="outline">
-              + Add Food
-            </Button>
-          </div>
-
-          <div className="space-y-4">
-            {foodItems.map((item, index) => (
-              <div key={item.id} className="border p-4 rounded-lg bg-gray-50">
-                <div className="flex justify-between items-start mb-3">
-                  <h3 className="font-medium">Food {index + 1}</h3>
-                  {foodItems.length > 1 && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeFoodItem(item.id)}
-                      className="text-red-500 hover:text-red-700"
-                    >
-                      Remove
-                    </Button>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="md:col-span-2">
-                    <Label htmlFor={`food-name-${item.id}`}>Food Name</Label>
-                    <Input
-                      id={`food-name-${item.id}`}
-                      value={item.name}
-                      onChange={(e) => updateFoodItem(item.id, 'name', e.target.value)}
-                      placeholder="e.g., Chicken Breast, Brown Rice"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor={`food-calories-${item.id}`}>Calories</Label>
-                    <Input
-                      id={`food-calories-${item.id}`}
-                      type="number"
-                      min="0"
-                      value={item.calories || ''}
-                      onChange={(e) => updateFoodItem(item.id, 'calories', parseFloat(e.target.value) || 0)}
-                      placeholder="0"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor={`food-protein-${item.id}`}>Protein (g)</Label>
-                    <Input
-                      id={`food-protein-${item.id}`}
-                      type="number"
-                      min="0"
-                      step="0.1"
-                      value={item.protein || ''}
-                      onChange={(e) => updateFoodItem(item.id, 'protein', parseFloat(e.target.value) || 0)}
-                      placeholder="0"
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor={`food-carbs-${item.id}`}>Carbs (g)</Label>
-                    <Input
-                      id={`food-carbs-${item.id}`}
-                      type="number"
-                      min="0"
-                      step="0.1"
-                      value={item.carbs || ''}
-                      onChange={(e) => updateFoodItem(item.id, 'carbs', parseFloat(e.target.value) || 0)}
-                      placeholder="0"
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor={`food-fats-${item.id}`}>Fats (g)</Label>
-                    <Input
-                      id={`food-fats-${item.id}`}
-                      type="number"
-                      min="0"
-                      step="0.1"
-                      value={item.fats || ''}
-                      onChange={(e) => updateFoodItem(item.id, 'fats', parseFloat(e.target.value) || 0)}
-                      placeholder="0"
-                    />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+        {/* Food Search */}
+        <div className="bg-white border border-gray-200 rounded-lg p-6">
+          <Label className="text-base font-semibold mb-3 block">Search & Add Foods</Label>
+          <FoodSearchV2
+            onSelectFood={handleSelectFood}
+            placeholder="Search for foods (e.g., chicken breast, brown rice)..."
+            showRecentFoods={true}
+          />
         </div>
 
-        {/* Real-time Totals */}
-        <div className="border-2 border-green-500 p-4 rounded-lg bg-green-50">
-          <h3 className="font-bold text-lg mb-3">Total Macros</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center">
-              <p className="text-sm text-gray-600">Calories</p>
-              <p className="text-2xl font-bold text-green-600">{totals.calories.toFixed(0)}</p>
-            </div>
-            <div className="text-center">
-              <p className="text-sm text-gray-600">Protein</p>
-              <p className="text-2xl font-bold text-green-600">{totals.protein.toFixed(1)}g</p>
-            </div>
-            <div className="text-center">
-              <p className="text-sm text-gray-600">Carbs</p>
-              <p className="text-2xl font-bold text-green-600">{totals.carbs.toFixed(1)}g</p>
-            </div>
-            <div className="text-center">
-              <p className="text-sm text-gray-600">Fats</p>
-              <p className="text-2xl font-bold text-green-600">{totals.fats.toFixed(1)}g</p>
-            </div>
-          </div>
+        {/* Meal Editor */}
+        <div className="bg-white border border-gray-200 rounded-lg p-6">
+          <Label className="text-base font-semibold mb-3 block">Foods in This Meal</Label>
+          <MealEditor
+            foods={foods}
+            onFoodsChange={setFoods}
+            showTotals={true}
+          />
+        </div>
+
+        {/* Notes */}
+        <div className="bg-white border border-gray-200 rounded-lg p-6">
+          <Label htmlFor="notes" className="text-base font-semibold">Notes (Optional)</Label>
+          <Textarea
+            id="notes"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="e.g., Post-workout meal, eating out, meal prep..."
+            className="mt-2"
+            rows={3}
+            maxLength={500}
+          />
+          <p className="text-xs text-gray-500 mt-1">{notes.length}/500 characters</p>
         </div>
 
         {/* Error Message */}
         {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 p-3 rounded">
-            {error}
+          <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg">
+            <p className="font-medium">Error</p>
+            <p className="text-sm">{error}</p>
           </div>
         )}
 
         {/* Actions */}
-        <div className="flex gap-4">
+        <div className="flex gap-4 sticky bottom-4 bg-white border border-gray-200 rounded-lg p-4 shadow-lg">
           <Button
             type="submit"
-            disabled={loading}
-            className="flex-1 bg-green-600 hover:bg-green-700"
+            disabled={loading || foods.length === 0}
+            className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 h-12 text-lg font-semibold"
           >
-            {loading ? 'Saving...' : 'Save Meal'}
+            {loading ? (
+              <>
+                <div className="animate-spin inline-block w-5 h-5 border-2 border-white border-t-transparent rounded-full mr-2" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save size={20} className="mr-2" />
+                Save Meal
+              </>
+            )}
           </Button>
           <Button
             type="button"
             variant="outline"
             onClick={() => router.back()}
             disabled={loading}
+            className="px-6 h-12"
           >
             Cancel
           </Button>

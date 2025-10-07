@@ -1,10 +1,12 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Profile } from '@/lib/types'
 import BottomNavigation from '@/app/components/BottomNavigation'
 import { CircularProgress } from '@/components/dashboard/CircularProgress'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Plus, UtensilsCrossed } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 interface DashboardClientProps {
   profile?: Profile | null
@@ -34,6 +36,7 @@ interface NutritionData {
 export default function DashboardClient({
   profile,
 }: DashboardClientProps) {
+  const router = useRouter()
   const [nutritionData, setNutritionData] = useState<NutritionData | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -139,6 +142,15 @@ export default function DashboardClient({
           </div>
         )}
       </div>
+
+      {/* Floating Action Button - Log Meal */}
+      <button
+        onClick={() => router.push('/nutrition/log')}
+        className="fixed bottom-20 right-4 z-40 bg-iron-orange hover:bg-iron-orange/90 text-white rounded-full p-4 shadow-lg transition-all duration-200 hover:scale-110 focus-visible:ring-2 focus-visible:ring-iron-orange focus-visible:ring-offset-2"
+        aria-label="Log a meal"
+      >
+        <UtensilsCrossed size={24} />
+      </button>
 
       <BottomNavigation />
     </div>
