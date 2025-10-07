@@ -48,6 +48,24 @@ export interface RAGContext {
   similarity_threshold: number
 }
 
+export interface FoodDetected {
+  is_food: boolean
+  nutrition: {
+    calories?: number
+    protein_g?: number
+    carbs_g?: number
+    fats_g?: number
+  }
+  food_items: Array<{
+    name: string
+    quantity?: string
+    unit?: string
+  }>
+  meal_type?: string
+  confidence: number
+  description: string
+}
+
 export interface SendMessageRequest {
   message: string
   conversation_id?: string | null
@@ -63,6 +81,7 @@ export interface SendMessageResponse {
   is_log_preview: boolean
   message?: string
   log_preview?: LogPreview
+  food_detected?: FoodDetected  // NEW: Food vision analysis result
   rag_context?: RAGContext
   tokens_used?: number
   cost_usd?: number

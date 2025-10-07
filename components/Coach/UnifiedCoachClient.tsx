@@ -20,6 +20,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback, memo } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   Mic,
   Paperclip,
@@ -58,6 +59,7 @@ import {
   type UnifiedMessage,
   type LogPreview,
   type ConversationSummary,
+  type FoodDetected,
 } from '@/lib/api/unified-coach'
 import { uploadFiles, validateFile } from '@/lib/utils/file-upload'
 
@@ -127,6 +129,7 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
 
   // Hooks
   const { toast } = useToast()
+  const router = useRouter()
 
   // Determine if we're in chat mode or entry mode
   const hasStartedChat = messages.length > 0
@@ -423,6 +426,49 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
             setAttachedFiles([])
             setIsLoading(false)
             setIsStreaming(false)
+            return
+          }
+
+          // NEW: Check if food was detected in image - AUTO-REDIRECT to meal log page
+          if (chunk.food_detected && chunk.food_detected.is_food) {
+            const foodData = chunk.food_detected
+
+            // Convert food_detected to meal preview data format
+            const mealData = {
+              meal_type: foodData.meal_type || 'snack',
+              calories: foodData.nutrition.calories || 0,
+              protein_g: foodData.nutrition.protein_g || 0,
+              carbs_g: foodData.nutrition.carbs_g || 0,
+              fat_g: foodData.nutrition.fats_g || 0,
+              foods: foodData.food_items.map(item => ({
+                name: item.name,
+                quantity: item.quantity || '1',
+                unit: item.unit || 'serving'
+              })),
+              notes: `Detected from image: ${foodData.description}`
+            }
+
+            const params = new URLSearchParams({
+              previewData: JSON.stringify(mealData),
+              returnTo: '/coach',
+              conversationId: newConversationId || '',
+              userMessageId: chunk.message_id,
+              logType: 'meal'
+            })
+
+            setText('')
+            setAttachedFiles([])
+            setIsLoading(false)
+            setIsStreaming(false)
+
+            // Show toast notification
+            toast({
+              title: '🍽️ Food Detected!',
+              description: `Detected ${foodData.food_items.length} food items. Review and log your meal.`,
+            })
+
+            // Redirect to meal log page with pre-populated data
+            router.push(`/nutrition/log?${params.toString()}`)
             return
           }
 
