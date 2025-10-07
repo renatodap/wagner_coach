@@ -36,10 +36,16 @@ export function FoodSearchV2({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  // Load recent foods on mount
+  // Load recent foods on mount (only when auth is ready)
   useEffect(() => {
     if (showRecentFoods) {
-      loadRecentFoods()
+      // Check auth first, then load
+      const supabase = createClient()
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session?.access_token) {
+          loadRecentFoods(session.access_token)
+        }
+      })
     }
   }, [showRecentFoods])
 
@@ -57,23 +63,17 @@ export function FoodSearchV2({
     return () => clearTimeout(timer)
   }, [query])
 
-  async function loadRecentFoods() {
+  async function loadRecentFoods(token: string) {
     try {
-      const supabase = createClient()
-      const { data: { session } } = await supabase.auth.getSession()
-
-      if (!session?.access_token) {
-        return
-      }
-
       const response = await getRecentFoods({
         limit: 10,
-        token: session.access_token
+        token
       })
 
       setRecentFoods(response.foods)
     } catch (err) {
       console.error('Error loading recent foods:', err)
+      // Silently fail for recent foods - not critical
     }
   }
 
