@@ -112,7 +112,7 @@ export async function getFoodById(
   const response = await fetch(`${API_BASE_URL}/api/v1/foods/${foodId}`, {
     method: 'GET',
     headers: {
-      'Authorization': `Bearer ${options.token}`,
+      'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
     },
   })
