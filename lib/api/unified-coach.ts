@@ -33,6 +33,12 @@ export interface LogPreview {
   data: Record<string, any>
   reasoning: string
   summary: string
+  validation?: {
+    errors: string[]
+    warnings: string[]
+    missing_critical: string[]
+  }
+  suggestions?: string[]
 }
 
 export interface RAGContext {

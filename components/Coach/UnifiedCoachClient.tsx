@@ -45,7 +45,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
 import { UnifiedMessageBubble } from './UnifiedMessageBubble'
-import { LogPreviewCard } from './LogPreviewCard'
+import QuickEntryPreview from '@/components/quick-entry/QuickEntryPreview'
 import BottomNavigation from '@/app/components/BottomNavigation'
 import {
   Sheet,
@@ -1023,14 +1023,31 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
               </div>
             )}
 
-            {/* Log Preview Card */}
+            {/* Log Preview - Using QuickEntry Preview Components (EXACTLY like old Quick Entry) */}
             {pendingLogPreview && (
-              <LogPreviewCard
-                preview={pendingLogPreview.preview}
-                onConfirm={handleConfirmLog}
-                onCancel={handleCancelLog}
-                className="mt-4"
-              />
+              <div className="mt-4 bg-iron-black border-2 border-iron-orange rounded-3xl p-6 shadow-2xl">
+                <QuickEntryPreview
+                  data={{
+                    success: true,
+                    entry_type: pendingLogPreview.preview.log_type as any,
+                    confidence: pendingLogPreview.preview.confidence,
+                    data: pendingLogPreview.preview.data,
+                    validation: (pendingLogPreview.preview as any).validation || {
+                      errors: [],
+                      warnings: [],
+                      missing_critical: []
+                    },
+                    suggestions: (pendingLogPreview.preview as any).suggestions || []
+                  }}
+                  onSave={async (editedData) => {
+                    await handleConfirmLog(editedData)
+                  }}
+                  onEdit={() => {
+                    // Edit mode is handled within the preview components
+                  }}
+                  onCancel={handleCancelLog}
+                />
+              </div>
             )}
 
             {/* Error Message */}
