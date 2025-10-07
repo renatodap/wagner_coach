@@ -32,10 +32,6 @@ import {
   FileText,
   MessageSquare,
   History,
-  Utensils,
-  Dumbbell,
-  Sparkles,
-  TrendingUp,
   Zap,
   DollarSign,
   Database,
@@ -543,16 +539,6 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
     setPendingLogPreview(null)
   }
 
-  function handleQuickAction(prompt: string) {
-    setText(prompt)
-    textareaRef.current?.focus()
-  }
-
-  async function handleQuickQuestion(question: string) {
-    setText(question)
-    setTimeout(() => handleSendMessage(), 100)
-  }
-
   // ============================================================================
   // RENDER HELPERS
   // ============================================================================
@@ -607,50 +593,6 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
               </div>
             )}
 
-            {/* Quick Action Buttons */}
-            {!hasContent && (
-              <div className="mb-8 grid grid-cols-2 gap-4">
-                <button
-                  onClick={() => handleQuickAction("I just ate ")}
-                  className="group p-6 bg-gradient-to-br from-iron-gray/30 to-iron-gray/10 hover:from-iron-gray/50 hover:to-iron-gray/20 border-2 border-iron-orange/30 hover:border-iron-orange transition-all duration-300 relative overflow-hidden"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-br from-iron-orange/0 to-iron-orange/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <Utensils className="relative w-8 h-8 text-iron-orange mb-3 group-hover:scale-110 transition-transform" />
-                  <p className="relative font-heading font-black text-iron-white text-lg tracking-wide">LOG MEAL</p>
-                  <p className="relative text-xs text-iron-gray mt-1">Tell me what you ate</p>
-                </button>
-
-                <button
-                  onClick={() => handleQuickAction("I just did ")}
-                  className="group p-6 bg-gradient-to-br from-iron-gray/30 to-iron-gray/10 hover:from-iron-gray/50 hover:to-iron-gray/20 border-2 border-iron-orange/30 hover:border-iron-orange transition-all duration-300 relative overflow-hidden"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-br from-iron-orange/0 to-iron-orange/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <Dumbbell className="relative w-8 h-8 text-iron-orange mb-3 group-hover:scale-110 transition-transform" />
-                  <p className="relative font-heading font-black text-iron-white text-lg tracking-wide">LOG WORKOUT</p>
-                  <p className="relative text-xs text-iron-gray mt-1">Describe your session</p>
-                </button>
-
-                <button
-                  onClick={() => handleQuickQuestion("What should I eat today?")}
-                  className="group p-6 bg-gradient-to-br from-iron-gray/30 to-iron-gray/10 hover:from-iron-gray/50 hover:to-iron-gray/20 border-2 border-iron-orange/30 hover:border-iron-orange transition-all duration-300 relative overflow-hidden"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-br from-iron-orange/0 to-iron-orange/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <Sparkles className="relative w-8 h-8 text-iron-orange mb-3 group-hover:scale-110 transition-transform" />
-                  <p className="relative font-heading font-black text-iron-white text-lg tracking-wide">NUTRITION ADVICE</p>
-                  <p className="relative text-xs text-iron-gray mt-1">Ask about meals</p>
-                </button>
-
-                <button
-                  onClick={() => handleQuickQuestion("Analyze my recent workouts")}
-                  className="group p-6 bg-gradient-to-br from-iron-gray/30 to-iron-gray/10 hover:from-iron-gray/50 hover:to-iron-gray/20 border-2 border-iron-orange/30 hover:border-iron-orange transition-all duration-300 relative overflow-hidden"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-br from-iron-orange/0 to-iron-orange/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <TrendingUp className="relative w-8 h-8 text-iron-orange mb-3 group-hover:scale-110 transition-transform" />
-                  <p className="relative font-heading font-black text-iron-white text-lg tracking-wide">PROGRESS CHECK</p>
-                  <p className="relative text-xs text-iron-gray mt-1">Review your training</p>
-                </button>
-              </div>
-            )}
 
             {/* Error Display */}
             {error && (
