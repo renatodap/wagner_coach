@@ -17,20 +17,52 @@ export async function GET() {
 
     const today = new Date().toISOString().split('T')[0] // YYYY-MM-DD format
 
-    // Fetch user's nutrition targets
-    const { data: userData, error: userError } = await supabase
-      .from('users')
-      .select('daily_calorie_target, daily_protein_target_g, daily_carbs_target_g, daily_fat_target_g')
-      .eq('id', user.id)
+    // Fetch user's active nutrition goals
+    let { data: nutritionGoals, error: goalsError } = await supabase
+      .from('nutrition_goals')
+      .select('daily_calories, daily_protein_g, daily_carbs_g, daily_fat_g, daily_fiber_g, daily_sugar_limit_g, daily_sodium_limit_mg')
+      .eq('user_id', user.id)
+      .eq('is_active', true)
       .single()
 
-    if (userError) {
-      console.error('Error fetching user data:', userError)
-      return NextResponse.json(
-        { error: 'Failed to fetch user data' },
-        { status: 500 }
-      )
+    // If no goals exist, create default ones
+    if (goalsError) {
+      if (goalsError.code === 'PGRST116') {
+        const { data: newGoals, error: createError } = await supabase
+          .from('nutrition_goals')
+          .insert({
+            user_id: user.id,
+            goal_name: 'My Nutrition Goals',
+            goal_type: 'maintenance',
+            is_active: true,
+            daily_calories: 2000,
+            daily_protein_g: 150,
+            daily_carbs_g: 200,
+            daily_fat_g: 65,
+            daily_fiber_g: 30,
+          })
+          .select('daily_calories, daily_protein_g, daily_carbs_g, daily_fat_g, daily_fiber_g, daily_sugar_limit_g, daily_sodium_limit_mg')
+          .single()
+
+        if (createError) {
+          console.error('Error creating default goals:', createError)
+          return NextResponse.json(
+            { error: 'Failed to create default goals' },
+            { status: 500 }
+          )
+        }
+
+        nutritionGoals = newGoals
+      } else {
+        console.error('Error fetching nutrition goals:', goalsError)
+        return NextResponse.json(
+          { error: 'Failed to fetch nutrition goals' },
+          { status: 500 }
+        )
+      }
     }
+
+    const userData = nutritionGoals
 
     // Fetch today's meal logs and calculate totals
     const { data: mealLogs, error: mealsError } = await supabase
@@ -59,10 +91,10 @@ export async function GET() {
     // Return data
     return NextResponse.json({
       targets: {
-        calories: userData.daily_calorie_target || 2000,
-        protein: userData.daily_protein_target_g || 150,
-        carbs: userData.daily_carbs_target_g || 200,
-        fat: userData.daily_fat_target_g || 65,
+        calories: userData?.daily_calories || 2000,
+        protein: userData?.daily_protein_g || 150,
+        carbs: userData?.daily_carbs_g || 200,
+        fat: userData?.daily_fat_g || 65,
       },
       current: {
         calories: Math.round(totals.calories),
