@@ -7,7 +7,6 @@ import { getMeals, type Meal } from '@/lib/api/meals';
 import { Plus, Apple, Trash2, Edit2, Copy, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import BottomNavigation from '@/app/components/BottomNavigation';
-import { QuickMealEntry } from './QuickMealEntry';
 
 export function NutritionDashboard() {
   const router = useRouter();
@@ -326,7 +325,6 @@ export function NutritionDashboard() {
               >
                 <Clock className="w-5 h-5 sm:w-6 sm:h-6" />
               </Link>
-              <QuickMealEntry onMealAdded={fetchMeals} />
               <Link
                 href="/nutrition/add"
                 className="bg-iron-orange text-iron-black px-2 sm:px-4 py-2 font-heading text-xs sm:text-sm uppercase tracking-wider hover:bg-orange-600 transition-colors flex items-center gap-1 sm:gap-2"
