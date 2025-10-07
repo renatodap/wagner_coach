@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ChevronDown, ChevronUp, Check, Edit3, AlertTriangle, Zap } from 'lucide-react';
+import { ChevronDown, ChevronUp, Check, Edit3, AlertTriangle, X, Plus } from 'lucide-react';
 import { MealPrimaryFields, MealSecondaryFields, QuickEntryPreviewResponse } from './types';
 
 interface MealPreviewProps {
@@ -10,16 +10,58 @@ interface MealPreviewProps {
   onEdit: () => void;
 }
 
+interface FoodItem {
+  name: string;
+  quantity: string;
+}
+
 export default function MealPreview({ data, onSave, onEdit }: MealPreviewProps) {
   const [expanded, setExpanded] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [editedFields, setEditedFields] = useState<any>(data.data.primary_fields);
+  const [editingFoodIndex, setEditingFoodIndex] = useState<number | null>(null);
+  const [editingFood, setEditingFood] = useState<FoodItem>({ name: '', quantity: '' });
 
   const primary = data.data.primary_fields as MealPrimaryFields;
   const secondary = data.data.secondary_fields as MealSecondaryFields;
 
   const updateField = (field: string, value: any) => {
     setEditedFields({ ...editedFields, [field]: value });
+  };
+
+  const startEditingFood = (index: number) => {
+    const food = editedFields.foods[index];
+    setEditingFoodIndex(index);
+    setEditingFood({
+      name: food.name || food,
+      quantity: food.quantity || 'not specified'
+    });
+  };
+
+  const saveEditedFood = () => {
+    if (editingFoodIndex !== null) {
+      const updatedFoods = [...editedFields.foods];
+      updatedFoods[editingFoodIndex] = {
+        name: editingFood.name,
+        quantity: editingFood.quantity
+      };
+      updateField('foods', updatedFoods);
+      setEditingFoodIndex(null);
+      setEditingFood({ name: '', quantity: '' });
+    }
+  };
+
+  const addNewFood = () => {
+    const newFood = {
+      name: 'New food',
+      quantity: 'not specified'
+    };
+    updateField('foods', [...(editedFields.foods || []), newFood]);
+  };
+
+  const removeFood = (index: number) => {
+    const updatedFoods = editedFields.foods.filter((_: any, i: number) => i !== index);
+    updateField('foods', updatedFoods);
   };
 
   const handleSave = () => {
@@ -109,28 +151,90 @@ export default function MealPreview({ data, onSave, onEdit }: MealPreviewProps) 
           </div>
         </div>
 
-        {/* Foods */}
+        {/* Foods - Editable */}
         <div>
-          <label className="block text-sm font-medium text-iron-gray uppercase tracking-wider mb-2">
-            Foods
-          </label>
-          <div className="space-y-2">
-            {primary.foods?.map((food, index) => (
-              <div
-                key={index}
-                className="flex items-center gap-3 bg-iron-black/50 px-4 py-3 rounded-xl border border-iron-gray"
+          <div className="flex items-center justify-between mb-2">
+            <label className="block text-sm font-medium text-iron-gray uppercase tracking-wider">
+              Foods
+            </label>
+            {editMode && (
+              <button
+                onClick={addNewFood}
+                className="text-xs flex items-center gap-1 px-2 py-1 bg-iron-orange text-white rounded-lg hover:bg-iron-orange/80 transition-colors"
               >
-                <span className="text-iron-orange text-xl">•</span>
-                <span className="flex-1">
-                  <span className="font-medium text-iron-white">{food.name}</span>
-                  {food.quantity && food.quantity !== 'not specified' && (
-                    <span className="text-iron-gray ml-2">({food.quantity})</span>
-                  )}
-                </span>
-                {editMode && (
-                  <button className="text-iron-gray hover:text-red-500 transition-colors">
-                    <Edit3 size={16} />
-                  </button>
+                <Plus size={14} />
+                Add Food
+              </button>
+            )}
+          </div>
+          <div className="space-y-2">
+            {(editedFields.foods || []).map((food: any, index: number) => (
+              <div key={index}>
+                {editMode && editingFoodIndex === index ? (
+                  // Editing mode for this food item
+                  <div className="bg-iron-black/50 px-4 py-3 rounded-xl border-2 border-iron-orange space-y-2">
+                    <input
+                      type="text"
+                      value={editingFood.name}
+                      onChange={(e) => setEditingFood({ ...editingFood, name: e.target.value })}
+                      placeholder="Food name"
+                      className="w-full px-3 py-2 bg-iron-gray text-iron-white border border-iron-gray rounded-lg focus:border-iron-orange outline-none"
+                    />
+                    <input
+                      type="text"
+                      value={editingFood.quantity}
+                      onChange={(e) => setEditingFood({ ...editingFood, quantity: e.target.value })}
+                      placeholder="Quantity (e.g., 2 cups, 100g, 1 medium)"
+                      className="w-full px-3 py-2 bg-iron-gray text-iron-white border border-iron-gray rounded-lg focus:border-iron-orange outline-none"
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        onClick={saveEditedFood}
+                        className="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-1 text-sm"
+                      >
+                        <Check size={16} />
+                        Save
+                      </button>
+                      <button
+                        onClick={() => {
+                          setEditingFoodIndex(null);
+                          setEditingFood({ name: '', quantity: '' });
+                        }}
+                        className="flex-1 px-3 py-2 bg-iron-gray text-iron-white rounded-lg hover:bg-iron-gray/70 transition-colors text-sm"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  // Display mode
+                  <div className="flex items-center gap-3 bg-iron-black/50 px-4 py-3 rounded-xl border border-iron-gray">
+                    <span className="text-iron-orange text-xl">•</span>
+                    <span className="flex-1">
+                      <span className="font-medium text-iron-white">
+                        {typeof food === 'string' ? food : food.name}
+                      </span>
+                      {food.quantity && food.quantity !== 'not specified' && (
+                        <span className="text-iron-gray ml-2">({food.quantity})</span>
+                      )}
+                    </span>
+                    {editMode && (
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => startEditingFood(index)}
+                          className="text-iron-gray hover:text-iron-orange transition-colors"
+                        >
+                          <Edit3 size={16} />
+                        </button>
+                        <button
+                          onClick={() => removeFood(index)}
+                          className="text-iron-gray hover:text-red-500 transition-colors"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
             ))}
@@ -267,6 +371,7 @@ export default function MealPreview({ data, onSave, onEdit }: MealPreviewProps) 
               onClick={() => {
                 setEditedFields(data.data.primary_fields);
                 setEditMode(false);
+                setEditingFoodIndex(null);
               }}
               className="flex-1 bg-iron-gray text-iron-white py-4 px-4 rounded-xl font-bold hover:bg-iron-gray/80 transition-colors uppercase tracking-wide"
             >
