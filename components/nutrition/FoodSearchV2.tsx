@@ -124,84 +124,84 @@ export function FoodSearchV2({
     <div className="relative" ref={searchRef}>
       {/* Search Input */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-iron-gray" size={20} />
         <input
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => setShowResults(true)}
           placeholder={placeholder}
-          className="w-full bg-white border border-gray-300 pl-10 pr-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+          className="w-full bg-neutral-800 border border-iron-gray/30 text-white placeholder:text-iron-gray pl-10 pr-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-iron-orange focus:border-transparent transition-all"
           autoComplete="off"
         />
       </div>
 
       {/* Results Dropdown */}
       {showResults && (
-        <div className="absolute z-50 w-full mt-2 bg-white border border-gray-200 rounded-lg shadow-lg max-h-96 overflow-y-auto">
+        <div className="absolute z-50 w-full mt-2 bg-neutral-800 border border-iron-gray/30 rounded-lg shadow-lg max-h-96 overflow-y-auto">
           {loading ? (
-            <div className="p-4 text-center text-gray-500">
-              <div className="animate-spin inline-block w-6 h-6 border-2 border-gray-300 border-t-green-500 rounded-full mb-2" />
+            <div className="p-4 text-center text-iron-gray">
+              <div className="animate-spin inline-block w-6 h-6 border-2 border-iron-gray border-t-iron-orange rounded-full mb-2" />
               <p>Searching foods...</p>
             </div>
           ) : error ? (
-            <div className="p-4 text-center text-red-600">
+            <div className="p-4 text-center text-red-400">
               <p>{error}</p>
             </div>
           ) : displayFoods.length > 0 ? (
             <>
               {query.length < 2 && recentFoods.length > 0 && (
-                <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 flex items-center gap-2">
-                  <Clock size={16} className="text-gray-500" />
-                  <span className="text-sm font-medium text-gray-600">Recent Foods</span>
+                <div className="px-4 py-2 bg-iron-black/50 border-b border-iron-gray/20 flex items-center gap-2">
+                  <Clock size={16} className="text-iron-gray" />
+                  <span className="text-sm font-medium text-iron-gray">Recent Foods</span>
                 </div>
               )}
-              <div className="divide-y divide-gray-100">
+              <div className="divide-y divide-iron-gray/20">
                 {displayFoods.map((food) => (
                   <button
                     key={food.id}
                     onClick={() => handleSelectFood(food)}
-                    className="w-full p-4 hover:bg-green-50 transition-colors text-left group"
+                    className="w-full p-4 hover:bg-iron-orange/10 transition-colors text-left group"
                   >
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
-                        <div className="font-medium text-gray-900 group-hover:text-green-600 transition-colors">
+                        <div className="font-medium text-white group-hover:text-iron-orange transition-colors">
                           {food.name}
                           {food.brand_name && (
-                            <span className="text-gray-500 text-sm ml-2 font-normal">
+                            <span className="text-iron-gray text-sm ml-2 font-normal">
                               {food.brand_name}
                             </span>
                           )}
                           {food.is_recent && (
-                            <span className="ml-2 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">
+                            <span className="ml-2 px-2 py-0.5 bg-iron-orange/20 text-iron-orange text-xs rounded-full">
                               Recent
                             </span>
                           )}
                         </div>
-                        <div className="text-sm text-gray-500 mt-1">
+                        <div className="text-sm text-iron-gray mt-1">
                           {food.serving_size} {food.serving_unit}
                           {food.last_quantity && food.last_unit && (
-                            <span className="ml-2 text-blue-600">
+                            <span className="ml-2 text-iron-orange">
                               (last: {food.last_quantity} {food.last_unit})
                             </span>
                           )}
                         </div>
-                        <div className="text-sm text-gray-600 mt-1">
+                        <div className="text-sm text-iron-gray mt-1">
                           {formatNutrition(food)}
                         </div>
                       </div>
-                      <Plus className="text-gray-400 group-hover:text-green-600 transition-colors ml-2 flex-shrink-0" size={20} />
+                      <Plus className="text-iron-gray group-hover:text-iron-orange transition-colors ml-2 flex-shrink-0" size={20} />
                     </div>
                   </button>
                 ))}
               </div>
             </>
           ) : query.length >= 2 ? (
-            <div className="p-4 text-center text-gray-500">
+            <div className="p-4 text-center text-iron-gray">
               <p>No foods found. Try a different search term.</p>
             </div>
           ) : (
-            <div className="p-4 text-center text-gray-500">
+            <div className="p-4 text-center text-iron-gray">
               <p className="text-sm">Start typing to search foods</p>
               {showRecentFoods && recentFoods.length === 0 && (
                 <p className="text-xs mt-2">Recent foods will appear here after you log meals</p>

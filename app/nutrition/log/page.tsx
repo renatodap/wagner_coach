@@ -86,35 +86,37 @@ export default function LogMealPage() {
 
   if (success) {
     return (
-      <div className="max-w-2xl mx-auto p-4 min-h-screen flex items-center justify-center">
-        <div className="bg-green-50 border-2 border-green-500 text-green-800 p-8 rounded-lg text-center w-full max-w-md">
-          <CheckCircle className="mx-auto h-16 w-16 text-green-600 mb-4" />
-          <p className="text-2xl font-bold mb-2">Meal Logged Successfully!</p>
-          <p className="text-green-700">Redirecting to nutrition page...</p>
+      <div className="min-h-screen bg-gradient-to-br from-iron-black to-neutral-900 flex items-center justify-center p-4">
+        <div className="bg-iron-black/50 backdrop-blur-sm border-2 border-iron-orange p-8 rounded-lg text-center w-full max-w-md">
+          <CheckCircle className="mx-auto h-16 w-16 text-iron-orange mb-4" />
+          <p className="text-2xl font-bold text-white mb-2">Meal Logged Successfully!</p>
+          <p className="text-iron-gray">Redirecting to nutrition page...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-4 pb-24">
+    <div className="min-h-screen bg-gradient-to-br from-iron-black to-neutral-900 pb-24">
       {/* Header */}
-      <div className="flex items-center gap-4 mb-6">
-        <button
-          onClick={() => router.back()}
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-          aria-label="Go back"
-        >
-          <ArrowLeft size={24} />
-        </button>
-        <h1 className="text-3xl font-bold text-gray-900">Log Meal</h1>
+      <div className="bg-iron-black/50 backdrop-blur-sm border-b border-iron-gray/20">
+        <div className="max-w-4xl mx-auto px-4 py-6 flex items-center gap-4">
+          <button
+            onClick={() => router.back()}
+            className="p-2 hover:bg-iron-gray/20 rounded-lg transition-colors text-white"
+            aria-label="Go back"
+          >
+            <ArrowLeft size={24} />
+          </button>
+          <h1 className="text-2xl font-bold text-white">Log Meal</h1>
+        </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="max-w-4xl mx-auto px-4 py-6 space-y-6">
         {/* Meal Type & Time */}
-        <div className="bg-white border border-gray-200 rounded-lg p-6 space-y-4">
+        <div className="bg-iron-black/50 backdrop-blur-sm border border-iron-gray/20 rounded-lg p-6 space-y-4">
           <div>
-            <Label htmlFor="mealType" className="text-base font-semibold">Meal Type</Label>
+            <Label htmlFor="mealType" className="text-base font-semibold text-white">Meal Type</Label>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2">
               {(['breakfast', 'lunch', 'dinner', 'snack'] as MealType[]).map((type) => (
                 <button
@@ -123,8 +125,8 @@ export default function LogMealPage() {
                   onClick={() => setMealType(type)}
                   className={`px-4 py-3 rounded-lg font-medium transition-all capitalize ${
                     mealType === type
-                      ? 'bg-green-600 text-white shadow-md'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      ? 'bg-iron-orange text-white shadow-md'
+                      : 'bg-iron-gray/20 text-iron-gray hover:bg-iron-gray/30'
                   }`}
                 >
                   {type}
@@ -134,20 +136,20 @@ export default function LogMealPage() {
           </div>
 
           <div>
-            <Label htmlFor="mealTime" className="text-base font-semibold">Time</Label>
+            <Label htmlFor="mealTime" className="text-base font-semibold text-white">Time</Label>
             <input
               type="datetime-local"
               id="mealTime"
               value={mealTime}
               onChange={(e) => setMealTime(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2 mt-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+              className="w-full bg-neutral-800 border border-iron-gray/30 text-white rounded-lg px-4 py-2 mt-2 focus:outline-none focus:ring-2 focus:ring-iron-orange"
             />
           </div>
         </div>
 
         {/* Food Search */}
-        <div className="bg-white border border-gray-200 rounded-lg p-6">
-          <Label className="text-base font-semibold mb-3 block">Search & Add Foods</Label>
+        <div className="bg-iron-black/50 backdrop-blur-sm border border-iron-gray/20 rounded-lg p-6">
+          <Label className="text-base font-semibold text-white mb-3 block">Search & Add Foods</Label>
           <FoodSearchV2
             onSelectFood={handleSelectFood}
             placeholder="Search for foods (e.g., chicken breast, brown rice)..."
@@ -156,8 +158,8 @@ export default function LogMealPage() {
         </div>
 
         {/* Meal Editor */}
-        <div className="bg-white border border-gray-200 rounded-lg p-6">
-          <Label className="text-base font-semibold mb-3 block">Foods in This Meal</Label>
+        <div className="bg-iron-black/50 backdrop-blur-sm border border-iron-gray/20 rounded-lg p-6">
+          <Label className="text-base font-semibold text-white mb-3 block">Foods in This Meal</Label>
           <MealEditor
             foods={foods}
             onFoodsChange={setFoods}
@@ -166,34 +168,34 @@ export default function LogMealPage() {
         </div>
 
         {/* Notes */}
-        <div className="bg-white border border-gray-200 rounded-lg p-6">
-          <Label htmlFor="notes" className="text-base font-semibold">Notes (Optional)</Label>
+        <div className="bg-iron-black/50 backdrop-blur-sm border border-iron-gray/20 rounded-lg p-6">
+          <Label htmlFor="notes" className="text-base font-semibold text-white">Notes (Optional)</Label>
           <Textarea
             id="notes"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="e.g., Post-workout meal, eating out, meal prep..."
-            className="mt-2"
+            className="mt-2 bg-neutral-800 border-iron-gray/30 text-white placeholder:text-iron-gray focus:ring-iron-orange"
             rows={3}
             maxLength={500}
           />
-          <p className="text-xs text-gray-500 mt-1">{notes.length}/500 characters</p>
+          <p className="text-xs text-iron-gray mt-1">{notes.length}/500 characters</p>
         </div>
 
         {/* Error Message */}
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg">
+          <div className="bg-red-900/20 border border-red-500/50 text-red-400 p-4 rounded-lg">
             <p className="font-medium">Error</p>
             <p className="text-sm">{error}</p>
           </div>
         )}
 
         {/* Actions */}
-        <div className="flex gap-4 sticky bottom-4 bg-white border border-gray-200 rounded-lg p-4 shadow-lg">
+        <div className="flex gap-4 sticky bottom-4 bg-iron-black/90 backdrop-blur-sm border border-iron-gray/20 rounded-lg p-4 shadow-lg">
           <Button
             type="submit"
             disabled={loading || foods.length === 0}
-            className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 h-12 text-lg font-semibold"
+            className="flex-1 bg-iron-orange hover:bg-iron-orange/90 disabled:bg-iron-gray/30 disabled:text-iron-gray h-12 text-lg font-semibold"
           >
             {loading ? (
               <>
@@ -212,7 +214,7 @@ export default function LogMealPage() {
             variant="outline"
             onClick={() => router.back()}
             disabled={loading}
-            className="px-6 h-12"
+            className="px-6 h-12 border-iron-gray/30 text-iron-gray hover:bg-iron-gray/20"
           >
             Cancel
           </Button>

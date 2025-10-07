@@ -110,7 +110,7 @@ export function MealEditor({ foods, onFoodsChange, showTotals = true }: MealEdit
 
   if (foods.length === 0) {
     return (
-      <div className="text-center py-8 text-gray-500">
+      <div className="text-center py-8 text-iron-gray">
         <p>No foods added yet. Search and add foods to your meal above.</p>
       </div>
     )
@@ -121,14 +121,14 @@ export function MealEditor({ foods, onFoodsChange, showTotals = true }: MealEdit
       {/* Food Items */}
       <div className="space-y-3">
         {foods.map((food, index) => (
-          <div key={index} className="border border-gray-200 rounded-lg p-4 bg-white hover:shadow-md transition-shadow">
+          <div key={index} className="border border-iron-gray/30 rounded-lg p-4 bg-neutral-800 hover:bg-neutral-700/50 transition-all">
             {editingIndex === index ? (
               // Edit mode
               <div className="space-y-3">
-                <div className="font-medium text-gray-900">{food.name}</div>
+                <div className="font-medium text-white">{food.name}</div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <Label htmlFor={`quantity-${index}`} className="text-xs">Quantity</Label>
+                    <Label htmlFor={`quantity-${index}`} className="text-xs text-iron-gray">Quantity</Label>
                     <Input
                       id={`quantity-${index}`}
                       type="number"
@@ -136,17 +136,17 @@ export function MealEditor({ foods, onFoodsChange, showTotals = true }: MealEdit
                       step="0.1"
                       value={editQuantity}
                       onChange={(e) => setEditQuantity(e.target.value)}
-                      className="text-sm"
+                      className="text-sm bg-iron-black border-iron-gray/30 text-white focus:ring-iron-orange"
                       autoFocus
                     />
                   </div>
                   <div>
-                    <Label htmlFor={`unit-${index}`} className="text-xs">Unit</Label>
+                    <Label htmlFor={`unit-${index}`} className="text-xs text-iron-gray">Unit</Label>
                     <select
                       id={`unit-${index}`}
                       value={editUnit}
                       onChange={(e) => setEditUnit(e.target.value)}
-                      className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                      className="w-full bg-iron-black border border-iron-gray/30 text-white rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-iron-orange"
                     >
                       {COMMON_UNITS.map((unit) => (
                         <option key={unit} value={unit}>
@@ -160,7 +160,7 @@ export function MealEditor({ foods, onFoodsChange, showTotals = true }: MealEdit
                   <Button
                     size="sm"
                     onClick={() => saveEditing(index)}
-                    className="flex-1 bg-green-600 hover:bg-green-700"
+                    className="flex-1 bg-iron-orange hover:bg-iron-orange/90"
                   >
                     <Check size={16} className="mr-1" />
                     Save
@@ -169,7 +169,7 @@ export function MealEditor({ foods, onFoodsChange, showTotals = true }: MealEdit
                     size="sm"
                     variant="outline"
                     onClick={cancelEditing}
-                    className="flex-1"
+                    className="flex-1 border-iron-gray/30 text-iron-gray hover:bg-iron-gray/20"
                   >
                     <X size={16} className="mr-1" />
                     Cancel
@@ -181,32 +181,32 @@ export function MealEditor({ foods, onFoodsChange, showTotals = true }: MealEdit
               <div>
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
-                    <div className="font-medium text-gray-900">
+                    <div className="font-medium text-white">
                       {food.name}
                       {food.brand && (
-                        <span className="text-gray-500 text-sm ml-2 font-normal">
+                        <span className="text-iron-gray text-sm ml-2 font-normal">
                           ({food.brand})
                         </span>
                       )}
                     </div>
-                    <div className="text-sm text-gray-600 mt-1">
+                    <div className="text-sm text-iron-gray mt-1">
                       {food.quantity} {food.unit}
                     </div>
-                    <div className="text-sm text-gray-500 mt-1">
+                    <div className="text-sm text-iron-gray mt-1">
                       {Math.round(food.calories)} cal • {food.protein_g.toFixed(1)}g P • {food.carbs_g.toFixed(1)}g C • {food.fat_g.toFixed(1)}g F
                     </div>
                   </div>
                   <div className="flex gap-2 ml-2">
                     <button
                       onClick={() => startEditing(index)}
-                      className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                      className="p-2 text-iron-gray hover:text-iron-orange hover:bg-iron-orange/10 rounded transition-colors"
                       aria-label="Edit food"
                     >
                       <Edit2 size={16} />
                     </button>
                     <button
                       onClick={() => handleRemoveFood(index)}
-                      className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                      className="p-2 text-iron-gray hover:text-red-400 hover:bg-red-400/10 rounded transition-colors"
                       aria-label="Remove food"
                     >
                       <Trash2 size={16} />
@@ -221,28 +221,28 @@ export function MealEditor({ foods, onFoodsChange, showTotals = true }: MealEdit
 
       {/* Totals */}
       {showTotals && (
-        <div className="border-2 border-green-500 rounded-lg p-4 bg-green-50">
-          <h3 className="font-bold text-lg mb-3 text-gray-900">Total Nutrition</h3>
+        <div className="border-2 border-iron-orange rounded-lg p-4 bg-iron-orange/5">
+          <h3 className="font-bold text-lg mb-3 text-white">Total Nutrition</h3>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             <div className="text-center">
-              <p className="text-xs text-gray-600 uppercase">Calories</p>
-              <p className="text-2xl font-bold text-green-600">{Math.round(totals.calories)}</p>
+              <p className="text-xs text-iron-gray uppercase">Calories</p>
+              <p className="text-2xl font-bold text-iron-orange">{Math.round(totals.calories)}</p>
             </div>
             <div className="text-center">
-              <p className="text-xs text-gray-600 uppercase">Protein</p>
-              <p className="text-2xl font-bold text-green-600">{totals.protein_g.toFixed(1)}g</p>
+              <p className="text-xs text-iron-gray uppercase">Protein</p>
+              <p className="text-2xl font-bold text-iron-orange">{totals.protein_g.toFixed(1)}g</p>
             </div>
             <div className="text-center">
-              <p className="text-xs text-gray-600 uppercase">Carbs</p>
-              <p className="text-2xl font-bold text-green-600">{totals.carbs_g.toFixed(1)}g</p>
+              <p className="text-xs text-iron-gray uppercase">Carbs</p>
+              <p className="text-2xl font-bold text-iron-orange">{totals.carbs_g.toFixed(1)}g</p>
             </div>
             <div className="text-center">
-              <p className="text-xs text-gray-600 uppercase">Fat</p>
-              <p className="text-2xl font-bold text-green-600">{totals.fat_g.toFixed(1)}g</p>
+              <p className="text-xs text-iron-gray uppercase">Fat</p>
+              <p className="text-2xl font-bold text-iron-orange">{totals.fat_g.toFixed(1)}g</p>
             </div>
             <div className="text-center">
-              <p className="text-xs text-gray-600 uppercase">Fiber</p>
-              <p className="text-2xl font-bold text-green-600">{totals.fiber_g.toFixed(1)}g</p>
+              <p className="text-xs text-iron-gray uppercase">Fiber</p>
+              <p className="text-2xl font-bold text-iron-orange">{totals.fiber_g.toFixed(1)}g</p>
             </div>
           </div>
         </div>
