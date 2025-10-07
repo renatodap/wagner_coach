@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { Meal } from '@/types/nutrition';
+import { getMeals, type Meal } from '@/lib/api/meals';
 import { Plus, Apple, Trash2, Edit2, Copy, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import BottomNavigation from '@/app/components/BottomNavigation';
@@ -25,25 +25,46 @@ export function NutritionDashboard() {
         setLoading(true);
         setError('');
 
-        // Format selected date
-        const dateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
-
-        // Fetch selected date's meals
-        const todayResponse = await fetch(`/api/nutrition/meals?date=${dateStr}`);
-        if (!todayResponse.ok) {
-          throw new Error('Failed to fetch meals');
+        // Get JWT token
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          setError('Please log in to view meals');
+          setLoading(false);
+          return;
         }
-        const todayData = await todayResponse.json();
+
+        // Format selected date as start/end of day
+        const startOfDay = new Date(selectedDate);
+        startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date(selectedDate);
+        endOfDay.setHours(23, 59, 59, 999);
+
+        // Fetch selected date's meals using Python backend
+        const todayData = await getMeals({
+          startDate: startOfDay.toISOString(),
+          endDate: endOfDay.toISOString(),
+          token: session.access_token
+        });
         setTodaysMeals(todayData.meals || []);
 
         // Fetch previous day's meals for copying
         const yesterday = new Date(selectedDate);
         yesterday.setDate(yesterday.getDate() - 1);
-        const yesterdayStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
-        const yesterdayResponse = await fetch(`/api/nutrition/meals?date=${yesterdayStr}`);
-        if (yesterdayResponse.ok) {
-          const yesterdayData = await yesterdayResponse.json();
+        const yesterdayStart = new Date(yesterday);
+        yesterdayStart.setHours(0, 0, 0, 0);
+        const yesterdayEnd = new Date(yesterday);
+        yesterdayEnd.setHours(23, 59, 59, 999);
+
+        try {
+          const yesterdayData = await getMeals({
+            startDate: yesterdayStart.toISOString(),
+            endDate: yesterdayEnd.toISOString(),
+            token: session.access_token
+          });
           setYesterdaysMeals(yesterdayData.meals || []);
+        } catch (err) {
+          // Yesterday's meals are optional, don't fail if they're not available
+          console.log('No meals from previous day');
         }
       } catch (err) {
         console.error('Error fetching meals:', err);
@@ -61,25 +82,46 @@ export function NutritionDashboard() {
       setLoading(true);
       setError('');
 
-      // Format selected date
-      const dateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
-
-      // Fetch selected date's meals
-      const todayResponse = await fetch(`/api/nutrition/meals?date=${dateStr}`);
-      if (!todayResponse.ok) {
-        throw new Error('Failed to fetch meals');
+      // Get JWT token
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setError('Please log in to view meals');
+        setLoading(false);
+        return;
       }
-      const todayData = await todayResponse.json();
+
+      // Format selected date as start/end of day
+      const startOfDay = new Date(selectedDate);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(selectedDate);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      // Fetch selected date's meals using Python backend
+      const todayData = await getMeals({
+        startDate: startOfDay.toISOString(),
+        endDate: endOfDay.toISOString(),
+        token: session.access_token
+      });
       setTodaysMeals(todayData.meals || []);
 
       // Fetch previous day's meals for copying
       const yesterday = new Date(selectedDate);
       yesterday.setDate(yesterday.getDate() - 1);
-      const yesterdayStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
-      const yesterdayResponse = await fetch(`/api/nutrition/meals?date=${yesterdayStr}`);
-      if (yesterdayResponse.ok) {
-        const yesterdayData = await yesterdayResponse.json();
+      const yesterdayStart = new Date(yesterday);
+      yesterdayStart.setHours(0, 0, 0, 0);
+      const yesterdayEnd = new Date(yesterday);
+      yesterdayEnd.setHours(23, 59, 59, 999);
+
+      try {
+        const yesterdayData = await getMeals({
+          startDate: yesterdayStart.toISOString(),
+          endDate: yesterdayEnd.toISOString(),
+          token: session.access_token
+        });
         setYesterdaysMeals(yesterdayData.meals || []);
+      } catch (err) {
+        // Yesterday's meals are optional
+        console.log('No meals from previous day');
       }
     } catch (err) {
       console.error('Error fetching meals:', err);
@@ -177,14 +219,14 @@ export function NutritionDashboard() {
       copyTime.setHours(new Date().getHours(), new Date().getMinutes(), new Date().getSeconds());
 
       const mealCopy = {
-        meal_name: meal.meal_name,
-        meal_category: meal.meal_category,
+        meal_name: meal.name || 'Meal',
+        meal_category: meal.category,
         logged_at: copyTime.toISOString(),
-        calories: meal.calories,
-        protein_g: meal.protein_g,
-        carbs_g: meal.carbs_g,
-        fat_g: meal.fat_g,
-        fiber_g: meal.fiber_g,
+        calories: meal.total_calories,
+        protein_g: meal.total_protein_g,
+        carbs_g: meal.total_carbs_g,
+        fat_g: meal.total_fat_g,
+        fiber_g: meal.total_fiber_g,
         notes: meal.notes ? `${meal.notes} (copied)` : 'Copied from previous meal'
       };
 
@@ -217,16 +259,16 @@ export function NutritionDashboard() {
 
   // Calculate today's totals
   const totals = todaysMeals.reduce((acc, meal) => ({
-    calories: acc.calories + (meal.calories || 0),
-    protein: acc.protein + (meal.protein_g || 0),
-    carbs: acc.carbs + (meal.carbs_g || 0),
-    fat: acc.fat + (meal.fat_g || 0),
-    fiber: acc.fiber + (meal.fiber_g || 0)
+    calories: acc.calories + (meal.total_calories || 0),
+    protein: acc.protein + (meal.total_protein_g || 0),
+    carbs: acc.carbs + (meal.total_carbs_g || 0),
+    fat: acc.fat + (meal.total_fat_g || 0),
+    fiber: acc.fiber + (meal.total_fiber_g || 0)
   }), { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 });
 
   // Group meals by category
   const mealsByCategory = todaysMeals.reduce((acc, meal) => {
-    const category = meal.meal_category || 'other';
+    const category = meal.category || 'other';
     if (!acc[category]) acc[category] = [];
     acc[category].push(meal);
     return acc;
@@ -375,7 +417,7 @@ export function NutritionDashboard() {
                     className="text-iron-white bg-iron-gray/20 hover:bg-iron-gray/40 px-3 py-1 text-sm transition-colors flex items-center gap-2"
                   >
                     <Copy className="w-3 h-3" />
-                    {meal.meal_name}
+                    {meal.name || 'Meal'}
                   </button>
                 ))}
               </div>
@@ -419,31 +461,31 @@ export function NutritionDashboard() {
                         <div key={meal.id} className="border border-iron-gray p-4 hover:border-iron-orange/50 transition-colors">
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
-                              <h4 className="text-iron-white font-medium">{meal.meal_name}</h4>
+                              <h4 className="text-iron-white font-medium">{meal.name || 'Meal'}</h4>
                               <p className="text-iron-gray text-sm">
                                 {new Date(meal.logged_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                               </p>
 
-                              {(meal.calories || meal.protein_g || meal.carbs_g || meal.fat_g) && (
+                              {(meal.total_calories || meal.total_protein_g || meal.total_carbs_g || meal.total_fat_g) && (
                                 <div className="flex gap-4 text-sm mt-2">
-                                  {meal.calories && (
+                                  {meal.total_calories && (
                                     <span className="text-iron-gray">
-                                      <span className="text-iron-white">{meal.calories}</span> cal
+                                      <span className="text-iron-white">{Math.round(meal.total_calories)}</span> cal
                                     </span>
                                   )}
-                                  {meal.protein_g && (
+                                  {meal.total_protein_g && (
                                     <span className="text-iron-gray">
-                                      <span className="text-iron-white">{meal.protein_g}g</span> protein
+                                      <span className="text-iron-white">{Math.round(meal.total_protein_g)}g</span> protein
                                     </span>
                                   )}
-                                  {meal.carbs_g && (
+                                  {meal.total_carbs_g && (
                                     <span className="text-iron-gray">
-                                      <span className="text-iron-white">{meal.carbs_g}g</span> carbs
+                                      <span className="text-iron-white">{Math.round(meal.total_carbs_g)}g</span> carbs
                                     </span>
                                   )}
-                                  {meal.fat_g && (
+                                  {meal.total_fat_g && (
                                     <span className="text-iron-gray">
-                                      <span className="text-iron-white">{meal.fat_g}g</span> fat
+                                      <span className="text-iron-white">{Math.round(meal.total_fat_g)}g</span> fat
                                     </span>
                                   )}
                                 </div>
