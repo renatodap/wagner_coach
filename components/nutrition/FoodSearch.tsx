@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Search, Plus } from 'lucide-react';
 import { Food } from '@/types/nutrition-v2';
 import { FoodService } from '@/lib/nutrition/food-service';
@@ -16,6 +17,62 @@ export function FoodSearch({ onSelectFood, placeholder = "Search foods..." }: Fo
   const [loading, setLoading] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [foodService] = useState(() => new FoodService());
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [mounted, setMounted] = useState(false);
+
+  // Component mounted check (for portal)
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Update dropdown position when it opens or window resizes
+  useEffect(() => {
+    if (showResults && inputRef.current) {
+      updateDropdownPosition();
+    }
+
+    const handleResize = () => {
+      if (showResults && inputRef.current) {
+        updateDropdownPosition();
+      }
+    };
+
+    const handleScroll = () => {
+      if (showResults && inputRef.current) {
+        updateDropdownPosition();
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('scroll', handleScroll, true);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('scroll', handleScroll, true);
+    };
+  }, [showResults]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (inputRef.current && !inputRef.current.contains(event.target as Node)) {
+        // Check if click is not on the dropdown portal
+        const dropdownElement = document.getElementById('food-search-dropdown');
+        if (dropdownElement && !dropdownElement.contains(event.target as Node)) {
+          setShowResults(false);
+        }
+      }
+    };
+
+    if (showResults) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showResults]);
 
   // Debounced search
   useEffect(() => {
@@ -29,6 +86,17 @@ export function FoodSearch({ onSelectFood, placeholder = "Search foods..." }: Fo
 
     return () => clearTimeout(timer);
   }, [query]);
+
+  const updateDropdownPosition = () => {
+    if (inputRef.current) {
+      const rect = inputRef.current.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + window.scrollY,
+        left: rect.left + window.scrollX,
+        width: rect.width,
+      });
+    }
+  };
 
   const loadPopularFoods = async () => {
     setLoading(true);
@@ -71,11 +139,70 @@ export function FoodSearch({ onSelectFood, placeholder = "Search foods..." }: Fo
     return parts.join(' • ');
   };
 
+  const dropdownContent = showResults && mounted && (
+    <div
+      id="food-search-dropdown"
+      style={{
+        position: 'fixed',
+        top: `${dropdownPosition.top}px`,
+        left: `${dropdownPosition.left}px`,
+        width: `${dropdownPosition.width}px`,
+        zIndex: 9999,
+      }}
+      className="mt-1 bg-iron-black border border-iron-gray max-h-96 overflow-y-auto shadow-2xl"
+    >
+      {loading ? (
+        <div className="p-4 text-center text-iron-gray">
+          Searching foods...
+        </div>
+      ) : foods.length > 0 ? (
+        <div className="divide-y divide-iron-gray/30">
+          {foods.map((food) => (
+            <button
+              key={food.id}
+              onClick={() => handleSelectFood(food)}
+              className="w-full p-4 hover:bg-iron-gray/10 transition-colors text-left group"
+            >
+              <div className="flex justify-between items-start">
+                <div className="flex-1">
+                  <div className="font-medium text-iron-white group-hover:text-iron-orange transition-colors">
+                    {food.name}
+                    {food.brand && (
+                      <span className="text-iron-gray text-sm ml-2">
+                        ({food.brand})
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-xs text-iron-gray mt-1">
+                    {food.serving_description || `${food.serving_size} ${food.serving_unit}`}
+                  </div>
+                  <div className="text-xs text-iron-gray mt-1">
+                    {formatNutrition(food)}
+                  </div>
+                </div>
+                <Plus className="text-iron-gray group-hover:text-iron-orange transition-colors ml-2" size={20} />
+              </div>
+            </button>
+          ))}
+        </div>
+      ) : query.length >= 2 ? (
+        <div className="p-4 text-center text-iron-gray">
+          No foods found. Try a different search term.
+        </div>
+      ) : (
+        <div className="p-4 text-center text-iron-gray">
+          Start typing to search foods
+        </div>
+      )}
+    </div>
+  );
+
   return (
-    <div className="relative">
+    <>
       <div className="relative">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-iron-gray" size={20} />
         <input
+          ref={inputRef}
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
@@ -85,53 +212,10 @@ export function FoodSearch({ onSelectFood, placeholder = "Search foods..." }: Fo
         />
       </div>
 
-      {showResults && (
-        <div className="absolute z-50 w-full mt-1 bg-iron-black border border-iron-gray max-h-96 overflow-y-auto">
-          {loading ? (
-            <div className="p-4 text-center text-iron-gray">
-              Searching foods...
-            </div>
-          ) : foods.length > 0 ? (
-            <div className="divide-y divide-iron-gray/30">
-              {foods.map((food) => (
-                <button
-                  key={food.id}
-                  onClick={() => handleSelectFood(food)}
-                  className="w-full p-4 hover:bg-iron-gray/10 transition-colors text-left group"
-                >
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className="font-medium text-iron-white group-hover:text-iron-orange transition-colors">
-                        {food.name}
-                        {food.brand && (
-                          <span className="text-iron-gray text-sm ml-2">
-                            ({food.brand})
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-xs text-iron-gray mt-1">
-                        {food.serving_description || `${food.serving_size} ${food.serving_unit}`}
-                      </div>
-                      <div className="text-xs text-iron-gray mt-1">
-                        {formatNutrition(food)}
-                      </div>
-                    </div>
-                    <Plus className="text-iron-gray group-hover:text-iron-orange transition-colors ml-2" size={20} />
-                  </div>
-                </button>
-              ))}
-            </div>
-          ) : query.length >= 2 ? (
-            <div className="p-4 text-center text-iron-gray">
-              No foods found. Try a different search term.
-            </div>
-          ) : (
-            <div className="p-4 text-center text-iron-gray">
-              Start typing to search foods
-            </div>
-          )}
-        </div>
+      {mounted && typeof window !== 'undefined' && createPortal(
+        dropdownContent,
+        document.body
       )}
-    </div>
+    </>
   );
 }
