@@ -221,7 +221,12 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
           }
 
           // Auto-scroll to bottom to show new messages
-          setTimeout(() => scrollToBottom(true), 100)
+          setTimeout(() => {
+            messagesEndRef.current?.scrollIntoView({
+              behavior: 'smooth',
+              block: 'end'
+            })
+          }, 100)
 
           // Clean up URL params (remove query string)
           const cleanUrl = window.location.pathname
@@ -238,7 +243,7 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
 
       loadConversation()
     }
-  }, [searchParams, toast, scrollToBottom])
+  }, [searchParams, toast])
 
   const scrollToBottom = useCallback((smooth = true) => {
     messagesEndRef.current?.scrollIntoView({
@@ -904,8 +909,6 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
 
               {/* Input Container with aggressive styling */}
               <div className="bg-gradient-to-br from-iron-gray to-iron-gray/80 border-4 border-iron-orange/50 hover:border-iron-orange focus-within:border-iron-orange transition-all duration-300 flex items-end gap-2 p-3 shadow-2xl relative overflow-hidden">
-                {/* Subtle metal texture overlay */}
-                <div className="absolute inset-0 bg-[url('/textures/metal.png')] opacity-5 mix-blend-overlay pointer-events-none" />
 
                 {/* Log Type Selector */}
                 <div className="relative z-50" ref={dropdownRef}>
@@ -1391,7 +1394,6 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
 
               {/* Input Container */}
               <div className="bg-iron-black border-4 border-iron-orange/50 hover:border-iron-orange focus-within:border-iron-orange transition-colors flex items-end gap-2 p-3 relative overflow-hidden">
-                <div className="absolute inset-0 bg-[url('/textures/metal.png')] opacity-5 mix-blend-overlay pointer-events-none" />
 
                 {/* Log Type Selector */}
                 <div className="relative z-50" ref={dropdownRef}>
