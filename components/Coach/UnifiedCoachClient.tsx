@@ -155,25 +155,34 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
     }
   }, [text])
 
-  // Close dropdown on outside click/touch
+  // Close dropdown on outside click/touch - using modern Pointer Events
   useEffect(() => {
     // Only listen when dropdown is actually open
     if (!showTypeDropdown) return
 
-    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+    const handleClickOutside = (event: PointerEvent) => {
       const target = event.target as Node
+
+      // Log for debugging (remove after testing)
+      console.log('[Dropdown] Pointer event:', {
+        type: event.type,
+        pointerType: event.pointerType,
+        target: (target as HTMLElement)?.tagName,
+        dropdownOpen: showTypeDropdown
+      })
+
       if (dropdownRef.current && !dropdownRef.current.contains(target)) {
+        console.log('[Dropdown] Closing dropdown')
         setShowTypeDropdown(false)
       }
     }
 
-    // Listen for both mouse and touch events for cross-device compatibility
-    document.addEventListener('mousedown', handleClickOutside)
-    document.addEventListener('touchstart', handleClickOutside, { passive: true })
+    // Use pointerdown - modern unified approach for mouse, touch, and pen
+    // This fires AFTER touchstart but BEFORE click, perfect for our use case
+    document.addEventListener('pointerdown', handleClickOutside)
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-      document.removeEventListener('touchstart', handleClickOutside)
+      document.removeEventListener('pointerdown', handleClickOutside)
     }
   }, [showTypeDropdown])
 
@@ -1089,11 +1098,19 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                   <button
                     type="button"
                     onClick={() => {
+                      console.log('[Dropdown] Toggle clicked!', { currentState: showTypeDropdown })
                       setShowTypeDropdown(!showTypeDropdown)
+                    }}
+                    onPointerDown={(e) => {
+                      console.log('[Dropdown] PointerDown', { pointerType: e.pointerType })
                     }}
                     disabled={isLoading}
                     className="min-h-[44px] min-w-[44px] p-3 hover:bg-iron-black/50 active:bg-iron-black/70 transition-colors disabled:opacity-50 rounded flex items-center justify-center gap-1 cursor-pointer touch-manipulation"
-                    style={{ WebkitTapHighlightColor: 'transparent' }}
+                    style={{
+                      WebkitTapHighlightColor: 'transparent',
+                      touchAction: 'manipulation',
+                      userSelect: 'none'
+                    }}
                     title="Select log type"
                     aria-label={`Select log type. Current: ${getLogTypeLabel(selectedLogType)}`}
                     aria-haspopup="listbox"
@@ -1134,11 +1151,19 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                 <button
                   type="button"
                   onClick={() => {
+                    console.log('[File] Button clicked!')
                     fileInputRef.current?.click()
+                  }}
+                  onPointerDown={(e) => {
+                    console.log('[File] PointerDown', { pointerType: e.pointerType })
                   }}
                   disabled={isLoading}
                   className="relative z-50 min-h-[44px] min-w-[44px] p-3 hover:bg-iron-black/50 active:bg-iron-black/70 transition-colors disabled:opacity-50 rounded flex items-center justify-center cursor-pointer touch-manipulation"
-                  style={{ WebkitTapHighlightColor: 'transparent' }}
+                  style={{
+                    WebkitTapHighlightColor: 'transparent',
+                    touchAction: 'manipulation',
+                    userSelect: 'none'
+                  }}
                   title="Attach file"
                   aria-label="Attach file"
                 >
@@ -1178,11 +1203,19 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                   <button
                     type="button"
                     onClick={() => {
+                      console.log('[Mic] Start recording clicked!')
                       startVoiceRecording()
+                    }}
+                    onPointerDown={(e) => {
+                      console.log('[Mic] PointerDown', { pointerType: e.pointerType })
                     }}
                     disabled={isLoading}
                     className="relative z-50 min-h-[44px] min-w-[44px] p-3 hover:bg-iron-black/50 active:bg-iron-black/70 transition-colors disabled:opacity-50 rounded flex items-center justify-center cursor-pointer touch-manipulation"
-                    style={{ WebkitTapHighlightColor: 'transparent' }}
+                    style={{
+                      WebkitTapHighlightColor: 'transparent',
+                      touchAction: 'manipulation',
+                      userSelect: 'none'
+                    }}
                     title="Voice input"
                     aria-label="Start voice input"
                   >
@@ -1192,10 +1225,18 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                   <button
                     type="button"
                     onClick={() => {
+                      console.log('[Mic] Stop recording clicked!')
                       stopVoiceRecording()
                     }}
+                    onPointerDown={(e) => {
+                      console.log('[Mic] Stop PointerDown', { pointerType: e.pointerType })
+                    }}
                     className="relative z-50 min-h-[44px] min-w-[44px] p-3 bg-red-500 active:bg-red-600 animate-pulse flex items-center justify-center cursor-pointer touch-manipulation"
-                    style={{ WebkitTapHighlightColor: 'transparent' }}
+                    style={{
+                      WebkitTapHighlightColor: 'transparent',
+                      touchAction: 'manipulation',
+                      userSelect: 'none'
+                    }}
                     title="Stop recording"
                     aria-label="Stop recording"
                   >
@@ -1206,14 +1247,39 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                 {/* Submit Button */}
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={(e) => {
+                    console.log('[Submit] Button clicked!', {
+                      type: e.type,
+                      nativeEvent: e.nativeEvent.type,
+                      isLoading,
+                      hasText: !!text,
+                      hasFiles: attachedFiles.length > 0,
+                      disabled: (!text && attachedFiles.length === 0) || isLoading
+                    })
+
                     if (!isLoading && (text || attachedFiles.length > 0)) {
+                      console.log('[Submit] Calling handleSendMessage()')
                       handleSendMessage()
+                    } else {
+                      console.log('[Submit] Button disabled or no content')
                     }
+                  }}
+                  onTouchStart={(e) => {
+                    console.log('[Submit] TouchStart detected', { touches: e.touches.length })
+                  }}
+                  onTouchEnd={(e) => {
+                    console.log('[Submit] TouchEnd detected', { changedTouches: e.changedTouches.length })
+                  }}
+                  onPointerDown={(e) => {
+                    console.log('[Submit] PointerDown detected', { pointerType: e.pointerType })
                   }}
                   disabled={(!text && attachedFiles.length === 0) || isLoading}
                   className="relative z-50 min-h-[44px] min-w-[44px] p-3 bg-iron-orange hover:bg-orange-600 active:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed rounded-lg flex items-center justify-center cursor-pointer touch-manipulation"
-                  style={{ WebkitTapHighlightColor: 'transparent' }}
+                  style={{
+                    WebkitTapHighlightColor: 'transparent',
+                    touchAction: 'manipulation',
+                    userSelect: 'none'
+                  }}
                   title="Submit"
                   aria-label="Send message"
                 >
