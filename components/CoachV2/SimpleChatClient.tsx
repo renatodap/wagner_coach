@@ -291,67 +291,69 @@ export function SimpleChatClient() {
       return
     }
 
-    let userMessageContent = text
-
-    // If there's an image, analyze it first
-    if (attachedFiles.length > 0 && attachedFiles[0].type === 'image') {
-      const imageFile = attachedFiles[0].file
-
-      toast({
-        title: '🔍 Analyzing image...',
-        description: 'This may take a few seconds',
-      })
-
-      try {
-        const analysis = await analyzeImage(imageFile, text)
-        console.log('[SimpleChatClient] Image analysis result:', analysis)
-
-        const analysisText = formatAnalysisAsText(analysis)
-        userMessageContent = analysisText + (text || '')
-
-        toast({
-          title: '✅ Image analyzed',
-          description: 'Sending to coach...',
-        })
-      } catch (error) {
-        console.error('[SimpleChatClient] Image analysis failed:', error)
-        toast({
-          title: '⚠️ Image analysis failed',
-          description: 'Sending image description instead',
-          variant: 'destructive',
-        })
-        // Continue anyway with text only
-      }
-    }
-
-    // Add user message
-    const userMessage: Message = {
-      id: `user-${Date.now()}`,
-      role: 'user',
-      content: userMessageContent,
-      timestamp: new Date()
-    }
-
-    setMessages(prev => [...prev, userMessage])
-    console.log('[SimpleChatClient] Added user message')
-
-    // Clear input and attached files
-    setText('')
-    setAttachedFiles([])
-    setIsLoading(true)
-
-    // Create placeholder AI message for streaming
-    const aiMessageId = `ai-${Date.now()}`
-    const aiMessage: Message = {
-      id: aiMessageId,
-      role: 'assistant',
-      content: '',
-      timestamp: new Date(),
-      isStreaming: true
-    }
-    setMessages(prev => [...prev, aiMessage])
-
+    // Wrap everything in try-catch-finally to ensure isLoading is always reset
     try {
+      setIsLoading(true)
+
+      let userMessageContent = text
+
+      // If there's an image, analyze it first
+      if (attachedFiles.length > 0 && attachedFiles[0].type === 'image') {
+        const imageFile = attachedFiles[0].file
+
+        toast({
+          title: '🔍 Analyzing image...',
+          description: 'This may take a few seconds',
+        })
+
+        try {
+          const analysis = await analyzeImage(imageFile, text)
+          console.log('[SimpleChatClient] Image analysis result:', analysis)
+
+          const analysisText = formatAnalysisAsText(analysis)
+          userMessageContent = analysisText + (text || '')
+
+          toast({
+            title: '✅ Image analyzed',
+            description: 'Sending to coach...',
+          })
+        } catch (error) {
+          console.error('[SimpleChatClient] Image analysis failed:', error)
+          toast({
+            title: '⚠️ Image analysis failed',
+            description: 'Sending image description instead',
+            variant: 'destructive',
+          })
+          // Continue anyway with text only
+        }
+      }
+
+      // Add user message
+      const userMessage: Message = {
+        id: `user-${Date.now()}`,
+        role: 'user',
+        content: userMessageContent,
+        timestamp: new Date()
+      }
+
+      setMessages(prev => [...prev, userMessage])
+      console.log('[SimpleChatClient] Added user message')
+
+      // Clear input and attached files
+      setText('')
+      setAttachedFiles([])
+
+      // Create placeholder AI message for streaming
+      const aiMessageId = `ai-${Date.now()}`
+      const aiMessage: Message = {
+        id: aiMessageId,
+        role: 'assistant',
+        content: '',
+        timestamp: new Date(),
+        isStreaming: true
+      }
+      setMessages(prev => [...prev, aiMessage])
+
       // Call real backend API with streaming
       console.log('[SimpleChatClient] Calling backend API...')
 
@@ -399,20 +401,13 @@ export function SimpleChatClient() {
       console.log('[SimpleChatClient] Streaming complete!')
 
     } catch (error) {
-      console.error('[SimpleChatClient] Error calling API:', error)
+      console.error('[SimpleChatClient] Error in handleSubmit:', error)
 
-      // Update message with error
-      setMessages(prev =>
-        prev.map(msg =>
-          msg.id === aiMessageId
-            ? {
-                ...msg,
-                content: `Error: ${error instanceof Error ? error.message : 'Failed to get response'}`,
-                isStreaming: false
-              }
-            : msg
-        )
-      )
+      toast({
+        title: '❌ Error',
+        description: error instanceof Error ? error.message : 'Failed to send message',
+        variant: 'destructive',
+      })
     } finally {
       setIsLoading(false)
     }
