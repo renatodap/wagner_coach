@@ -152,15 +152,23 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
     }
   }, [text])
 
-  // Close dropdown on outside click
+  // Close dropdown on outside click/touch
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+      const target = event.target as Node
+      if (dropdownRef.current && !dropdownRef.current.contains(target)) {
         setShowTypeDropdown(false)
       }
     }
+
+    // Listen for both mouse and touch events for cross-device compatibility
     document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
+    document.addEventListener('touchstart', handleClickOutside)
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('touchstart', handleClickOutside)
+    }
   }, [])
 
   // Load conversation history on mount
@@ -222,7 +230,7 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
 
       if (!validation.valid) {
         toast({
-          title: 'File Error',
+          title: '📎 File Error',
           description: validation.error,
           variant: 'destructive'
         })
@@ -239,6 +247,13 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
             f.file === file ? { ...f, preview: reader.result as string } : f
           ))
         }
+        reader.onerror = () => {
+          toast({
+            title: '📎 Image Preview Failed',
+            description: 'Could not load image preview, but file is attached',
+            variant: 'destructive'
+          })
+        }
         reader.readAsDataURL(file)
       } else if (file.type.startsWith('audio/')) {
         fileType = 'audio'
@@ -249,8 +264,19 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
       newFiles.push({ file, type: fileType })
     })
 
-    setAttachedFiles(prev => [...prev, ...newFiles])
-    setError(null)
+    if (newFiles.length > 0) {
+      setAttachedFiles(prev => [...prev, ...newFiles])
+      setError(null)
+
+      // Show success toast
+      const fileTypeLabel = newFiles[0].type === 'image' ? 'Image' :
+                           newFiles[0].type === 'audio' ? 'Audio' :
+                           newFiles[0].type === 'pdf' ? 'PDF' : 'File'
+      toast({
+        title: `📎 ${fileTypeLabel} attached`,
+        description: `${newFiles[0].file.name} (${(newFiles[0].file.size / 1024).toFixed(1)} KB)`,
+      })
+    }
   }
 
   const removeFile = (index: number) => {
@@ -266,8 +292,14 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
       const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
 
       if (!SpeechRecognition) {
+        const message = 'Voice input not supported on this browser. Try using the text input or file upload instead.'
+        toast({
+          title: '🎤 Voice Not Supported',
+          description: message,
+          variant: 'destructive'
+        })
         setError({
-          message: 'Voice recognition not supported in this browser. Try Chrome or Edge.',
+          message,
           recoveryAction: undefined
         })
         return
@@ -281,19 +313,48 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
       recognition.onstart = () => {
         setIsRecording(true)
         setError(null)
+        toast({
+          title: '🎤 Listening...',
+          description: 'Speak now to add text',
+        })
       }
 
       recognition.onresult = (event: any) => {
         const transcript = event.results[0][0].transcript
         setText(prev => prev ? `${prev} ${transcript}` : transcript)
         setIsRecording(false)
+        toast({
+          title: '✅ Voice recognized',
+          description: `Added: "${transcript.slice(0, 50)}${transcript.length > 50 ? '...' : ''}"`,
+        })
       }
 
       recognition.onerror = (event: any) => {
         console.error('Speech recognition error:', event.error)
+
+        let errorMessage = 'Voice input failed'
+        let errorDescription = 'Please try again or use text input'
+
+        if (event.error === 'not-allowed') {
+          errorMessage = 'Microphone Permission Denied'
+          errorDescription = 'Please enable microphone access in your browser settings'
+        } else if (event.error === 'no-speech') {
+          errorMessage = 'No Speech Detected'
+          errorDescription = 'Try speaking louder or closer to the microphone'
+        } else if (event.error === 'network') {
+          errorMessage = 'Network Error'
+          errorDescription = 'Voice recognition requires an internet connection'
+        }
+
+        toast({
+          title: `🎤 ${errorMessage}`,
+          description: errorDescription,
+          variant: 'destructive'
+        })
+
         setError({
-          message: `Voice input error: ${event.error}`,
-          recoveryAction: () => startVoiceRecording(),
+          message: errorDescription,
+          recoveryAction: event.error !== 'not-allowed' ? () => startVoiceRecording() : undefined,
           recoveryLabel: 'Try Again'
         })
         setIsRecording(false)
@@ -307,8 +368,14 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
       recognition.start()
     } catch (err) {
       console.error('Voice recording error:', err)
+      const message = 'Failed to start voice recording. Please use text input instead.'
+      toast({
+        title: '🎤 Voice Input Failed',
+        description: message,
+        variant: 'destructive'
+      })
       setError({
-        message: 'Failed to start voice recording',
+        message,
         recoveryAction: () => startVoiceRecording(),
         recoveryLabel: 'Try Again'
       })
@@ -791,18 +858,12 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                 <div className="relative z-50" ref={dropdownRef}>
                   <button
                     type="button"
-                    onClick={(e) => {
-                      e.preventDefault()
-                      e.stopPropagation()
-                      setShowTypeDropdown(!showTypeDropdown)
-                    }}
-                    onTouchEnd={(e) => {
-                      e.preventDefault()
+                    onClick={() => {
                       setShowTypeDropdown(!showTypeDropdown)
                     }}
                     disabled={isLoading}
                     className="min-h-[44px] min-w-[44px] p-3 hover:bg-iron-black/50 active:bg-iron-black/70 transition-colors disabled:opacity-50 rounded flex items-center justify-center gap-1 cursor-pointer touch-manipulation"
-                    style={{ WebkitTapHighlightColor: 'transparent', pointerEvents: 'auto' }}
+                    style={{ WebkitTapHighlightColor: 'transparent' }}
                     title="Select log type"
                     aria-label={`Select log type. Current: ${getLogTypeLabel(selectedLogType)}`}
                     aria-haspopup="listbox"
@@ -842,18 +903,12 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                 {/* File Attachment */}
                 <button
                   type="button"
-                  onClick={(e) => {
-                    e.preventDefault()
-                    e.stopPropagation()
-                    fileInputRef.current?.click()
-                  }}
-                  onTouchEnd={(e) => {
-                    e.preventDefault()
+                  onClick={() => {
                     fileInputRef.current?.click()
                   }}
                   disabled={isLoading}
                   className="relative z-50 min-h-[44px] min-w-[44px] p-3 hover:bg-iron-black/50 active:bg-iron-black/70 transition-colors disabled:opacity-50 rounded flex items-center justify-center cursor-pointer touch-manipulation"
-                  style={{ WebkitTapHighlightColor: 'transparent', pointerEvents: 'auto' }}
+                  style={{ WebkitTapHighlightColor: 'transparent' }}
                   title="Attach file"
                   aria-label="Attach file"
                 >
@@ -892,18 +947,12 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                 {!isRecording ? (
                   <button
                     type="button"
-                    onClick={(e) => {
-                      e.preventDefault()
-                      e.stopPropagation()
-                      startVoiceRecording()
-                    }}
-                    onTouchEnd={(e) => {
-                      e.preventDefault()
+                    onClick={() => {
                       startVoiceRecording()
                     }}
                     disabled={isLoading}
                     className="relative z-50 min-h-[44px] min-w-[44px] p-3 hover:bg-iron-black/50 active:bg-iron-black/70 transition-colors disabled:opacity-50 rounded flex items-center justify-center cursor-pointer touch-manipulation"
-                    style={{ WebkitTapHighlightColor: 'transparent', pointerEvents: 'auto' }}
+                    style={{ WebkitTapHighlightColor: 'transparent' }}
                     title="Voice input"
                     aria-label="Start voice input"
                   >
@@ -912,17 +961,11 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                 ) : (
                   <button
                     type="button"
-                    onClick={(e) => {
-                      e.preventDefault()
-                      e.stopPropagation()
-                      stopVoiceRecording()
-                    }}
-                    onTouchEnd={(e) => {
-                      e.preventDefault()
+                    onClick={() => {
                       stopVoiceRecording()
                     }}
                     className="relative z-50 min-h-[44px] min-w-[44px] p-3 bg-red-500 active:bg-red-600 animate-pulse flex items-center justify-center cursor-pointer touch-manipulation"
-                    style={{ WebkitTapHighlightColor: 'transparent', pointerEvents: 'auto' }}
+                    style={{ WebkitTapHighlightColor: 'transparent' }}
                     title="Stop recording"
                     aria-label="Stop recording"
                   >
@@ -933,22 +976,14 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                 {/* Submit Button with aggressive styling */}
                 <button
                   type="button"
-                  onClick={(e) => {
-                    e.preventDefault()
-                    e.stopPropagation()
-                    if (!isLoading && (text || attachedFiles.length > 0)) {
-                      handleSendMessage()
-                    }
-                  }}
-                  onTouchEnd={(e) => {
-                    e.preventDefault()
+                  onClick={() => {
                     if (!isLoading && (text || attachedFiles.length > 0)) {
                       handleSendMessage()
                     }
                   }}
                   disabled={(!text && attachedFiles.length === 0) || isLoading}
                   className="relative z-50 min-h-[44px] min-w-[44px] p-3 bg-gradient-to-r from-iron-orange to-orange-600 hover:from-orange-600 hover:to-iron-orange active:from-orange-700 active:to-orange-800 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl active:scale-95 border-2 border-orange-700 flex items-center justify-center cursor-pointer touch-manipulation"
-                  style={{ WebkitTapHighlightColor: 'transparent', pointerEvents: 'auto' }}
+                  style={{ WebkitTapHighlightColor: 'transparent' }}
                   title="Submit"
                   aria-label="Send message"
                 >
@@ -1309,18 +1344,12 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                 <div className="relative z-50" ref={dropdownRef}>
                   <button
                     type="button"
-                    onClick={(e) => {
-                      e.preventDefault()
-                      e.stopPropagation()
-                      setShowTypeDropdown(!showTypeDropdown)
-                    }}
-                    onTouchEnd={(e) => {
-                      e.preventDefault()
+                    onClick={() => {
                       setShowTypeDropdown(!showTypeDropdown)
                     }}
                     disabled={isLoading || !!pendingLogPreview}
                     className="min-h-[44px] min-w-[44px] p-3 hover:bg-iron-gray/50 active:bg-iron-gray/70 transition-colors disabled:opacity-50 rounded flex items-center justify-center gap-1 cursor-pointer touch-manipulation"
-                    style={{ WebkitTapHighlightColor: 'transparent', pointerEvents: 'auto' }}
+                    style={{ WebkitTapHighlightColor: 'transparent' }}
                     title="Select log type"
                     aria-label={`Select log type. Current: ${getLogTypeLabel(selectedLogType)}`}
                     aria-haspopup="listbox"
@@ -1360,18 +1389,12 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                 {/* File Attachment */}
                 <button
                   type="button"
-                  onClick={(e) => {
-                    e.preventDefault()
-                    e.stopPropagation()
-                    fileInputRef.current?.click()
-                  }}
-                  onTouchEnd={(e) => {
-                    e.preventDefault()
+                  onClick={() => {
                     fileInputRef.current?.click()
                   }}
                   disabled={isLoading || !!pendingLogPreview}
                   className="relative z-50 min-h-[44px] min-w-[44px] p-3 hover:bg-iron-gray/50 active:bg-iron-gray/70 transition-colors disabled:opacity-50 rounded flex items-center justify-center cursor-pointer touch-manipulation"
-                  style={{ WebkitTapHighlightColor: 'transparent', pointerEvents: 'auto' }}
+                  style={{ WebkitTapHighlightColor: 'transparent' }}
                   title="Attach file"
                   aria-label="Attach file"
                 >
@@ -1414,18 +1437,12 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                 {!isRecording ? (
                   <button
                     type="button"
-                    onClick={(e) => {
-                      e.preventDefault()
-                      e.stopPropagation()
-                      startVoiceRecording()
-                    }}
-                    onTouchEnd={(e) => {
-                      e.preventDefault()
+                    onClick={() => {
                       startVoiceRecording()
                     }}
                     disabled={isLoading || !!pendingLogPreview}
                     className="relative z-50 min-h-[44px] min-w-[44px] p-3 hover:bg-iron-gray/50 active:bg-iron-gray/70 transition-colors disabled:opacity-50 rounded flex items-center justify-center cursor-pointer touch-manipulation"
-                    style={{ WebkitTapHighlightColor: 'transparent', pointerEvents: 'auto' }}
+                    style={{ WebkitTapHighlightColor: 'transparent' }}
                     title="Voice input"
                     aria-label="Start voice input"
                   >
@@ -1434,17 +1451,11 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                 ) : (
                   <button
                     type="button"
-                    onClick={(e) => {
-                      e.preventDefault()
-                      e.stopPropagation()
-                      stopVoiceRecording()
-                    }}
-                    onTouchEnd={(e) => {
-                      e.preventDefault()
+                    onClick={() => {
                       stopVoiceRecording()
                     }}
                     className="relative z-50 min-h-[44px] min-w-[44px] p-3 bg-red-500 active:bg-red-600 animate-pulse flex items-center justify-center cursor-pointer touch-manipulation"
-                    style={{ WebkitTapHighlightColor: 'transparent', pointerEvents: 'auto' }}
+                    style={{ WebkitTapHighlightColor: 'transparent' }}
                     title="Stop recording"
                     aria-label="Stop recording"
                   >
@@ -1455,22 +1466,14 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                 {/* Submit Button */}
                 <button
                   type="button"
-                  onClick={(e) => {
-                    e.preventDefault()
-                    e.stopPropagation()
-                    if (!isLoading && !pendingLogPreview && (text || attachedFiles.length > 0)) {
-                      handleSendMessage()
-                    }
-                  }}
-                  onTouchEnd={(e) => {
-                    e.preventDefault()
+                  onClick={() => {
                     if (!isLoading && !pendingLogPreview && (text || attachedFiles.length > 0)) {
                       handleSendMessage()
                     }
                   }}
                   disabled={(!text && attachedFiles.length === 0) || isLoading || !!pendingLogPreview}
                   className="relative z-50 min-h-[44px] min-w-[44px] p-3 bg-gradient-to-r from-iron-orange to-orange-600 hover:from-orange-600 hover:to-iron-orange active:from-orange-700 active:to-orange-800 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl active:scale-95 border-2 border-orange-700 flex items-center justify-center cursor-pointer touch-manipulation"
-                  style={{ WebkitTapHighlightColor: 'transparent', pointerEvents: 'auto' }}
+                  style={{ WebkitTapHighlightColor: 'transparent' }}
                   title="Submit"
                   aria-label="Send message"
                 >
