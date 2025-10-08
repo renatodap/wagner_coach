@@ -84,7 +84,13 @@ export async function createMeal(
   meal: CreateMealRequest,
   token: string
 ): Promise<Meal> {
-  const response = await fetch(`${API_BASE_URL}/api/v1/meals`, {
+  const url = `${API_BASE_URL}/api/v1/meals`
+
+  console.log('🌐 [createMeal] Making request to:', url)
+  console.log('📤 [createMeal] Request body:', JSON.stringify(meal, null, 2))
+  console.log('🔑 [createMeal] Token (first 20 chars):', token.substring(0, 20))
+
+  const response = await fetch(url, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`,
@@ -93,12 +99,27 @@ export async function createMeal(
     body: JSON.stringify(meal),
   })
 
+  console.log('📥 [createMeal] Response status:', response.status, response.statusText)
+  console.log('📥 [createMeal] Response headers:', Object.fromEntries(response.headers.entries()))
+
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ detail: response.statusText }))
+    const errorText = await response.text()
+    console.error('❌ [createMeal] Error response body:', errorText)
+
+    let error
+    try {
+      error = JSON.parse(errorText)
+    } catch {
+      error = { detail: response.statusText }
+    }
+
     throw new Error(error.detail || 'Failed to create meal')
   }
 
-  return response.json()
+  const result = await response.json()
+  console.log('✅ [createMeal] Success response:', result)
+
+  return result
 }
 
 /**

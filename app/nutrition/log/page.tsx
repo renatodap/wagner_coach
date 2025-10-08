@@ -86,7 +86,11 @@ function LogMealForm() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
 
+    console.log('🔵 [Meal Log] handleSubmit called')
+    console.log('🔵 [Meal Log] Foods count:', foods.length)
+
     if (foods.length === 0) {
+      console.warn('⚠️ [Meal Log] No foods added')
       setError('Please add at least one food item')
       return
     }
@@ -95,12 +99,16 @@ function LogMealForm() {
     setError(null)
 
     try {
+      console.log('🔵 [Meal Log] Getting Supabase session...')
       const supabase = createClient()
       const { data: { session } } = await supabase.auth.getSession()
 
       if (!session?.access_token) {
+        console.error('❌ [Meal Log] No session or access token')
         throw new Error('Not authenticated')
       }
+
+      console.log('✅ [Meal Log] Session obtained, token length:', session.access_token.length)
 
       // Prepare meal data
       const mealData = {
@@ -114,8 +122,16 @@ function LogMealForm() {
         }))
       }
 
+      console.log('📝 [Meal Log] Meal data prepared:', {
+        category: mealData.category,
+        logged_at: mealData.logged_at,
+        foods_count: mealData.foods.length,
+        notes_length: mealData.notes?.length || 0
+      })
+
       // If coming from coach, use confirm-log API (which saves and updates conversation)
       if (conversationId && userMessageId) {
+        console.log('🤖 [Meal Log] Using confirm-log API (coach flow)')
         await confirmLog({
           conversation_id: conversationId,
           log_data: mealData,
@@ -123,15 +139,20 @@ function LogMealForm() {
           user_message_id: userMessageId
         })
       } else {
-        // Otherwise, just create meal normally
-        await createMeal(mealData, session.access_token)
+        console.log('💾 [Meal Log] Using createMeal API (normal flow)')
+        console.log('🌐 [Meal Log] API Base URL:', process.env.NEXT_PUBLIC_API_BASE_URL)
+
+        const result = await createMeal(mealData, session.access_token)
+        console.log('✅ [Meal Log] Meal created successfully:', result)
       }
 
+      console.log('🎉 [Meal Log] Setting success state')
       setSuccess(true)
 
       // Redirect after 1.5 seconds to returnTo URL with query params
       // This allows the coach page to detect return and reload conversation
       setTimeout(() => {
+        console.log('🔀 [Meal Log] Redirecting to:', returnTo)
         const redirectUrl = new URL(returnTo, window.location.origin)
         if (conversationId) {
           redirectUrl.searchParams.set('from', 'meal-log')
@@ -141,10 +162,15 @@ function LogMealForm() {
         router.push(redirectUrl.pathname + redirectUrl.search)
       }, 1500)
     } catch (err) {
-      console.error('Error saving meal:', err)
+      console.error('❌ [Meal Log] Error saving meal:', err)
+      console.error('❌ [Meal Log] Error details:', {
+        message: err instanceof Error ? err.message : 'Unknown error',
+        stack: err instanceof Error ? err.stack : undefined
+      })
       setError(err instanceof Error ? err.message : 'Failed to save meal')
     } finally {
       setLoading(false)
+      console.log('🏁 [Meal Log] handleSubmit finished')
     }
   }
 
