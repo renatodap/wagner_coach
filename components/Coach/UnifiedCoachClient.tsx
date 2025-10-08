@@ -62,6 +62,7 @@ import {
   type FoodDetected,
 } from '@/lib/api/unified-coach'
 import { uploadFiles, validateFile } from '@/lib/utils/file-upload'
+import { analyzeImage, formatAnalysisAsText } from '@/lib/services/client-image-analysis'
 
 interface UnifiedCoachClientProps {
   userId: string
@@ -335,36 +336,73 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
     setStreamProgress(0)
     setTokensReceived(0)
 
-    // Optimistic UI update
-    const tempUserMessageId = `temp-${Date.now()}`
-    const optimisticUserMessage: UnifiedMessage = {
-      id: tempUserMessageId,
-      role: 'user',
-      content: text,
-      message_type: 'chat',
-      is_vectorized: false,
-      created_at: new Date().toISOString()
-    }
-
-    setMessages(prev => [...prev, optimisticUserMessage])
-
-    const messageText = text
+    let messageText = text
 
     try {
-      // Upload files to Supabase Storage if any
-      let imageUrls: string[] | undefined = undefined
+      // ============================================================================
+      // CLIENT-SIDE IMAGE ANALYSIS (NEW FLOW)
+      // ============================================================================
+      // Analyze images BEFORE sending to backend to avoid backend storage costs
+      // The analysis is converted to text and prepended to the user's message
 
-      if (attachedFiles.length > 0) {
-        const files = attachedFiles.map(af => af.file)
-        imageUrls = await uploadFiles(files, 'user-uploads', 'coach-messages')
+      if (attachedFiles.length > 0 && attachedFiles[0].type === 'image') {
+        const imageFile = attachedFiles[0].file
+
+        toast({
+          title: '🔍 Analyzing image...',
+          description: 'This may take a few seconds',
+        })
+
+        try {
+          // Analyze image using OpenAI Vision API (client-side)
+          const analysis = await analyzeImage(imageFile, text)
+
+          console.log('[UnifiedCoachClient] Image analysis result:', analysis)
+
+          // Format analysis as text
+          const analysisText = formatAnalysisAsText(analysis)
+
+          // Prepend analysis to user's message
+          messageText = analysisText + (text || '')
+
+          console.log('[UnifiedCoachClient] Message with analysis attached:', messageText)
+
+          toast({
+            title: '✅ Image analyzed!',
+            description: analysis.is_food
+              ? `Detected ${analysis.food_items?.length || 0} food items`
+              : 'Image processed',
+          })
+        } catch (err) {
+          console.error('[UnifiedCoachClient] Image analysis failed:', err)
+          toast({
+            title: '⚠️ Image analysis failed',
+            description: 'Continuing without image analysis',
+            variant: 'destructive',
+          })
+          // Continue without analysis - user message will still be sent
+        }
       }
 
-      // Create streaming request
+      // Optimistic UI update (AFTER image analysis so we show the analysis)
+      const tempUserMessageId = `temp-${Date.now()}`
+      const optimisticUserMessage: UnifiedMessage = {
+        id: tempUserMessageId,
+        role: 'user',
+        content: messageText, // Use messageText which includes analysis if image was present
+        message_type: 'chat',
+        is_vectorized: false,
+        created_at: new Date().toISOString()
+      }
+
+      setMessages(prev => [...prev, optimisticUserMessage])
+
+      // Create streaming request (NO image_urls - images are NOT sent to backend)
       const request = {
         message: messageText,
         conversation_id: conversationId,
-        has_image: !!imageUrls?.length,
-        image_urls: imageUrls
+        has_image: false, // Always false now since we analyze client-side
+        image_urls: undefined // Never send images to backend
       }
 
       // Use streaming API
