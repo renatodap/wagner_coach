@@ -1,11 +1,14 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Send, Loader2, MessageSquare, Plus, Zap } from 'lucide-react'
+import { Send, Loader2, MessageSquare, Plus, Zap, Paperclip, X } from 'lucide-react'
 import { sendMessageStreaming, getConversations, getConversationMessages } from '@/lib/api/unified-coach'
 import type { SendMessageResponse, ConversationSummary, UnifiedMessage } from '@/lib/api/unified-coach'
 import { getAutoLogPreference, updateAutoLogPreference } from '@/lib/api/profile'
 import BottomNavigation from '@/app/components/BottomNavigation'
+import { validateFile } from '@/lib/utils/file-upload'
+import { analyzeImage, formatAnalysisAsText } from '@/lib/services/client-image-analysis'
+import { useToast } from '@/hooks/use-toast'
 
 interface Message {
   id: string
@@ -15,12 +18,19 @@ interface Message {
   isStreaming?: boolean
 }
 
+interface AttachedFile {
+  file: File
+  preview?: string
+  type: 'image' | 'audio' | 'pdf' | 'other'
+}
+
 export function SimpleChatClient() {
   const [text, setText] = useState('')
   const [messages, setMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [conversationId, setConversationId] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Conversation history
   const [showHistory, setShowHistory] = useState(false)
@@ -30,6 +40,11 @@ export function SimpleChatClient() {
   // Auto-log preference
   const [autoLogEnabled, setAutoLogEnabled] = useState(false)
   const [isTogglingAutoLog, setIsTogglingAutoLog] = useState(false)
+
+  // File uploads
+  const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([])
+
+  const { toast } = useToast()
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -111,44 +126,144 @@ export function SimpleChatClient() {
     }
   }
 
+  function handleFileSelect(files: FileList) {
+    const newFiles: AttachedFile[] = []
+
+    Array.from(files).forEach(file => {
+      const validation = validateFile(file, {
+        maxSizeMB: 10,
+        allowedTypes: ['image/*', 'audio/*', 'application/pdf']
+      })
+
+      if (!validation.valid) {
+        toast({
+          title: '📎 File Error',
+          description: validation.error,
+          variant: 'destructive'
+        })
+        return
+      }
+
+      let fileType: AttachedFile['type'] = 'other'
+
+      if (file.type.startsWith('image/')) {
+        fileType = 'image'
+        const reader = new FileReader()
+        reader.onloadend = () => {
+          setAttachedFiles(prev => prev.map(f =>
+            f.file === file ? { ...f, preview: reader.result as string } : f
+          ))
+        }
+        reader.onerror = () => {
+          toast({
+            title: '📎 Image Preview Failed',
+            description: 'Could not load image preview, but file is attached',
+            variant: 'destructive'
+          })
+        }
+        reader.readAsDataURL(file)
+      } else if (file.type.startsWith('audio/')) {
+        fileType = 'audio'
+      } else if (file.type === 'application/pdf') {
+        fileType = 'pdf'
+      }
+
+      newFiles.push({ file, type: fileType })
+    })
+
+    if (newFiles.length > 0) {
+      setAttachedFiles(prev => [...prev, ...newFiles])
+
+      const fileTypeLabel = newFiles[0].type === 'image' ? 'Image' :
+                           newFiles[0].type === 'audio' ? 'Audio' :
+                           newFiles[0].type === 'pdf' ? 'PDF' : 'File'
+      toast({
+        title: `📎 ${fileTypeLabel} attached`,
+        description: `${newFiles[0].file.name} (${(newFiles[0].file.size / 1024).toFixed(1)} KB)`,
+      })
+    }
+  }
+
+  function removeFile(index: number) {
+    setAttachedFiles(prev => prev.filter((_, i) => i !== index))
+  }
+
   const handleSubmit = async () => {
     console.log('[SimpleChatClient] Submit button clicked!')
     console.log('[SimpleChatClient] Text:', text)
 
-    if (!text.trim() || isLoading) {
-      console.log('[SimpleChatClient] Skipping - no text or loading')
+    if (!text.trim() && !attachedFiles.length) {
+      console.log('[SimpleChatClient] Skipping - no text or files')
       return
     }
 
-    const userMessageContent = text
-
-    // Add user message
-    const userMessage: Message = {
-      id: `user-${Date.now()}`,
-      role: 'user',
-      content: userMessageContent,
-      timestamp: new Date()
+    if (isLoading) {
+      console.log('[SimpleChatClient] Skipping - already loading')
+      return
     }
-
-    setMessages(prev => [...prev, userMessage])
-    console.log('[SimpleChatClient] Added user message')
-
-    // Clear input
-    setText('')
-    setIsLoading(true)
-
-    // Create placeholder AI message for streaming
-    const aiMessageId = `ai-${Date.now()}`
-    const aiMessage: Message = {
-      id: aiMessageId,
-      role: 'assistant',
-      content: '',
-      timestamp: new Date(),
-      isStreaming: true
-    }
-    setMessages(prev => [...prev, aiMessage])
 
     try {
+      setIsLoading(true)
+
+      let userMessageContent = text
+
+      // If there's an image, analyze it first
+      if (attachedFiles.length > 0 && attachedFiles[0].type === 'image') {
+        const imageFile = attachedFiles[0].file
+
+        toast({
+          title: '🔍 Analyzing image...',
+          description: 'This may take a few seconds',
+        })
+
+        try {
+          const analysis = await analyzeImage(imageFile, text)
+          console.log('[SimpleChatClient] Image analysis result:', analysis)
+
+          const analysisText = formatAnalysisAsText(analysis)
+          userMessageContent = analysisText + (text || '')
+
+          toast({
+            title: '✅ Image analyzed',
+            description: 'Sending to coach...',
+          })
+        } catch (error) {
+          console.error('[SimpleChatClient] Image analysis failed:', error)
+          toast({
+            title: '⚠️ Image analysis failed',
+            description: 'Sending text only',
+            variant: 'destructive',
+          })
+          // Continue anyway with text only
+        }
+      }
+
+      // Add user message
+      const userMessage: Message = {
+        id: `user-${Date.now()}`,
+        role: 'user',
+        content: userMessageContent,
+        timestamp: new Date()
+      }
+
+      setMessages(prev => [...prev, userMessage])
+      console.log('[SimpleChatClient] Added user message')
+
+      // Clear input and attached files
+      setText('')
+      setAttachedFiles([])
+
+      // Create placeholder AI message for streaming
+      const aiMessageId = `ai-${Date.now()}`
+      const aiMessage: Message = {
+        id: aiMessageId,
+        role: 'assistant',
+        content: '',
+        timestamp: new Date(),
+        isStreaming: true
+      }
+      setMessages(prev => [...prev, aiMessage])
+
       // Call real backend API with streaming
       console.log('[SimpleChatClient] Calling backend API...')
 
@@ -196,20 +311,13 @@ export function SimpleChatClient() {
       console.log('[SimpleChatClient] Streaming complete!')
 
     } catch (error) {
-      console.error('[SimpleChatClient] Error calling API:', error)
+      console.error('[SimpleChatClient] Error in handleSubmit:', error)
 
-      // Update message with error
-      setMessages(prev =>
-        prev.map(msg =>
-          msg.id === aiMessageId
-            ? {
-                ...msg,
-                content: `Error: ${error instanceof Error ? error.message : 'Failed to get response'}`,
-                isStreaming: false
-              }
-            : msg
-        )
-      )
+      toast({
+        title: '❌ Error',
+        description: error instanceof Error ? error.message : 'Failed to send message',
+        variant: 'destructive',
+      })
     } finally {
       setIsLoading(false)
     }
@@ -389,7 +497,82 @@ export function SimpleChatClient() {
       {/* Input Area - Fixed at Bottom (above bottom nav) */}
       <div className="fixed bottom-16 left-0 right-0 bg-zinc-900 border-t-2 border-iron-orange p-4">
         <div className="max-w-4xl mx-auto">
+          {/* Hidden File Input - Mobile Safe */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            style={{
+              pointerEvents: 'none',
+              position: 'absolute',
+              opacity: 0
+            }}
+            onChange={(e) => e.target.files && handleFileSelect(e.target.files)}
+            aria-label="File upload input"
+          />
+
+          {/* Attached Files Preview */}
+          {attachedFiles.length > 0 && (
+            <div className="mb-3 flex flex-wrap gap-2">
+              {attachedFiles.map((attached, index) => (
+                <div
+                  key={index}
+                  className="relative bg-iron-black p-2 flex items-center gap-2 border-l-4 border-iron-orange rounded"
+                >
+                  {attached.type === 'image' && attached.preview ? (
+                    <img
+                      src={attached.preview}
+                      alt="Attached"
+                      className="w-12 h-12 object-cover rounded"
+                    />
+                  ) : (
+                    <Paperclip className="w-5 h-5 text-iron-gray" />
+                  )}
+                  <span className="text-iron-white text-sm max-w-[150px] truncate">
+                    {attached.file.name}
+                  </span>
+                  <button
+                    onClick={() => removeFile(index)}
+                    className="ml-2 p-1 hover:bg-zinc-800 rounded"
+                    style={{
+                      cursor: 'pointer',
+                      touchAction: 'manipulation',
+                      userSelect: 'none',
+                      WebkitTapHighlightColor: 'transparent'
+                    }}
+                    aria-label="Remove file"
+                  >
+                    <X className="w-4 h-4 text-iron-gray" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
           <div className="flex gap-2 items-end">
+            {/* Attach File Button */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                fileInputRef.current?.click()
+              }}
+              disabled={isLoading}
+              className="min-h-[56px] min-w-[56px] p-3 hover:bg-zinc-800 rounded-lg transition-colors disabled:opacity-50"
+              style={{
+                cursor: 'pointer',
+                touchAction: 'manipulation',
+                userSelect: 'none',
+                WebkitTapHighlightColor: 'transparent'
+              }}
+              aria-label="Attach file"
+              title="Attach image"
+            >
+              <Paperclip className="w-5 h-5 text-iron-white" />
+            </button>
+
             {/* Text Input */}
             <textarea
               value={text}
@@ -412,17 +595,8 @@ export function SimpleChatClient() {
             {/* Submit Button */}
             <button
               type="button"
-              onClick={() => {
-                console.log('[SimpleChatClient] Button CLICKED!')
-                handleSubmit()
-              }}
-              onTouchStart={() => {
-                console.log('[SimpleChatClient] TouchStart detected')
-              }}
-              onTouchEnd={() => {
-                console.log('[SimpleChatClient] TouchEnd detected')
-              }}
-              disabled={!text.trim() || isLoading}
+              onClick={handleSubmit}
+              disabled={(!text.trim() && !attachedFiles.length) || isLoading}
               className="min-w-[56px] min-h-[56px] bg-iron-orange hover:bg-orange-600 active:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg flex items-center justify-center transition-colors"
               style={{
                 cursor: 'pointer',
@@ -432,7 +606,11 @@ export function SimpleChatClient() {
               }}
               aria-label="Send message"
             >
-              <Send className="w-5 h-5 text-white" />
+              {isLoading ? (
+                <Loader2 className="w-5 h-5 text-white animate-spin" />
+              ) : (
+                <Send className="w-5 h-5 text-white" />
+              )}
             </button>
           </div>
 
