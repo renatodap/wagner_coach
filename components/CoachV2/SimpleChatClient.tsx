@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Send, Loader2, MessageSquare, Plus, Zap } from 'lucide-react'
+import { Send, Loader2, MessageSquare, Plus, Zap, Mic, MicOff } from 'lucide-react'
 import { sendMessageStreaming, getConversations, getConversationMessages } from '@/lib/api/unified-coach'
 import type { SendMessageResponse, ConversationSummary, UnifiedMessage } from '@/lib/api/unified-coach'
 import { getAutoLogPreference, updateAutoLogPreference } from '@/lib/api/profile'
@@ -32,6 +32,7 @@ export function SimpleChatClient() {
   const [conversationId, setConversationId] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const recognitionRef = useRef<any>(null)
 
   // Conversation history
   const [showHistory, setShowHistory] = useState(false)
@@ -44,6 +45,9 @@ export function SimpleChatClient() {
 
   // File uploads
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([])
+
+  // Voice recording
+  const [isRecording, setIsRecording] = useState(false)
 
   const { toast } = useToast()
 
@@ -187,6 +191,90 @@ export function SimpleChatClient() {
 
   function removeFile(index: number) {
     setAttachedFiles(prev => prev.filter((_, i) => i !== index))
+  }
+
+  function startVoiceRecording() {
+    try {
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+
+      if (!SpeechRecognition) {
+        toast({
+          title: '🎤 Voice Not Supported',
+          description: 'Voice input not supported on this browser. Try text input instead.',
+          variant: 'destructive'
+        })
+        return
+      }
+
+      const recognition = new SpeechRecognition()
+      recognition.continuous = false
+      recognition.interimResults = false
+      recognition.lang = 'en-US'
+
+      recognition.onstart = () => {
+        setIsRecording(true)
+        toast({
+          title: '🎤 Listening...',
+          description: 'Speak now to add text',
+        })
+      }
+
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript
+        setText(prev => prev ? `${prev} ${transcript}` : transcript)
+        setIsRecording(false)
+        toast({
+          title: '✅ Voice recognized',
+          description: `Added: "${transcript.slice(0, 50)}${transcript.length > 50 ? '...' : ''}"`,
+        })
+      }
+
+      recognition.onerror = (event: any) => {
+        console.error('Speech recognition error:', event.error)
+
+        let errorMessage = 'Voice input failed'
+        let errorDescription = 'Please try again or use text input'
+
+        if (event.error === 'not-allowed') {
+          errorMessage = 'Microphone Permission Denied'
+          errorDescription = 'Please enable microphone access in your browser settings'
+        } else if (event.error === 'no-speech') {
+          errorMessage = 'No Speech Detected'
+          errorDescription = 'Try speaking louder or closer to the microphone'
+        } else if (event.error === 'network') {
+          errorMessage = 'Network Error'
+          errorDescription = 'Voice recognition requires an internet connection'
+        }
+
+        toast({
+          title: `🎤 ${errorMessage}`,
+          description: errorDescription,
+          variant: 'destructive'
+        })
+        setIsRecording(false)
+      }
+
+      recognition.onend = () => {
+        setIsRecording(false)
+      }
+
+      recognitionRef.current = recognition
+      recognition.start()
+    } catch (err) {
+      console.error('Voice recording error:', err)
+      toast({
+        title: '🎤 Voice Input Failed',
+        description: 'Failed to start voice recording. Please use text input instead.',
+        variant: 'destructive'
+      })
+    }
+  }
+
+  function stopVoiceRecording() {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop()
+      setIsRecording(false)
+    }
   }
 
   const handleSubmit = async () => {
@@ -576,6 +664,30 @@ export function SimpleChatClient() {
               className="flex-1 bg-zinc-800 text-iron-white placeholder-iron-gray/60 border-2 border-iron-gray focus:border-iron-orange outline-none rounded-lg px-4 py-3 resize-none min-h-[56px] max-h-[200px] disabled:opacity-50"
               rows={1}
             />
+
+            {/* Voice Recording */}
+            {!isRecording ? (
+              <button
+                type="button"
+                onClick={startVoiceRecording}
+                disabled={isLoading}
+                className="min-h-[56px] min-w-[56px] p-3 hover:bg-zinc-800 rounded-lg transition-colors disabled:opacity-50"
+                aria-label="Start voice recording"
+                title="Voice input"
+              >
+                <Mic className="w-5 h-5 text-iron-white" />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={stopVoiceRecording}
+                className="min-h-[56px] min-w-[56px] p-3 bg-red-600 hover:bg-red-700 rounded-lg transition-colors animate-pulse"
+                aria-label="Stop voice recording"
+                title="Stop recording"
+              >
+                <MicOff className="w-5 h-5 text-white" />
+              </button>
+            )}
 
             {/* Submit Button */}
             <button
