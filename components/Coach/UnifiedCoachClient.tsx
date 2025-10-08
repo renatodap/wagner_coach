@@ -115,7 +115,7 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
   const [isRecording, setIsRecording] = useState(false)
   const [showTypeDropdown, setShowTypeDropdown] = useState(false)
   const [autoLogEnabled, setAutoLogEnabled] = useState(false)
-  const [isLoadingPreference, setIsLoadingPreference] = useState(true)
+  const [isLoadingPreference, setIsLoadingPreference] = useState(false)
 
   // Cost tracking
   const [lastCost, setLastCost] = useState<number | null>(null)
@@ -157,6 +157,9 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
 
   // Close dropdown on outside click/touch
   useEffect(() => {
+    // Only listen when dropdown is actually open
+    if (!showTypeDropdown) return
+
     const handleClickOutside = (event: MouseEvent | TouchEvent) => {
       const target = event.target as Node
       if (dropdownRef.current && !dropdownRef.current.contains(target)) {
@@ -166,13 +169,13 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
 
     // Listen for both mouse and touch events for cross-device compatibility
     document.addEventListener('mousedown', handleClickOutside)
-    document.addEventListener('touchstart', handleClickOutside)
+    document.addEventListener('touchstart', handleClickOutside, { passive: true })
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside)
       document.removeEventListener('touchstart', handleClickOutside)
     }
-  }, [])
+  }, [showTypeDropdown])
 
   // Load conversation history on mount
   useEffect(() => {
