@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Send, Loader2 } from 'lucide-react'
-import { sendMessageStreaming } from '@/lib/api/unified-coach'
-import type { SendMessageResponse } from '@/lib/api/unified-coach'
+import { Send, Loader2, MessageSquare, Plus } from 'lucide-react'
+import { sendMessageStreaming, getConversations, getConversationMessages } from '@/lib/api/unified-coach'
+import type { SendMessageResponse, ConversationSummary, UnifiedMessage } from '@/lib/api/unified-coach'
 
 interface Message {
   id: string
@@ -20,10 +20,63 @@ export function SimpleChatClient() {
   const [conversationId, setConversationId] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
+  // Conversation history
+  const [showHistory, setShowHistory] = useState(false)
+  const [conversations, setConversations] = useState<ConversationSummary[]>([])
+  const [isLoadingConversations, setIsLoadingConversations] = useState(false)
+
   // Auto-scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
+
+  // Load conversations on mount
+  useEffect(() => {
+    loadConversations()
+  }, [])
+
+  async function loadConversations() {
+    try {
+      setIsLoadingConversations(true)
+      const response = await getConversations({ limit: 50 })
+      setConversations(response.conversations)
+    } catch (error) {
+      console.error('[SimpleChatClient] Failed to load conversations:', error)
+    } finally {
+      setIsLoadingConversations(false)
+    }
+  }
+
+  async function loadConversation(convId: string) {
+    try {
+      setIsLoading(true)
+      const response = await getConversationMessages(convId)
+
+      // Convert UnifiedMessage to our Message format
+      const loadedMessages: Message[] = response.messages.map(msg => ({
+        id: msg.id,
+        role: msg.role,
+        content: msg.content,
+        timestamp: new Date(msg.created_at),
+      }))
+
+      setMessages(loadedMessages)
+      setConversationId(convId)
+      setShowHistory(false)
+      console.log('[SimpleChatClient] Loaded conversation:', convId, loadedMessages.length, 'messages')
+    } catch (error) {
+      console.error('[SimpleChatClient] Failed to load conversation:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  function startNewConversation() {
+    setMessages([])
+    setConversationId(null)
+    setShowHistory(false)
+    console.log('[SimpleChatClient] Started new conversation')
+  }
 
   const handleSubmit = async () => {
     console.log('[SimpleChatClient] Submit button clicked!')
@@ -80,6 +133,8 @@ export function SimpleChatClient() {
         if (chunk.conversation_id && !newConversationId) {
           newConversationId = chunk.conversation_id
           setConversationId(chunk.conversation_id)
+          // Reload conversations list to show new conversation
+          loadConversations()
         }
 
         if (chunk.message) {
@@ -128,16 +183,106 @@ export function SimpleChatClient() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-iron-black">
-      {/* Header */}
-      <header className="bg-zinc-900 border-b-2 border-iron-orange p-4">
-        <h1 className="text-iron-orange font-black text-2xl tracking-tight">
-          COACH V2 (TEST)
-        </h1>
-        <p className="text-iron-gray text-sm mt-1">
-          Minimal chat interface - testing mobile buttons
-        </p>
-      </header>
+    <div className="flex h-screen bg-iron-black">
+      {/* Conversation History Sidebar */}
+      {showHistory && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/50 z-40"
+            onClick={() => setShowHistory(false)}
+          />
+
+          {/* Sidebar */}
+          <div className="fixed left-0 top-0 bottom-0 w-80 bg-zinc-900 border-r-2 border-iron-gray z-50 overflow-y-auto">
+            <div className="p-4 border-b border-iron-gray">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-iron-white font-bold text-lg">Conversations</h2>
+                <button
+                  onClick={() => setShowHistory(false)}
+                  className="text-iron-gray hover:text-iron-white"
+                  aria-label="Close history"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <button
+                onClick={startNewConversation}
+                className="w-full bg-iron-orange hover:bg-orange-600 text-white font-medium py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                New Chat
+              </button>
+            </div>
+
+            <div className="p-2">
+              {isLoadingConversations ? (
+                <div className="text-center py-8 text-iron-gray">
+                  <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
+                  <p className="text-sm">Loading conversations...</p>
+                </div>
+              ) : conversations.length === 0 ? (
+                <div className="text-center py-8 text-iron-gray">
+                  <p className="text-sm">No conversations yet</p>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {conversations.map((conv) => (
+                    <button
+                      key={conv.id}
+                      onClick={() => loadConversation(conv.id)}
+                      className={`w-full text-left p-3 rounded-lg transition-colors ${
+                        conversationId === conv.id
+                          ? 'bg-iron-orange/20 border border-iron-orange'
+                          : 'hover:bg-zinc-800'
+                      }`}
+                    >
+                      <div className="flex items-start gap-2">
+                        <MessageSquare className="w-4 h-4 text-iron-gray mt-1 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-iron-white text-sm font-medium truncate">
+                            {conv.title || 'Untitled Chat'}
+                          </p>
+                          <p className="text-iron-gray text-xs mt-1 truncate">
+                            {conv.last_message_preview || `${conv.message_count} messages`}
+                          </p>
+                          <p className="text-iron-gray text-xs mt-1">
+                            {new Date(conv.last_message_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Main Chat Area */}
+      <div className="flex flex-col flex-1 h-screen">
+        {/* Header */}
+        <header className="bg-zinc-900 border-b-2 border-iron-orange p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <h1 className="text-iron-orange font-black text-2xl tracking-tight">
+                COACH V2 (TEST)
+              </h1>
+              <p className="text-iron-gray text-sm mt-1">
+                Real API + streaming + history
+              </p>
+            </div>
+            <button
+              onClick={() => setShowHistory(!showHistory)}
+              className="ml-4 p-2 hover:bg-zinc-800 rounded-lg transition-colors"
+              aria-label="Toggle conversation history"
+            >
+              <MessageSquare className="w-6 h-6 text-iron-orange" />
+            </button>
+          </div>
+        </header>
 
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4 mb-20">
@@ -242,6 +387,7 @@ export function SimpleChatClient() {
             <p className="text-green-500">✓ Pure React events | ✓ cursor: pointer | ✓ No overlays</p>
           </div>
         </div>
+      </div>
       </div>
     </div>
   )
