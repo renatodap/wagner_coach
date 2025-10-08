@@ -6,7 +6,6 @@ import {
   LayoutDashboard,
   MessageSquare,
   User,
-  Calendar,
   Sparkles
 } from 'lucide-react'
 
@@ -19,12 +18,6 @@ export default function BottomNavigation() {
       href: '/dashboard',
       icon: LayoutDashboard,
       current: pathname === '/dashboard'
-    },
-    {
-      name: 'Programs',
-      href: '/programs',
-      icon: Calendar,
-      current: pathname === '/programs' || pathname.startsWith('/program')
     },
     {
       name: 'Coach',
@@ -43,7 +36,7 @@ export default function BottomNavigation() {
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-iron-black border-t border-iron-gray z-40">
       <div className="max-w-4xl mx-auto px-4">
-        <div className="grid grid-cols-4 py-2">
+        <div className="grid grid-cols-3 py-2">
           {navigation.map((item) => {
             const Icon = item.icon
             return (
