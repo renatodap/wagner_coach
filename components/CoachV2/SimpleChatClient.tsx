@@ -1,57 +1,130 @@
 'use client'
 
-import { useState } from 'react'
-import { Send } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
+import { Send, Loader2 } from 'lucide-react'
+import { sendMessageStreaming } from '@/lib/api/unified-coach'
+import type { SendMessageResponse } from '@/lib/api/unified-coach'
 
 interface Message {
   id: string
   role: 'user' | 'assistant'
   content: string
   timestamp: Date
+  isStreaming?: boolean
 }
 
 export function SimpleChatClient() {
   const [text, setText] = useState('')
   const [messages, setMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [conversationId, setConversationId] = useState<string | null>(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  const handleSubmit = () => {
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
+
+  const handleSubmit = async () => {
     console.log('[SimpleChatClient] Submit button clicked!')
     console.log('[SimpleChatClient] Text:', text)
-    console.log('[SimpleChatClient] isLoading:', isLoading)
 
     if (!text.trim() || isLoading) {
       console.log('[SimpleChatClient] Skipping - no text or loading')
       return
     }
 
+    const userMessageContent = text
+
     // Add user message
     const userMessage: Message = {
       id: `user-${Date.now()}`,
       role: 'user',
-      content: text,
+      content: userMessageContent,
       timestamp: new Date()
     }
 
     setMessages(prev => [...prev, userMessage])
-    console.log('[SimpleChatClient] Added user message:', userMessage)
+    console.log('[SimpleChatClient] Added user message')
 
     // Clear input
     setText('')
-
-    // Simulate AI response
     setIsLoading(true)
-    setTimeout(() => {
-      const aiMessage: Message = {
-        id: `ai-${Date.now()}`,
-        role: 'assistant',
-        content: `Echo: ${userMessage.content}`,
-        timestamp: new Date()
+
+    // Create placeholder AI message for streaming
+    const aiMessageId = `ai-${Date.now()}`
+    const aiMessage: Message = {
+      id: aiMessageId,
+      role: 'assistant',
+      content: '',
+      timestamp: new Date(),
+      isStreaming: true
+    }
+    setMessages(prev => [...prev, aiMessage])
+
+    try {
+      // Call real backend API with streaming
+      console.log('[SimpleChatClient] Calling backend API...')
+
+      const stream = sendMessageStreaming({
+        message: userMessageContent,
+        conversation_id: conversationId,
+      })
+
+      let fullResponse = ''
+      let newConversationId = conversationId
+
+      for await (const chunk of stream) {
+        console.log('[SimpleChatClient] Received chunk:', chunk)
+
+        if (chunk.conversation_id && !newConversationId) {
+          newConversationId = chunk.conversation_id
+          setConversationId(chunk.conversation_id)
+        }
+
+        if (chunk.message) {
+          fullResponse += chunk.message
+
+          // Update streaming message
+          setMessages(prev =>
+            prev.map(msg =>
+              msg.id === aiMessageId
+                ? { ...msg, content: fullResponse }
+                : msg
+            )
+          )
+        }
       }
-      setMessages(prev => [...prev, aiMessage])
+
+      // Mark streaming as complete
+      setMessages(prev =>
+        prev.map(msg =>
+          msg.id === aiMessageId
+            ? { ...msg, isStreaming: false }
+            : msg
+        )
+      )
+
+      console.log('[SimpleChatClient] Streaming complete!')
+
+    } catch (error) {
+      console.error('[SimpleChatClient] Error calling API:', error)
+
+      // Update message with error
+      setMessages(prev =>
+        prev.map(msg =>
+          msg.id === aiMessageId
+            ? {
+                ...msg,
+                content: `Error: ${error instanceof Error ? error.message : 'Failed to get response'}`,
+                isStreaming: false
+              }
+            : msg
+        )
+      )
+    } finally {
       setIsLoading(false)
-      console.log('[SimpleChatClient] Added AI message:', aiMessage)
-    }, 1000)
+    }
   }
 
   return (
@@ -71,28 +144,45 @@ export function SimpleChatClient() {
         {messages.length === 0 ? (
           <div className="text-center text-iron-gray mt-20">
             <p className="text-lg font-medium">No messages yet</p>
-            <p className="text-sm mt-2">Type something and tap Send to test!</p>
+            <p className="text-sm mt-2">Ask your coach anything about fitness & nutrition!</p>
           </div>
         ) : (
-          messages.map(message => (
-            <div
-              key={message.id}
-              className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-            >
+          <>
+            {messages.map(message => (
               <div
-                className={`max-w-[80%] rounded-lg px-4 py-3 ${
-                  message.role === 'user'
-                    ? 'bg-iron-orange text-iron-black'
-                    : 'bg-zinc-800 text-iron-white border border-iron-gray'
-                }`}
+                key={message.id}
+                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
-                <p className="text-sm">{message.content}</p>
-                <p className="text-xs opacity-70 mt-1">
-                  {message.timestamp.toLocaleTimeString()}
-                </p>
+                <div
+                  className={`max-w-[80%] rounded-lg px-4 py-3 ${
+                    message.role === 'user'
+                      ? 'bg-iron-orange text-iron-black'
+                      : 'bg-zinc-800 text-iron-white border border-iron-gray'
+                  }`}
+                >
+                  {message.isStreaming && !message.content ? (
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span className="text-sm text-iron-gray">Thinking...</span>
+                    </div>
+                  ) : (
+                    <>
+                      <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <p className="text-xs opacity-70">
+                          {message.timestamp.toLocaleTimeString()}
+                        </p>
+                        {message.isStreaming && (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
-          ))
+            ))}
+            <div ref={messagesEndRef} />
+          </>
         )}
       </div>
 
