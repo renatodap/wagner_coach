@@ -15,6 +15,7 @@ export interface UserProfile {
   full_name?: string
   goal?: string
   auto_log_enabled: boolean
+  timezone?: string
   created_at: string
   updated_at: string
 }
@@ -119,7 +120,38 @@ export async function getUserProfile(): Promise<UserProfile> {
     full_name: data.full_name,
     goal: data.goal,
     auto_log_enabled: data.auto_log_enabled ?? false,
+    timezone: data.timezone ?? 'UTC',
     created_at: data.created_at,
     updated_at: data.updated_at
   }
+}
+
+/**
+ * Update user's timezone preference
+ *
+ * @param {string} timezone - IANA timezone identifier (e.g., "America/New_York")
+ * @returns {Promise<void>}
+ * @throws {Error} If user is not authenticated or update fails
+ */
+export async function updateUserTimezone(timezone: string): Promise<void> {
+  const supabase = createClient()
+
+  // Get current user
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError || !user) {
+    throw new Error('Not authenticated')
+  }
+
+  // Update profile
+  const { error } = await supabase
+    .from('profiles')
+    .update({ timezone })
+    .eq('id', user.id)
+
+  if (error) {
+    console.error('[updateUserTimezone] Database error:', error)
+    throw new Error('Failed to update timezone')
+  }
+
+  console.log(`[updateUserTimezone] Updated timezone to: ${timezone}`)
 }
