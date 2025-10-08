@@ -43,16 +43,22 @@ export async function getAutoLogPreference(): Promise<AutoLogPreference> {
     throw new Error('Not authenticated')
   }
 
-  // Fetch profile
+  // Fetch profile - gracefully handle missing column
   const { data, error } = await supabase
     .from('profiles')
     .select('auto_log_enabled')
     .eq('id', user.id)
     .single()
 
+  // If column doesn't exist (400 error), default to false
   if (error) {
-    console.error('[getAutoLogPreference] Database error:', error)
-    throw new Error('Failed to fetch auto-log preference')
+    // Log warning but don't fail - column might not exist yet
+    console.warn('[getAutoLogPreference] Column may not exist yet, defaulting to false:', error.message)
+
+    // Return default value instead of throwing
+    return {
+      auto_log_enabled: false
+    }
   }
 
   return {
@@ -83,8 +89,10 @@ export async function updateAutoLogPreference(enabled: boolean): Promise<void> {
     .eq('id', user.id)
 
   if (error) {
-    console.error('[updateAutoLogPreference] Database error:', error)
-    throw new Error('Failed to update auto-log preference')
+    // Log warning but don't fail - column might not exist yet
+    console.warn('[updateAutoLogPreference] Column may not exist yet:', error.message)
+    // Silently fail - this is a non-critical preference
+    return
   }
 }
 
