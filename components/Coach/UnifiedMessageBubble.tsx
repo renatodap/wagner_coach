@@ -32,6 +32,13 @@ function formatTime(dateString: string): string {
   })
 }
 
+// Filter out system context from message content
+// System context is wrapped in [SYSTEM_CONTEXT]...[/SYSTEM_CONTEXT] tags
+// This allows us to send analysis to backend but hide it from user UI
+function filterSystemContext(content: string): string {
+  return content.replace(/\[SYSTEM_CONTEXT\][\s\S]*?\[\/SYSTEM_CONTEXT\]/g, '').trim()
+}
+
 export function UnifiedMessageBubble({ message, className = '' }: UnifiedMessageBubbleProps) {
   const { role, content, created_at, message_type } = message
 
@@ -64,6 +71,12 @@ export function UnifiedMessageBubble({ message, className = '' }: UnifiedMessage
 
   // User message (right-aligned, orange)
   if (role === 'user') {
+    // Filter out system context (image analysis) from display
+    const displayContent = filterSystemContext(content)
+
+    // If content is empty after filtering, show a placeholder
+    const finalContent = displayContent || '📷 [Uploaded image]'
+
     return (
       <div
         className={`flex justify-end ${className}`}
@@ -78,7 +91,7 @@ export function UnifiedMessageBubble({ message, className = '' }: UnifiedMessage
           animate-in slide-in-from-right-2 duration-200
         ">
           <div className="whitespace-pre-wrap break-words text-sm leading-relaxed">
-            {content}
+            {finalContent}
           </div>
           <div className="text-xs mt-1.5 opacity-70">
             {formatTime(created_at)}

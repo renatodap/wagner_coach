@@ -129,9 +129,16 @@ function LogMealForm() {
 
       setSuccess(true)
 
-      // Redirect after 1.5 seconds to returnTo URL
+      // Redirect after 1.5 seconds to returnTo URL with query params
+      // This allows the coach page to detect return and reload conversation
       setTimeout(() => {
-        router.push(returnTo)
+        const redirectUrl = new URL(returnTo, window.location.origin)
+        if (conversationId) {
+          redirectUrl.searchParams.set('from', 'meal-log')
+          redirectUrl.searchParams.set('conversationId', conversationId)
+          redirectUrl.searchParams.set('status', 'submitted')
+        }
+        router.push(redirectUrl.pathname + redirectUrl.search)
       }, 1500)
     } catch (err) {
       console.error('Error saving meal:', err)
@@ -155,8 +162,14 @@ function LogMealForm() {
       }
     }
 
-    // Redirect to returnTo URL
-    router.push(returnTo)
+    // Redirect to returnTo URL with query params
+    const redirectUrl = new URL(returnTo, window.location.origin)
+    if (conversationId) {
+      redirectUrl.searchParams.set('from', 'meal-log')
+      redirectUrl.searchParams.set('conversationId', conversationId)
+      redirectUrl.searchParams.set('status', 'cancelled')
+    }
+    router.push(redirectUrl.pathname + redirectUrl.search)
   }
 
   if (success) {

@@ -20,7 +20,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback, memo } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import {
   Mic,
   Paperclip,
@@ -56,6 +56,7 @@ import {
   sendMessageStreaming,
   confirmLog,
   getConversations,
+  getConversationMessages,
   type UnifiedMessage,
   type LogPreview,
   type ConversationSummary,
@@ -131,6 +132,7 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
   // Hooks
   const { toast } = useToast()
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   // Determine if we're in chat mode or entry mode
   const hasStartedChat = messages.length > 0
@@ -186,6 +188,57 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
     window.addEventListener('resize', checkMobile)
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
+
+  // Handle return from meal log page
+  useEffect(() => {
+    const from = searchParams.get('from')
+    const returnedConversationId = searchParams.get('conversationId')
+    const status = searchParams.get('status')
+
+    if (from === 'meal-log' && returnedConversationId) {
+      // User returned from meal log page - reload conversation to show coach's response
+      const loadConversation = async () => {
+        try {
+          const { messages: conversationMessages } = await getConversationMessages(returnedConversationId)
+
+          // Update state with loaded messages
+          setMessages(conversationMessages)
+          setConversationId(returnedConversationId)
+
+          // Show toast notification
+          if (status === 'submitted') {
+            toast({
+              title: '✅ Meal logged!',
+              description: 'Coach has updated your conversation with a summary.',
+              variant: 'default',
+            })
+          } else if (status === 'cancelled') {
+            toast({
+              title: 'Log cancelled',
+              description: 'No problem! Let me know when you\'re ready.',
+              variant: 'default',
+            })
+          }
+
+          // Auto-scroll to bottom to show new messages
+          setTimeout(() => scrollToBottom(true), 100)
+
+          // Clean up URL params (remove query string)
+          const cleanUrl = window.location.pathname
+          window.history.replaceState({}, '', cleanUrl)
+        } catch (error) {
+          console.error('Failed to load conversation after meal log:', error)
+          toast({
+            title: 'Error',
+            description: 'Failed to reload conversation. Please refresh the page.',
+            variant: 'destructive',
+          })
+        }
+      }
+
+      loadConversation()
+    }
+  }, [searchParams, toast, scrollToBottom])
 
   const scrollToBottom = useCallback((smooth = true) => {
     messagesEndRef.current?.scrollIntoView({

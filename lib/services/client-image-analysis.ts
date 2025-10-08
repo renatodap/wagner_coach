@@ -187,10 +187,14 @@ If NOT food, return:
  *
  * This text will be prepended to the user's message before sending to backend,
  * so the AI coach can reference the image analysis in its response.
+ *
+ * IMPORTANT: The analysis is wrapped in [SYSTEM_CONTEXT] markers so it can be:
+ * - Hidden from the user UI (filtered out in UnifiedMessageBubble)
+ * - Visible to the AI coach (sent to backend for RAG context)
  */
 export function formatAnalysisAsText(analysis: ImageAnalysisResult): string {
   if (!analysis.success || !analysis.is_food) {
-    return `\n\n[Image Analysis: ${analysis.description}]\n`
+    return `[SYSTEM_CONTEXT]Image Analysis: ${analysis.description}[/SYSTEM_CONTEXT]`
   }
 
   const { food_items = [], nutrition, meal_type, description, confidence } = analysis
@@ -199,7 +203,7 @@ export function formatAnalysisAsText(analysis: ImageAnalysisResult): string {
     `${item.name} (${item.quantity} ${item.unit})`
   ).join(', ')
 
-  return `
+  return `[SYSTEM_CONTEXT]
 === FOOD IMAGE ANALYSIS ===
 Description: ${description}
 Detected Foods: ${foodList}
@@ -210,6 +214,5 @@ Estimated Nutrition:
 - Fats: ${nutrition?.fats_g || 'Unknown'} g
 Meal Type: ${meal_type || 'Unknown'}
 Confidence: ${Math.round((confidence || 0) * 100)}%
-
-`
+[/SYSTEM_CONTEXT]`
 }
