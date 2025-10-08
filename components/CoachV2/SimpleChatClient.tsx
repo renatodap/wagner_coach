@@ -30,7 +30,6 @@ export function SimpleChatClient() {
   const [isLoading, setIsLoading] = useState(false)
   const [conversationId, setConversationId] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Conversation history
   const [showHistory, setShowHistory] = useState(false)
@@ -497,17 +496,12 @@ export function SimpleChatClient() {
       {/* Input Area - Fixed at Bottom (above bottom nav) */}
       <div className="fixed bottom-16 left-0 right-0 bg-zinc-900 border-t-2 border-iron-orange p-4">
         <div className="max-w-4xl mx-auto">
-          {/* Hidden File Input - Mobile Safe */}
+          {/* Hidden File Input - Native Label Association */}
           <input
-            ref={fileInputRef}
+            id="file-upload-input"
             type="file"
             accept="image/*"
-            className="hidden"
-            style={{
-              pointerEvents: 'none',
-              position: 'absolute',
-              opacity: 0
-            }}
+            className="sr-only"
             onChange={(e) => e.target.files && handleFileSelect(e.target.files)}
             aria-label="File upload input"
           />
@@ -551,27 +545,17 @@ export function SimpleChatClient() {
           )}
 
           <div className="flex gap-2 items-end">
-            {/* Attach File Button */}
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-                fileInputRef.current?.click()
-              }}
-              disabled={isLoading}
-              className="min-h-[56px] min-w-[56px] p-3 hover:bg-zinc-800 rounded-lg transition-colors disabled:opacity-50"
-              style={{
-                cursor: 'pointer',
-                touchAction: 'manipulation',
-                userSelect: 'none',
-                WebkitTapHighlightColor: 'transparent'
-              }}
+            {/* Attach File Button - Native Label */}
+            <label
+              htmlFor="file-upload-input"
+              className={`min-h-[56px] min-w-[56px] p-3 hover:bg-zinc-800 rounded-lg transition-colors cursor-pointer flex items-center justify-center ${
+                isLoading ? 'opacity-50 pointer-events-none' : ''
+              }`}
               aria-label="Attach file"
               title="Attach image"
             >
               <Paperclip className="w-5 h-5 text-iron-white" />
-            </button>
+            </label>
 
             {/* Text Input */}
             <textarea
@@ -617,7 +601,7 @@ export function SimpleChatClient() {
           {/* Debug Info */}
           <div className="mt-2 text-xs text-iron-gray">
             <p>Debug: {text.length} chars | {isLoading ? 'Loading...' : 'Ready'}</p>
-            <p className="text-green-500">✓ Pure React events | ✓ cursor: pointer | ✓ No overlays</p>
+            <p className="text-green-500">✓ Native label-based upload | ✓ No programmatic clicks | ✓ iOS-safe</p>
           </div>
         </div>
       </div>
