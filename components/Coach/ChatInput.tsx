@@ -172,7 +172,7 @@ export function ChatInput({
 
         {/* Action Buttons */}
         <div className="flex gap-2">
-          {/* Image Upload Button (optional, Phase 2) */}
+          {/* Image Upload Button - FIXED FOR MOBILE */}
           <input
             ref={fileInputRef}
             type="file"
@@ -186,58 +186,85 @@ export function ChatInput({
             variant="outline"
             size="icon"
             className="
-              w-12 h-12 rounded-full
+              min-w-[44px] min-h-[44px] w-12 h-12 rounded-full
               border-2 border-gray-200
               hover:border-blue-500 hover:bg-blue-50
+              active:bg-blue-100
               transition-colors
-              hidden sm:flex
+              flex items-center justify-center
+              touch-manipulation
             "
-            onClick={() => fileInputRef.current?.click()}
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              fileInputRef.current?.click()
+            }}
+            onTouchEnd={(e) => {
+              e.preventDefault()
+              fileInputRef.current?.click()
+            }}
             disabled={isSending || disabled}
             title="Upload image (meal photo)"
+            aria-label="Upload image"
           >
-            <ImageIcon className="w-5 h-5 text-gray-600" />
+            <ImageIcon className="w-5 h-5 text-gray-600" aria-hidden="true" />
           </Button>
 
-          {/* Voice Recording Button (optional, Phase 3) */}
+          {/* Voice Recording Button - FIXED FOR MOBILE */}
           <Button
             type="button"
             variant="outline"
             size="icon"
             className="
-              w-12 h-12 rounded-full
+              min-w-[44px] min-h-[44px] w-12 h-12 rounded-full
               border-2 border-gray-200
               hover:border-blue-500 hover:bg-blue-50
+              active:bg-blue-100
               transition-colors
-              hidden sm:flex
+              flex items-center justify-center
+              touch-manipulation
             "
             disabled
             title="Voice input (coming soon)"
+            aria-label="Voice input (coming soon)"
           >
-            <Mic className="w-5 h-5 text-gray-400" />
+            <Mic className="w-5 h-5 text-gray-400" aria-hidden="true" />
           </Button>
 
-          {/* Send Button (primary action) */}
+          {/* Send Button - ENHANCED FOR MOBILE */}
           <Button
             type="button"
             size="icon"
             className={`
-              w-12 h-12 rounded-full
+              min-w-[44px] min-h-[44px] w-12 h-12 rounded-full
               ${canSend
-                ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                ? 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white'
                 : 'bg-gray-200 text-gray-400 cursor-not-allowed'
               }
               transition-all duration-200
               focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2
+              touch-manipulation
             `}
-            onClick={handleSend}
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              if (canSend) {
+                handleSend()
+              }
+            }}
+            onTouchEnd={(e) => {
+              e.preventDefault()
+              if (canSend) {
+                handleSend()
+              }
+            }}
             disabled={!canSend}
             aria-label="Send message"
           >
             {isSending ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
+              <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
             ) : (
-              <Send className="w-5 h-5" />
+              <Send className="w-5 h-5" aria-hidden="true" />
             )}
           </Button>
         </div>

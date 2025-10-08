@@ -792,11 +792,16 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                   <button
                     type="button"
                     onClick={(e) => {
+                      e.preventDefault()
                       e.stopPropagation()
                       setShowTypeDropdown(!showTypeDropdown)
                     }}
+                    onTouchEnd={(e) => {
+                      e.preventDefault()
+                      setShowTypeDropdown(!showTypeDropdown)
+                    }}
                     disabled={isLoading}
-                    className="min-h-[44px] min-w-[44px] p-3 hover:bg-iron-black/50 transition-colors disabled:opacity-50 rounded flex items-center justify-center gap-1 cursor-pointer"
+                    className="min-h-[44px] min-w-[44px] p-3 hover:bg-iron-black/50 active:bg-iron-black/70 transition-colors disabled:opacity-50 rounded flex items-center justify-center gap-1 cursor-pointer touch-manipulation"
                     style={{ WebkitTapHighlightColor: 'transparent', pointerEvents: 'auto' }}
                     title="Select log type"
                     aria-label={`Select log type. Current: ${getLogTypeLabel(selectedLogType)}`}
@@ -838,11 +843,16 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                 <button
                   type="button"
                   onClick={(e) => {
+                    e.preventDefault()
                     e.stopPropagation()
                     fileInputRef.current?.click()
                   }}
+                  onTouchEnd={(e) => {
+                    e.preventDefault()
+                    fileInputRef.current?.click()
+                  }}
                   disabled={isLoading}
-                  className="relative z-50 min-h-[44px] min-w-[44px] p-3 hover:bg-iron-black/50 transition-colors disabled:opacity-50 rounded flex items-center justify-center cursor-pointer"
+                  className="relative z-50 min-h-[44px] min-w-[44px] p-3 hover:bg-iron-black/50 active:bg-iron-black/70 transition-colors disabled:opacity-50 rounded flex items-center justify-center cursor-pointer touch-manipulation"
                   style={{ WebkitTapHighlightColor: 'transparent', pointerEvents: 'auto' }}
                   title="Attach file"
                   aria-label="Attach file"
@@ -883,11 +893,16 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                   <button
                     type="button"
                     onClick={(e) => {
+                      e.preventDefault()
                       e.stopPropagation()
                       startVoiceRecording()
                     }}
+                    onTouchEnd={(e) => {
+                      e.preventDefault()
+                      startVoiceRecording()
+                    }}
                     disabled={isLoading}
-                    className="relative z-50 min-h-[44px] min-w-[44px] p-3 hover:bg-iron-black/50 transition-colors disabled:opacity-50 rounded flex items-center justify-center cursor-pointer"
+                    className="relative z-50 min-h-[44px] min-w-[44px] p-3 hover:bg-iron-black/50 active:bg-iron-black/70 transition-colors disabled:opacity-50 rounded flex items-center justify-center cursor-pointer touch-manipulation"
                     style={{ WebkitTapHighlightColor: 'transparent', pointerEvents: 'auto' }}
                     title="Voice input"
                     aria-label="Start voice input"
@@ -898,10 +913,15 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                   <button
                     type="button"
                     onClick={(e) => {
+                      e.preventDefault()
                       e.stopPropagation()
                       stopVoiceRecording()
                     }}
-                    className="relative z-50 min-h-[44px] min-w-[44px] p-3 bg-red-500 animate-pulse flex items-center justify-center cursor-pointer"
+                    onTouchEnd={(e) => {
+                      e.preventDefault()
+                      stopVoiceRecording()
+                    }}
+                    className="relative z-50 min-h-[44px] min-w-[44px] p-3 bg-red-500 active:bg-red-600 animate-pulse flex items-center justify-center cursor-pointer touch-manipulation"
                     style={{ WebkitTapHighlightColor: 'transparent', pointerEvents: 'auto' }}
                     title="Stop recording"
                     aria-label="Stop recording"
@@ -914,11 +934,20 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                 <button
                   type="button"
                   onClick={(e) => {
+                    e.preventDefault()
                     e.stopPropagation()
-                    handleSendMessage()
+                    if (!isLoading && (text || attachedFiles.length > 0)) {
+                      handleSendMessage()
+                    }
+                  }}
+                  onTouchEnd={(e) => {
+                    e.preventDefault()
+                    if (!isLoading && (text || attachedFiles.length > 0)) {
+                      handleSendMessage()
+                    }
                   }}
                   disabled={(!text && attachedFiles.length === 0) || isLoading}
-                  className="relative z-50 min-h-[44px] min-w-[44px] p-3 bg-gradient-to-r from-iron-orange to-orange-600 hover:from-orange-600 hover:to-iron-orange transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl active:scale-95 border-2 border-orange-700 flex items-center justify-center cursor-pointer"
+                  className="relative z-50 min-h-[44px] min-w-[44px] p-3 bg-gradient-to-r from-iron-orange to-orange-600 hover:from-orange-600 hover:to-iron-orange active:from-orange-700 active:to-orange-800 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl active:scale-95 border-2 border-orange-700 flex items-center justify-center cursor-pointer touch-manipulation"
                   style={{ WebkitTapHighlightColor: 'transparent', pointerEvents: 'auto' }}
                   title="Submit"
                   aria-label="Send message"
@@ -1281,11 +1310,16 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                   <button
                     type="button"
                     onClick={(e) => {
+                      e.preventDefault()
                       e.stopPropagation()
                       setShowTypeDropdown(!showTypeDropdown)
                     }}
+                    onTouchEnd={(e) => {
+                      e.preventDefault()
+                      setShowTypeDropdown(!showTypeDropdown)
+                    }}
                     disabled={isLoading || !!pendingLogPreview}
-                    className="min-h-[44px] min-w-[44px] p-3 hover:bg-iron-gray/50 transition-colors disabled:opacity-50 rounded flex items-center justify-center gap-1 cursor-pointer"
+                    className="min-h-[44px] min-w-[44px] p-3 hover:bg-iron-gray/50 active:bg-iron-gray/70 transition-colors disabled:opacity-50 rounded flex items-center justify-center gap-1 cursor-pointer touch-manipulation"
                     style={{ WebkitTapHighlightColor: 'transparent', pointerEvents: 'auto' }}
                     title="Select log type"
                     aria-label={`Select log type. Current: ${getLogTypeLabel(selectedLogType)}`}
@@ -1327,11 +1361,16 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                 <button
                   type="button"
                   onClick={(e) => {
+                    e.preventDefault()
                     e.stopPropagation()
                     fileInputRef.current?.click()
                   }}
+                  onTouchEnd={(e) => {
+                    e.preventDefault()
+                    fileInputRef.current?.click()
+                  }}
                   disabled={isLoading || !!pendingLogPreview}
-                  className="relative z-50 min-h-[44px] min-w-[44px] p-3 hover:bg-iron-gray/50 transition-colors disabled:opacity-50 rounded flex items-center justify-center cursor-pointer"
+                  className="relative z-50 min-h-[44px] min-w-[44px] p-3 hover:bg-iron-gray/50 active:bg-iron-gray/70 transition-colors disabled:opacity-50 rounded flex items-center justify-center cursor-pointer touch-manipulation"
                   style={{ WebkitTapHighlightColor: 'transparent', pointerEvents: 'auto' }}
                   title="Attach file"
                   aria-label="Attach file"
@@ -1376,11 +1415,16 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                   <button
                     type="button"
                     onClick={(e) => {
+                      e.preventDefault()
                       e.stopPropagation()
                       startVoiceRecording()
                     }}
+                    onTouchEnd={(e) => {
+                      e.preventDefault()
+                      startVoiceRecording()
+                    }}
                     disabled={isLoading || !!pendingLogPreview}
-                    className="relative z-50 min-h-[44px] min-w-[44px] p-3 hover:bg-iron-gray/50 transition-colors disabled:opacity-50 rounded flex items-center justify-center cursor-pointer"
+                    className="relative z-50 min-h-[44px] min-w-[44px] p-3 hover:bg-iron-gray/50 active:bg-iron-gray/70 transition-colors disabled:opacity-50 rounded flex items-center justify-center cursor-pointer touch-manipulation"
                     style={{ WebkitTapHighlightColor: 'transparent', pointerEvents: 'auto' }}
                     title="Voice input"
                     aria-label="Start voice input"
@@ -1391,10 +1435,15 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                   <button
                     type="button"
                     onClick={(e) => {
+                      e.preventDefault()
                       e.stopPropagation()
                       stopVoiceRecording()
                     }}
-                    className="relative z-50 min-h-[44px] min-w-[44px] p-3 bg-red-500 animate-pulse flex items-center justify-center cursor-pointer"
+                    onTouchEnd={(e) => {
+                      e.preventDefault()
+                      stopVoiceRecording()
+                    }}
+                    className="relative z-50 min-h-[44px] min-w-[44px] p-3 bg-red-500 active:bg-red-600 animate-pulse flex items-center justify-center cursor-pointer touch-manipulation"
                     style={{ WebkitTapHighlightColor: 'transparent', pointerEvents: 'auto' }}
                     title="Stop recording"
                     aria-label="Stop recording"
@@ -1407,11 +1456,20 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                 <button
                   type="button"
                   onClick={(e) => {
+                    e.preventDefault()
                     e.stopPropagation()
-                    handleSendMessage()
+                    if (!isLoading && !pendingLogPreview && (text || attachedFiles.length > 0)) {
+                      handleSendMessage()
+                    }
+                  }}
+                  onTouchEnd={(e) => {
+                    e.preventDefault()
+                    if (!isLoading && !pendingLogPreview && (text || attachedFiles.length > 0)) {
+                      handleSendMessage()
+                    }
                   }}
                   disabled={(!text && attachedFiles.length === 0) || isLoading || !!pendingLogPreview}
-                  className="relative z-50 min-h-[44px] min-w-[44px] p-3 bg-gradient-to-r from-iron-orange to-orange-600 hover:from-orange-600 hover:to-iron-orange transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl active:scale-95 border-2 border-orange-700 flex items-center justify-center cursor-pointer"
+                  className="relative z-50 min-h-[44px] min-w-[44px] p-3 bg-gradient-to-r from-iron-orange to-orange-600 hover:from-orange-600 hover:to-iron-orange active:from-orange-700 active:to-orange-800 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl active:scale-95 border-2 border-orange-700 flex items-center justify-center cursor-pointer touch-manipulation"
                   style={{ WebkitTapHighlightColor: 'transparent', pointerEvents: 'auto' }}
                   title="Submit"
                   aria-label="Send message"

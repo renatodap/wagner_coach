@@ -34,6 +34,8 @@ body {
   -webkit-text-size-adjust: 100%;
   /* Improve touch scrolling */
   -webkit-overflow-scrolling: touch;
+  /* Remove 300ms tap delay on mobile */
+  touch-action: manipulation;
 }
 
 /* Remove all rounded corners - brutal design */
@@ -59,9 +61,39 @@ h1, h2, h3, h4, h5, h6 {
   outline-offset: 2px;
 }
 
-/* Buttons */
-button {
+/* Buttons - Enhanced for Mobile */
+button, a, [role="button"], input[type="submit"], input[type="button"] {
+  /* Remove 300ms tap delay */
+  touch-action: manipulation;
+  /* Prevent text selection on tap */
+  -webkit-user-select: none;
+  user-select: none;
+  /* Prevent callout on long-press */
+  -webkit-touch-callout: none;
+  /* Visual feedback on tap */
   @apply transition-transform active:scale-95;
+}
+
+/* Mobile-specific button enhancements */
+@media (pointer: coarse) {
+  button, a, [role="button"] {
+    /* Minimum touch target size */
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Prevent double-tap zoom on buttons and inputs */
+button, a, input, textarea, select {
+  touch-action: manipulation;
+}
+
+/* File inputs - ensure they work on mobile */
+input[type="file"] {
+  /* Make sure file inputs can be triggered programmatically */
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
 }
 
 /* Scrollbar */

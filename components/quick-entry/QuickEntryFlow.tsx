@@ -139,6 +139,20 @@ export function QuickEntryFlow() {
     const file = e.target.files?.[0]
     if (file) {
       setImageFile(file)
+      toast({
+        title: 'Image selected',
+        description: file.name,
+        variant: 'default',
+      })
+    }
+  }
+
+  const triggerImageUpload = (e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const input = document.getElementById('image-upload') as HTMLInputElement
+    if (input) {
+      input.click()
     }
   }
 
@@ -279,14 +293,34 @@ export function QuickEntryFlow() {
         <div className="flex gap-3">
           <Button
             variant="outline"
-            onClick={handleCancel}
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              handleCancel()
+            }}
+            onTouchEnd={(e) => {
+              e.preventDefault()
+              handleCancel()
+            }}
             disabled={isProcessing}
-            className="flex-1"
+            className="flex-1 min-h-[48px] touch-manipulation active:scale-95 transition-transform"
           >
             <X className="h-4 w-4 mr-2" />
             Cancel
           </Button>
-          <Button onClick={handleConfirm} disabled={isProcessing} className="flex-1">
+          <Button
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              handleConfirm()
+            }}
+            onTouchEnd={(e) => {
+              e.preventDefault()
+              handleConfirm()
+            }}
+            disabled={isProcessing}
+            className="flex-1 min-h-[48px] touch-manipulation active:scale-95 transition-transform"
+          >
             {isProcessing ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -356,8 +390,16 @@ export function QuickEntryFlow() {
                 <Button
                   type="button"
                   variant={isRecording ? 'destructive' : 'default'}
-                  onClick={isRecording ? stopRecording : startRecording}
-                  className="w-full gap-2"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    isRecording ? stopRecording() : startRecording()
+                  }}
+                  onTouchEnd={(e) => {
+                    e.preventDefault()
+                    isRecording ? stopRecording() : startRecording()
+                  }}
+                  className="w-full gap-2 min-h-[48px] touch-manipulation active:scale-95 transition-transform"
                   disabled={isProcessing}
                 >
                   <Mic className="h-4 w-4" />
@@ -401,18 +443,23 @@ export function QuickEntryFlow() {
               </p>
 
               {!imageFile && (
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                <div
+                  className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-blue-500 active:border-blue-600 transition-colors touch-manipulation"
+                  onClick={triggerImageUpload}
+                  onTouchEnd={triggerImageUpload}
+                >
                   <Camera className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                  <Label htmlFor="image-upload" className="cursor-pointer">
+                  <div className="cursor-pointer">
                     <span className="text-blue-600 hover:text-blue-700 font-medium">
                       Choose a photo
                     </span>
-                    <span className="text-gray-600"> or drag and drop</span>
-                  </Label>
+                    <span className="text-gray-600"> or tap here</span>
+                  </div>
                   <Input
                     id="image-upload"
                     type="file"
                     accept="image/*"
+                    capture="environment"
                     className="hidden"
                     onChange={handleImageUpload}
                     disabled={isProcessing}
@@ -456,9 +503,17 @@ export function QuickEntryFlow() {
         )}
 
         <Button
-          onClick={handlePreview}
+          onClick={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            handlePreview()
+          }}
+          onTouchEnd={(e) => {
+            e.preventDefault()
+            handlePreview()
+          }}
           disabled={isProcessing || (!textInput && !imageFile && !audioFile)}
-          className="w-full mt-6"
+          className="w-full mt-6 min-h-[48px] touch-manipulation active:scale-95 transition-transform"
         >
           {isProcessing ? (
             <>
