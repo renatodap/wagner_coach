@@ -42,6 +42,24 @@ export interface RecentFoodsResponse {
   foods: Food[]
 }
 
+export interface DetectedFood {
+  name: string
+  quantity: string
+  unit: string
+}
+
+export interface MatchedFood extends Food {
+  detected_quantity: number
+  detected_unit: string
+  match_confidence: number
+  match_method: string
+}
+
+export interface MatchFoodsResponse {
+  matched_foods: MatchedFood[]
+  unmatched_foods: Array<{ name: string; reason: string }>
+}
+
 /**
  * Search foods by query
  */
@@ -158,4 +176,56 @@ export async function getFoodById(
   }
 
   return response.json()
+}
+
+/**
+ * Match detected food names to database foods
+ *
+ * Takes food names/quantities from image analysis and finds
+ * matching database records with full nutrition data.
+ *
+ * @param detectedFoods - Array of detected foods from image analysis
+ * @param token - Auth token
+ * @returns Matched foods with nutrition data + unmatched foods
+ */
+export async function matchDetectedFoods(
+  detectedFoods: DetectedFood[],
+  token: string
+): Promise<MatchFoodsResponse> {
+  const url = `${API_BASE_URL}/api/v1/foods/match-detected`
+  console.log('🔍 [Foods API] Matching detected foods:', {
+    url,
+    foodCount: detectedFoods.length,
+    foods: detectedFoods.map(f => f.name),
+    hasToken: !!token
+  })
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ detected_foods: detectedFoods })
+  })
+
+  if (!response.ok) {
+    const errorBody = await response.text()
+    console.error('❌ [Foods API] Food matching failed:', {
+      status: response.status,
+      statusText: response.statusText,
+      url,
+      errorBody,
+      hasToken: !!token
+    })
+    throw new Error(`Food matching failed (${response.status}): ${errorBody || response.statusText}`)
+  }
+
+  const result = await response.json()
+  console.log('✅ [Foods API] Matching complete:', {
+    matched: result.matched_foods.length,
+    unmatched: result.unmatched_foods.length
+  })
+
+  return result
 }

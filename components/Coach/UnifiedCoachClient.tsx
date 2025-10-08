@@ -64,6 +64,8 @@ import {
 } from '@/lib/api/unified-coach'
 import { uploadFiles, validateFile } from '@/lib/utils/file-upload'
 import { analyzeImage, formatAnalysisAsText } from '@/lib/services/client-image-analysis'
+import { matchDetectedFoods, type DetectedFood } from '@/lib/api/foods'
+import { createClient } from '@/lib/supabase/client'
 
 interface UnifiedCoachClientProps {
   userId: string
@@ -596,43 +598,109 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
           if (chunk.food_detected && chunk.food_detected.is_food) {
             const foodData = chunk.food_detected
 
-            // Convert food_detected to meal preview data format
-            const mealData = {
-              meal_type: foodData.meal_type || 'snack',
-              calories: foodData.nutrition.calories || 0,
-              protein_g: foodData.nutrition.protein_g || 0,
-              carbs_g: foodData.nutrition.carbs_g || 0,
-              fat_g: foodData.nutrition.fats_g || 0,
-              foods: foodData.food_items.map(item => ({
+            try {
+              // Show matching toast
+              toast({
+                title: '🔍 Matching foods to database...',
+                description: 'Finding nutrition information',
+              })
+
+              // Get auth token
+              const supabase = createClient()
+              const { data: { session } } = await supabase.auth.getSession()
+
+              if (!session?.access_token) {
+                throw new Error('Not authenticated')
+              }
+
+              // Call backend matching API
+              const detectedFoods: DetectedFood[] = foodData.food_items.map(item => ({
                 name: item.name,
                 quantity: item.quantity || '1',
                 unit: item.unit || 'serving'
-              })),
-              notes: `Detected from image: ${foodData.description}`
+              }))
+
+              const matchResult = await matchDetectedFoods(detectedFoods, session.access_token)
+
+              // Build meal data with matched foods
+              const mealData = {
+                meal_type: foodData.meal_type || 'dinner',
+                notes: `Detected from image: ${foodData.description}`,
+                foods: matchResult.matched_foods.map(food => ({
+                  food_id: food.id,
+                  name: food.name,
+                  brand: food.brand_name,
+                  quantity: food.detected_quantity,
+                  unit: food.detected_unit,
+                  serving_size: food.serving_size,
+                  serving_unit: food.serving_unit,
+                  calories: food.calories,
+                  protein_g: food.protein_g,
+                  carbs_g: food.carbs_g,
+                  fat_g: food.fat_g,
+                  fiber_g: food.fiber_g
+                }))
+              }
+
+              // Add unmatched foods to notes
+              if (matchResult.unmatched_foods.length > 0) {
+                mealData.notes += `\n\nCouldn't find in database: ${matchResult.unmatched_foods.map(f => f.name).join(', ')}`
+              }
+
+              // Show success toast
+              toast({
+                title: '✅ Food matching complete!',
+                description: `Matched ${matchResult.matched_foods.length}/${foodData.food_items.length} foods`,
+              })
+
+              // Redirect to meal log with enriched data
+              const params = new URLSearchParams({
+                previewData: JSON.stringify(mealData),
+                returnTo: '/coach',
+                conversationId: newConversationId || '',
+                userMessageId: chunk.message_id,
+                logType: 'meal'
+              })
+
+              setText('')
+              setAttachedFiles([])
+              setIsLoading(false)
+              setIsStreaming(false)
+
+              router.push(`/nutrition/log?${params.toString()}`)
+              return
+            } catch (error) {
+              // Fallback: redirect with original data (no matches)
+              console.error('Food matching failed:', error)
+              toast({
+                title: '⚠️ Auto-match failed',
+                description: 'Please search for foods manually',
+                variant: 'destructive'
+              })
+
+              // Still redirect, but without matched nutrition (user can search manually)
+              const fallbackData = {
+                meal_type: foodData.meal_type || 'dinner',
+                notes: `Detected from image: ${foodData.description}\n\nDetected foods: ${foodData.food_items.map(item => `${item.name} (${item.quantity} ${item.unit})`).join(', ')}\n\n(Auto-match failed - please search and add foods manually)`,
+                foods: [] // Empty - user must add manually
+              }
+
+              const params = new URLSearchParams({
+                previewData: JSON.stringify(fallbackData),
+                returnTo: '/coach',
+                conversationId: newConversationId || '',
+                userMessageId: chunk.message_id,
+                logType: 'meal'
+              })
+
+              setText('')
+              setAttachedFiles([])
+              setIsLoading(false)
+              setIsStreaming(false)
+
+              router.push(`/nutrition/log?${params.toString()}`)
+              return
             }
-
-            const params = new URLSearchParams({
-              previewData: JSON.stringify(mealData),
-              returnTo: '/coach',
-              conversationId: newConversationId || '',
-              userMessageId: chunk.message_id,
-              logType: 'meal'
-            })
-
-            setText('')
-            setAttachedFiles([])
-            setIsLoading(false)
-            setIsStreaming(false)
-
-            // Show toast notification
-            toast({
-              title: '🍽️ Food Detected!',
-              description: `Detected ${foodData.food_items.length} food items. Review and log your meal.`,
-            })
-
-            // Redirect to meal log page with pre-populated data
-            router.push(`/nutrition/log?${params.toString()}`)
-            return
           }
 
           // If it's a chat message, create AI message bubble
