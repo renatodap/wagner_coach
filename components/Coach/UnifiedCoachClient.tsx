@@ -559,42 +559,7 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
             )
           )
 
-          // Check if it's a log preview - REDIRECT to /nutrition/log instead of showing card
-          if (chunk.is_log_preview && chunk.log_preview) {
-            // For meals, redirect immediately to meal log page with pre-filled data
-            if (chunk.log_preview.log_type === 'meal') {
-              const params = new URLSearchParams({
-                previewData: JSON.stringify(chunk.log_preview.data),
-                returnTo: '/coach',
-                conversationId: newConversationId || '',
-                userMessageId: chunk.message_id,
-                logType: 'meal'
-              })
-
-              setText('')
-              setAttachedFiles([])
-              setIsLoading(false)
-              setIsStreaming(false)
-
-              // Redirect to meal log page
-              router.push(`/nutrition/log?${params.toString()}`)
-              return
-            }
-
-            // For other log types (workout, activity, etc), show preview card
-            setPendingLogPreview({
-              preview: chunk.log_preview,
-              userMessageId: chunk.message_id
-            })
-
-            setText('')
-            setAttachedFiles([])
-            setIsLoading(false)
-            setIsStreaming(false)
-            return
-          }
-
-          // NEW: Check if food was detected in image - AUTO-REDIRECT to meal log page
+          // PRIORITY 1: Check if food was detected in image - AUTO-REDIRECT with database matching
           if (chunk.food_detected && chunk.food_detected.is_food) {
             const foodData = chunk.food_detected
 
@@ -701,6 +666,41 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
               router.push(`/nutrition/log?${params.toString()}`)
               return
             }
+          }
+
+          // PRIORITY 2: Check for non-food log previews (workouts, measurements, etc.)
+          if (chunk.is_log_preview && chunk.log_preview) {
+            // For meals, redirect immediately to meal log page with pre-filled data
+            if (chunk.log_preview.log_type === 'meal') {
+              const params = new URLSearchParams({
+                previewData: JSON.stringify(chunk.log_preview.data),
+                returnTo: '/coach',
+                conversationId: newConversationId || '',
+                userMessageId: chunk.message_id,
+                logType: 'meal'
+              })
+
+              setText('')
+              setAttachedFiles([])
+              setIsLoading(false)
+              setIsStreaming(false)
+
+              // Redirect to meal log page
+              router.push(`/nutrition/log?${params.toString()}`)
+              return
+            }
+
+            // For other log types (workout, activity, etc), show preview card
+            setPendingLogPreview({
+              preview: chunk.log_preview,
+              userMessageId: chunk.message_id
+            })
+
+            setText('')
+            setAttachedFiles([])
+            setIsLoading(false)
+            setIsStreaming(false)
+            return
           }
 
           // If it's a chat message, create AI message bubble
