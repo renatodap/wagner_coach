@@ -586,18 +586,13 @@ export function SimpleChatClient() {
               rows={1}
             />
 
-            {/* Submit Button */}
+            {/* Submit Button - Matches Paperclip Structure */}
             <button
               type="button"
               onClick={handleSubmit}
-              disabled={(!text.trim() && !attachedFiles.length) || isLoading}
-              className="min-w-[56px] min-h-[56px] bg-iron-orange hover:bg-orange-600 active:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg flex items-center justify-center transition-colors"
-              style={{
-                cursor: 'pointer',
-                touchAction: 'manipulation',
-                userSelect: 'none',
-                WebkitTapHighlightColor: 'transparent'
-              }}
+              className={`min-h-[56px] min-w-[56px] p-3 bg-iron-orange hover:bg-orange-600 rounded-lg transition-colors cursor-pointer flex items-center justify-center ${
+                isLoading || (!text.trim() && !attachedFiles.length) ? 'opacity-50 pointer-events-none' : ''
+              }`}
               aria-label="Send message"
             >
               {isLoading ? (
@@ -611,7 +606,7 @@ export function SimpleChatClient() {
           {/* Debug Info */}
           <div className="mt-2 text-xs text-iron-gray">
             <p>Debug: {text.length} chars | {isLoading ? 'Loading...' : 'Ready'}</p>
-            <p className="text-green-500">✓ Native label-based upload | ✓ No programmatic clicks | ✓ iOS-safe</p>
+            <p className="text-green-500">✓ Matching button structures | ✓ No inline styles | ✓ iOS-safe</p>
           </div>
         </div>
       </div>
