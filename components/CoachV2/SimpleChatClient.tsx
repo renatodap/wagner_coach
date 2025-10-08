@@ -187,8 +187,13 @@ export function SimpleChatClient() {
     setAttachedFiles(prev => prev.filter((_, i) => i !== index))
   }
 
-  const handleSubmit = async () => {
-    console.log('[SimpleChatClient] Submit button clicked!')
+  const handleSubmit = async (e?: React.FormEvent) => {
+    // Prevent default form submission
+    if (e) {
+      e.preventDefault()
+    }
+
+    console.log('[SimpleChatClient] Submit triggered!')
     console.log('[SimpleChatClient] Text:', text)
 
     // Validation - do nothing if no content or already loading
@@ -555,59 +560,61 @@ export function SimpleChatClient() {
             </div>
           )}
 
-          <div className="flex gap-2 items-end">
-            {/* Attach File Button - Native Label */}
-            <label
-              htmlFor="file-upload-input"
-              className={`min-h-[56px] min-w-[56px] p-3 hover:bg-zinc-800 rounded-lg transition-colors cursor-pointer flex items-center justify-center ${
-                isLoading ? 'opacity-50 pointer-events-none' : ''
-              }`}
-              aria-label="Attach file"
-              title="Attach image"
-            >
-              <Paperclip className="w-5 h-5 text-iron-white" />
-            </label>
+          {/* Native Form Submit Pattern - iOS-safe */}
+          <form onSubmit={handleSubmit}>
+            <div className="flex gap-2 items-end">
+              {/* Attach File Button - Native Label */}
+              <label
+                htmlFor="file-upload-input"
+                className={`min-h-[56px] min-w-[56px] p-3 hover:bg-zinc-800 rounded-lg transition-colors cursor-pointer flex items-center justify-center ${
+                  isLoading ? 'opacity-50 pointer-events-none' : ''
+                }`}
+                aria-label="Attach file"
+                title="Attach image"
+              >
+                <Paperclip className="w-5 h-5 text-iron-white" />
+              </label>
 
-            {/* Text Input */}
-            <textarea
-              value={text}
-              onChange={(e) => {
-                console.log('[SimpleChatClient] Text changed:', e.target.value)
-                setText(e.target.value)
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault()
-                  handleSubmit()
-                }
-              }}
-              placeholder="Type a message..."
-              disabled={isLoading}
-              className="flex-1 bg-zinc-800 text-iron-white placeholder-iron-gray/60 border-2 border-iron-gray focus:border-iron-orange outline-none rounded-lg px-4 py-3 resize-none min-h-[56px] max-h-[200px] disabled:opacity-50"
-              rows={1}
-            />
+              {/* Text Input */}
+              <textarea
+                value={text}
+                onChange={(e) => {
+                  console.log('[SimpleChatClient] Text changed:', e.target.value)
+                  setText(e.target.value)
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault()
+                    handleSubmit()
+                  }
+                }}
+                placeholder="Type a message..."
+                disabled={isLoading}
+                className="flex-1 bg-zinc-800 text-iron-white placeholder-iron-gray/60 border-2 border-iron-gray focus:border-iron-orange outline-none rounded-lg px-4 py-3 resize-none min-h-[56px] max-h-[200px] disabled:opacity-50"
+                rows={1}
+              />
 
-            {/* Submit Button - EXACT Paperclip Structure */}
-            <button
-              type="button"
-              onClick={handleSubmit}
-              className={`min-h-[56px] min-w-[56px] p-3 bg-iron-orange hover:bg-orange-600 rounded-lg transition-colors cursor-pointer flex items-center justify-center ${
-                isLoading ? 'opacity-50 pointer-events-none' : ''
-              }`}
-              aria-label="Send message"
-            >
-              {isLoading ? (
-                <Loader2 className="w-5 h-5 text-white animate-spin" />
-              ) : (
-                <Send className="w-5 h-5 text-white" />
-              )}
-            </button>
-          </div>
+              {/* Submit Button - Native Form Submit */}
+              <button
+                type="submit"
+                className={`min-h-[56px] min-w-[56px] p-3 bg-iron-orange hover:bg-orange-600 rounded-lg transition-colors cursor-pointer flex items-center justify-center ${
+                  isLoading ? 'opacity-50 pointer-events-none' : ''
+                }`}
+                aria-label="Send message"
+              >
+                {isLoading ? (
+                  <Loader2 className="w-5 h-5 text-white animate-spin" />
+                ) : (
+                  <Send className="w-5 h-5 text-white" />
+                )}
+              </button>
+            </div>
+          </form>
 
           {/* Debug Info */}
           <div className="mt-2 text-xs text-iron-gray">
             <p>Debug: {text.length} chars | {isLoading ? 'Loading...' : 'Ready'}</p>
-            <p className="text-green-500">✓ EXACT same conditional pattern | ✓ Only isLoading check | ✓ iOS-safe</p>
+            <p className="text-green-500">✓ Native form submit | ✓ type=submit button | ✓ iOS-safe</p>
           </div>
         </div>
       </div>
