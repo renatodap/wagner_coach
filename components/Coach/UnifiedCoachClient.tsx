@@ -41,6 +41,7 @@ import { useToast } from '@/hooks/use-toast'
 import { UnifiedMessageBubble } from './UnifiedMessageBubble'
 import QuickEntryPreview from '@/components/quick-entry/QuickEntryPreview'
 import BottomNavigation from '@/app/components/BottomNavigation'
+import { getAutoLogPreference, updateAutoLogPreference } from '@/lib/api/profile'
 import {
   Sheet,
   SheetContent,
@@ -113,6 +114,8 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([])
   const [isRecording, setIsRecording] = useState(false)
   const [showTypeDropdown, setShowTypeDropdown] = useState(false)
+  const [autoLogEnabled, setAutoLogEnabled] = useState(false)
+  const [isLoadingPreference, setIsLoadingPreference] = useState(true)
 
   // Cost tracking
   const [lastCost, setLastCost] = useState<number | null>(null)
@@ -175,6 +178,55 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
   useEffect(() => {
     loadConversationHistory()
   }, [])
+
+  // Load auto-log preference on mount
+  useEffect(() => {
+    loadAutoLogPreference()
+  }, [])
+
+  const loadAutoLogPreference = async () => {
+    try {
+      setIsLoadingPreference(true)
+      const preference = await getAutoLogPreference()
+      setAutoLogEnabled(preference.auto_log_enabled)
+    } catch (err) {
+      console.error('Failed to load auto-log preference:', err)
+      // Default to false (preview mode)
+      setAutoLogEnabled(false)
+    } finally {
+      setIsLoadingPreference(false)
+    }
+  }
+
+  const toggleAutoLog = async () => {
+    const newValue = !autoLogEnabled
+
+    try {
+      // Optimistic update
+      setAutoLogEnabled(newValue)
+
+      // Update in database
+      await updateAutoLogPreference(newValue)
+
+      // Show success toast with mode info
+      toast({
+        title: newValue ? '⚡ Auto-Save Mode Enabled' : '👁️ Preview Mode Enabled',
+        description: newValue
+          ? 'Logs will be saved automatically. You can edit them later.'
+          : 'You\'ll review logs before saving them.',
+        variant: 'default',
+      })
+    } catch (err) {
+      // Revert on error
+      setAutoLogEnabled(!newValue)
+      console.error('Failed to update auto-log preference:', err)
+      toast({
+        title: 'Failed to update preference',
+        description: 'Please try again or check your connection.',
+        variant: 'destructive',
+      })
+    }
+  }
 
   // Detect mobile vs desktop
   useEffect(() => {
@@ -1140,6 +1192,32 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
 
             {/* Actions */}
             <div className="flex items-center gap-2">
+              {/* Auto-Log Toggle - LOUD AND CLEAR */}
+              <button
+                onClick={toggleAutoLog}
+                disabled={isLoadingPreference}
+                className={`
+                  px-3 py-2 rounded-lg border-2 transition-all font-bold text-xs uppercase tracking-wide
+                  flex items-center gap-2 min-h-[44px]
+                  ${autoLogEnabled
+                    ? 'border-iron-orange bg-iron-orange text-iron-black hover:bg-orange-600'
+                    : 'border-iron-gray bg-iron-black text-iron-white hover:border-iron-orange hover:bg-iron-gray/30'
+                  }
+                  disabled:opacity-50 disabled:cursor-not-allowed
+                `}
+                title={autoLogEnabled ? 'Auto-Save Mode: Logs saved instantly' : 'Preview Mode: Review before saving'}
+                aria-label={autoLogEnabled ? 'Disable auto-logging' : 'Enable auto-logging'}
+              >
+                {isLoadingPreference ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <>
+                    <span className="text-base">{autoLogEnabled ? '⚡' : '👁️'}</span>
+                    <span className="hidden sm:inline">{autoLogEnabled ? 'Auto-Save' : 'Preview'}</span>
+                  </>
+                )}
+              </button>
+
               <Button
                 variant="ghost"
                 size="icon"
@@ -1166,6 +1244,27 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
           </div>
         </div>
       </header>
+
+      {/* Current Mode Info Banner - LOUD AND CLEAR */}
+      {!isLoadingPreference && (
+        <div className={`
+          border-b-2 py-2 px-4 text-center text-sm font-semibold
+          ${autoLogEnabled
+            ? 'bg-iron-orange/10 border-iron-orange text-iron-orange'
+            : 'bg-iron-gray/20 border-iron-gray text-iron-white'
+          }
+        `}>
+          <span className="inline-flex items-center gap-2">
+            <span className="text-base">{autoLogEnabled ? '⚡' : '👁️'}</span>
+            <span>
+              {autoLogEnabled
+                ? 'Auto-Save Mode: Logs saved automatically'
+                : 'Preview Mode: Review logs before saving'
+              }
+            </span>
+          </span>
+        </div>
+      )}
 
       {/* Main Content Area with Sidebar */}
       <div className="flex-1 flex overflow-hidden">

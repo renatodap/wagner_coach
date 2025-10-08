@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -12,11 +12,13 @@ import {
   LogOut,
   Check,
   Dumbbell,
-  TrendingDown
+  TrendingDown,
+  Settings as SettingsIcon
 } from 'lucide-react';
 import StravaConnection from '@/components/StravaConnection';
 import GarminConnection from '@/components/GarminConnection';
 import BottomNavigation from '@/app/components/BottomNavigation';
+import { getAutoLogPreference, updateAutoLogPreference } from '@/lib/api/profile';
 
 type Goal = 'build_muscle' | 'lose_weight' | 'gain_strength';
 
@@ -40,6 +42,8 @@ export default function SettingsClient({ profile, userEmail }: SettingsClientPro
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
+  const [autoLogEnabled, setAutoLogEnabled] = useState(false);
+  const [loadingAutoLog, setLoadingAutoLog] = useState(true);
 
   const goals = [
     {
@@ -61,6 +65,33 @@ export default function SettingsClient({ profile, userEmail }: SettingsClientPro
       icon: <Target className="w-6 h-6" />,
     },
   ];
+
+  // Load auto-log preference on mount
+  useEffect(() => {
+    const loadPreference = async () => {
+      try {
+        const pref = await getAutoLogPreference();
+        setAutoLogEnabled(pref.auto_log_enabled);
+      } catch (err) {
+        console.error('Failed to load auto-log preference:', err);
+      } finally {
+        setLoadingAutoLog(false);
+      }
+    };
+    loadPreference();
+  }, []);
+
+  const handleToggleAutoLog = async () => {
+    const newValue = !autoLogEnabled;
+    try {
+      setAutoLogEnabled(newValue);
+      await updateAutoLogPreference(newValue);
+    } catch (err) {
+      setAutoLogEnabled(!newValue);
+      setError('Failed to update auto-log preference');
+      console.error(err);
+    }
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -208,6 +239,80 @@ export default function SettingsClient({ profile, userEmail }: SettingsClientPro
           <p className="text-iron-gray text-sm mt-4">
             Changing your goal will generate new workouts starting next week
           </p>
+        </div>
+
+        {/* Coach Behavior - Auto-Log Preference */}
+        <div className="border border-iron-gray p-6">
+          <h2 className="font-heading text-2xl text-iron-white mb-6 flex items-center gap-2">
+            <SettingsIcon className="w-5 h-5 text-iron-orange" />
+            COACH BEHAVIOR
+          </h2>
+
+          <div className="space-y-4">
+            <h3 className="font-heading text-lg text-iron-white mb-3">
+              Logging Mode
+            </h3>
+
+            {/* Preview Mode Option */}
+            <button
+              onClick={() => !autoLogEnabled || handleToggleAutoLog()}
+              disabled={loadingAutoLog}
+              className={`w-full p-4 border-2 transition-all text-left ${
+                !autoLogEnabled
+                  ? 'border-iron-orange bg-iron-orange/10'
+                  : 'border-iron-gray hover:border-iron-orange/50'
+              } disabled:opacity-50`}
+            >
+              <div className="flex items-start gap-4">
+                <div className="text-2xl">👁️</div>
+                <div className="flex-1">
+                  <h4 className="font-heading text-lg text-iron-white flex items-center gap-2">
+                    PREVIEW MODE
+                    {!autoLogEnabled && <Check className="w-5 h-5 text-iron-orange" />}
+                  </h4>
+                  <p className="text-iron-gray text-sm mt-1">
+                    Review and edit logs before saving them to your history. Perfect for careful tracking.
+                  </p>
+                  <div className="mt-2 text-xs text-iron-gray bg-iron-black/50 p-2 border-l-2 border-iron-orange">
+                    <strong>How it works:</strong> When Coach detects you logged something (meal, workout, etc.),
+                    you'll see a preview card. Review the details, make edits if needed, then confirm to save.
+                  </div>
+                </div>
+              </div>
+            </button>
+
+            {/* Auto-Save Mode Option */}
+            <button
+              onClick={() => autoLogEnabled || handleToggleAutoLog()}
+              disabled={loadingAutoLog}
+              className={`w-full p-4 border-2 transition-all text-left ${
+                autoLogEnabled
+                  ? 'border-iron-orange bg-iron-orange/10'
+                  : 'border-iron-gray hover:border-iron-orange/50'
+              } disabled:opacity-50`}
+            >
+              <div className="flex items-start gap-4">
+                <div className="text-2xl">⚡</div>
+                <div className="flex-1">
+                  <h4 className="font-heading text-lg text-iron-white flex items-center gap-2">
+                    AUTO-SAVE MODE
+                    {autoLogEnabled && <Check className="w-5 h-5 text-iron-orange" />}
+                  </h4>
+                  <p className="text-iron-gray text-sm mt-1">
+                    Logs saved automatically and instantly. Edit them later if needed. Perfect for speed.
+                  </p>
+                  <div className="mt-2 text-xs text-iron-gray bg-iron-black/50 p-2 border-l-2 border-iron-orange">
+                    <strong>How it works:</strong> When Coach detects you logged something, it saves immediately
+                    to your history. You can view and edit logs anytime from your nutrition/workout pages.
+                  </div>
+                </div>
+              </div>
+            </button>
+
+            <p className="text-iron-gray text-xs mt-4 italic">
+              💡 Tip: Switch modes anytime using the toggle in the Coach chat header
+            </p>
+          </div>
         </div>
 
         {/* Strava Integration */}
