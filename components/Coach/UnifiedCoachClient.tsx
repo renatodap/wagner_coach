@@ -719,7 +719,27 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
               return
             }
 
-            // For other log types (workout, activity, etc), show preview card
+            // For activities/workouts, redirect to activity log page with pre-filled data
+            if (chunk.log_preview.log_type === 'activity' || chunk.log_preview.log_type === 'workout') {
+              const params = new URLSearchParams({
+                previewData: JSON.stringify(chunk.log_preview.data),
+                returnTo: '/coach',
+                conversationId: newConversationId || '',
+                userMessageId: chunk.message_id,
+                logType: chunk.log_preview.log_type
+              })
+
+              setText('')
+              setAttachedFiles([])
+              setIsLoading(false)
+              setIsStreaming(false)
+
+              // Redirect to activity log page
+              router.push(`/activities/log?${params.toString()}`)
+              return
+            }
+
+            // For other log types (measurements, etc), show preview card
             setPendingLogPreview({
               preview: chunk.log_preview,
               userMessageId: chunk.message_id

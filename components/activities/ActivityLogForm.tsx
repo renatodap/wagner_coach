@@ -12,10 +12,12 @@ import { ArrowLeft } from 'lucide-react';
 interface ActivityLogFormProps {
   onSubmit?: (activity: any) => void;
   onCancel?: () => void;
+  initialData?: Partial<CreateActivityRequest>;
+  preSelectedType?: ActivityType;
 }
 
-export default function ActivityLogForm({ onSubmit, onCancel }: ActivityLogFormProps) {
-  const [selectedType, setSelectedType] = useState<ActivityType | undefined>();
+export default function ActivityLogForm({ onSubmit, onCancel, initialData, preSelectedType }: ActivityLogFormProps) {
+  const [selectedType, setSelectedType] = useState<ActivityType | undefined>(preSelectedType);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
@@ -111,6 +113,7 @@ export default function ActivityLogForm({ onSubmit, onCancel }: ActivityLogFormP
             activityType={selectedType}
             onSubmit={handleFormSubmit}
             onCancel={handleCancel}
+            initialData={initialData}
           />
         )}
 

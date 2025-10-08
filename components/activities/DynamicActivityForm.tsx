@@ -12,18 +12,36 @@ interface DynamicActivityFormProps {
   onCancel?: () => void;
 }
 
+interface DynamicActivityFormPropsExtended extends DynamicActivityFormProps {
+  initialData?: Partial<CreateActivityRequest>;
+}
+
 export default function DynamicActivityForm({
   activityType,
   onSubmit,
-  onCancel
-}: DynamicActivityFormProps) {
+  onCancel,
+  initialData
+}: DynamicActivityFormPropsExtended) {
+  // Helper to get current datetime in local timezone as ISO string
+  const getCurrentLocalDateTime = (): string => {
+    const now = new Date();
+    // Format: YYYY-MM-DDTHH:MM (for datetime-local input)
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
+
   const [formData, setFormData] = useState<Partial<CreateActivityRequest>>({
     activity_type: activityType,
     name: '',
-    start_date: new Date().toISOString().slice(0, 16), // YYYY-MM-DDTHH:MM
+    start_date: getCurrentLocalDateTime(),
     duration_minutes: undefined,
-    source: 'manual',
-    exercises: []
+    source: initialData?.source || 'manual',
+    exercises: [],
+    ...initialData // Merge any initial data from coach
   });
 
   const updateField = (field: string, value: any) => {
@@ -263,8 +281,22 @@ export default function DynamicActivityForm({
         </label>
         <input
           type="datetime-local"
-          value={formData.start_date?.slice(0, 16)}
-          onChange={(e) => updateField('start_date', new Date(e.target.value).toISOString())}
+          value={formData.start_date?.slice(0, 16) || ''}
+          onChange={(e) => {
+            const value = e.target.value;
+            if (value) {
+              // Validate date before converting
+              const date = new Date(value);
+              if (!isNaN(date.getTime())) {
+                updateField('start_date', date.toISOString());
+              } else {
+                // If invalid, just store the input value
+                updateField('start_date', value);
+              }
+            } else {
+              updateField('start_date', '');
+            }
+          }}
           className="w-full bg-iron-black border border-iron-gray px-4 py-3 text-iron-white focus:outline-none focus:border-iron-orange transition-colors rounded-lg"
           required
         />
