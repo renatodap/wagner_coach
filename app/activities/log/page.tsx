@@ -53,8 +53,21 @@ export default function ActivityLogPage() {
       {/* Header */}
       <div className="bg-iron-black/50 backdrop-blur-sm border-b border-iron-gray/20">
         <div className="max-w-4xl mx-auto px-4 py-6">
-          <h1 className="text-2xl font-bold text-white">Log Activity</h1>
-          <p className="text-iron-gray">Track your workouts and activities</p>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => router.push('/dashboard')}
+              className="text-iron-orange hover:text-orange-400 transition-colors"
+              aria-label="Back to dashboard"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <div>
+              <h1 className="text-2xl font-bold text-white">Log Activity</h1>
+              <p className="text-iron-gray">Track your workouts and activities</p>
+            </div>
+          </div>
         </div>
       </div>
 

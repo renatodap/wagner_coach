@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import type { ActivityType, CreateActivityRequest } from '@/types/activity';
 import { Button } from '@/components/ui/button';
 import { Calendar, Clock, MapPin, Heart, Zap, Dumbbell, Flame } from 'lucide-react';
+import ExerciseSetBuilder, { ActivityExercise } from './ExerciseSetBuilder';
 
 interface DynamicActivityFormProps {
   activityType: ActivityType;
@@ -21,7 +22,8 @@ export default function DynamicActivityForm({
     name: '',
     start_date: new Date().toISOString().slice(0, 16), // YYYY-MM-DDTHH:MM
     duration_minutes: undefined,
-    source: 'manual'
+    source: 'manual',
+    exercises: []
   });
 
   const updateField = (field: string, value: any) => {
@@ -125,62 +127,11 @@ export default function DynamicActivityForm({
 
   const renderStrengthFields = () => (
     <>
-      {/* Total Sets */}
-      <div className="space-y-2">
-        <label className="block text-sm font-medium text-iron-gray uppercase">
-          <Dumbbell className="inline w-4 h-4 mr-1" />
-          Total Sets
-        </label>
-        <input
-          type="number"
-          value={formData.total_sets || ''}
-          onChange={(e) => updateField('total_sets', parseInt(e.target.value))}
-          className="w-full bg-iron-black border border-iron-gray px-4 py-3 text-iron-white focus:outline-none focus:border-iron-orange transition-colors rounded-lg"
-          placeholder="15"
-        />
-      </div>
-
-      {/* Total Reps */}
-      <div className="space-y-2">
-        <label className="block text-sm font-medium text-iron-gray uppercase">
-          Total Reps
-        </label>
-        <input
-          type="number"
-          value={formData.total_reps || ''}
-          onChange={(e) => updateField('total_reps', parseInt(e.target.value))}
-          className="w-full bg-iron-black border border-iron-gray px-4 py-3 text-iron-white focus:outline-none focus:border-iron-orange transition-colors rounded-lg"
-          placeholder="120"
-        />
-      </div>
-
-      {/* Total Weight Lifted */}
-      <div className="space-y-2">
-        <label className="block text-sm font-medium text-iron-gray uppercase">
-          Total Weight Lifted (lbs)
-        </label>
-        <input
-          type="number"
-          value={formData.total_weight_lifted_kg ? (formData.total_weight_lifted_kg * 2.20462).toFixed(0) : ''}
-          onChange={(e) => updateField('total_weight_lifted_kg', parseFloat(e.target.value) / 2.20462)}
-          className="w-full bg-iron-black border border-iron-gray px-4 py-3 text-iron-white focus:outline-none focus:border-iron-orange transition-colors rounded-lg"
-          placeholder="5000"
-        />
-      </div>
-
-      {/* Exercise Count */}
-      <div className="space-y-2">
-        <label className="block text-sm font-medium text-iron-gray uppercase">
-          Number of Exercises
-        </label>
-        <input
-          type="number"
-          value={formData.exercise_count || ''}
-          onChange={(e) => updateField('exercise_count', parseInt(e.target.value))}
-          className="w-full bg-iron-black border border-iron-gray px-4 py-3 text-iron-white focus:outline-none focus:border-iron-orange transition-colors rounded-lg"
-          placeholder="6"
-        />
-      </div>
+      {/* Exercise & Set Builder */}
+      <ExerciseSetBuilder
+        exercises={formData.exercises || []}
+        onChange={(exercises) => updateField('exercises', exercises)}
+      />
     </>
   );
 
@@ -401,6 +352,144 @@ export default function DynamicActivityForm({
           className="w-full bg-iron-black border border-iron-gray px-4 py-3 text-iron-white focus:outline-none focus:border-iron-orange transition-colors rounded-lg min-h-[80px]"
           placeholder="How did it feel?"
         />
+      </div>
+
+      {/* Subjective Metrics */}
+      <div className="border-t border-iron-gray/30 pt-6 space-y-4">
+        <h3 className="text-sm font-medium text-iron-gray uppercase">How You Felt</h3>
+
+        {/* Mood */}
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-iron-gray uppercase">
+            Mood
+          </label>
+          <select
+            value={formData.mood || ''}
+            onChange={(e) => updateField('mood', e.target.value)}
+            className="w-full bg-iron-black border border-iron-gray px-4 py-3 text-iron-white focus:outline-none focus:border-iron-orange transition-colors rounded-lg"
+          >
+            <option value="">Select mood...</option>
+            <option value="terrible">😫 Terrible</option>
+            <option value="bad">😞 Bad</option>
+            <option value="okay">😐 Okay</option>
+            <option value="good">😊 Good</option>
+            <option value="amazing">🤩 Amazing</option>
+          </select>
+        </div>
+
+        {/* Energy Level */}
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-iron-gray uppercase">
+            Energy Level (1-5)
+          </label>
+          <div className="flex gap-2">
+            {[1, 2, 3, 4, 5].map((level) => (
+              <button
+                key={level}
+                type="button"
+                onClick={() => updateField('energy_level', level)}
+                className={`flex-1 py-3 rounded-lg font-medium transition-colors ${
+                  formData.energy_level === level
+                    ? 'bg-iron-orange text-iron-black'
+                    : 'bg-iron-gray/20 text-iron-gray hover:bg-iron-gray/30'
+                }`}
+              >
+                {level}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Soreness Level */}
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-iron-gray uppercase">
+            Soreness Level (0-10)
+          </label>
+          <input
+            type="range"
+            min="0"
+            max="10"
+            value={formData.soreness_level || 0}
+            onChange={(e) => updateField('soreness_level', parseInt(e.target.value))}
+            className="w-full"
+          />
+          <div className="flex justify-between text-xs text-iron-gray">
+            <span>No soreness</span>
+            <span className="font-medium text-iron-white">{formData.soreness_level || 0}</span>
+            <span>Extremely sore</span>
+          </div>
+        </div>
+
+        {/* Workout Rating */}
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-iron-gray uppercase">
+            Overall Rating (1-5)
+          </label>
+          <div className="flex gap-2">
+            {[1, 2, 3, 4, 5].map((rating) => (
+              <button
+                key={rating}
+                type="button"
+                onClick={() => updateField('workout_rating', rating)}
+                className={`flex-1 py-3 rounded-lg transition-colors ${
+                  formData.workout_rating === rating
+                    ? 'bg-iron-orange text-iron-black text-2xl'
+                    : 'bg-iron-gray/20 text-iron-gray hover:bg-iron-gray/30 text-xl'
+                }`}
+              >
+                {'⭐'.repeat(rating)}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Environment */}
+      <div className="border-t border-iron-gray/30 pt-6 space-y-4">
+        <h3 className="text-sm font-medium text-iron-gray uppercase">Environment</h3>
+
+        {/* Indoor Toggle */}
+        <div className="flex items-center justify-between">
+          <label className="text-sm font-medium text-iron-gray uppercase">
+            Indoor Activity
+          </label>
+          <button
+            type="button"
+            onClick={() => updateField('indoor', !formData.indoor)}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+              formData.indoor ? 'bg-iron-orange' : 'bg-iron-gray/30'
+            }`}
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                formData.indoor ? 'translate-x-6' : 'translate-x-1'
+              }`}
+            />
+          </button>
+        </div>
+
+        {/* Weather Conditions (only show if outdoor) */}
+        {!formData.indoor && (
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-iron-gray uppercase">
+              Weather
+            </label>
+            <select
+              value={formData.weather_conditions || ''}
+              onChange={(e) => updateField('weather_conditions', e.target.value)}
+              className="w-full bg-iron-black border border-iron-gray px-4 py-3 text-iron-white focus:outline-none focus:border-iron-orange transition-colors rounded-lg"
+            >
+              <option value="">Select weather...</option>
+              <option value="sunny">☀️ Sunny</option>
+              <option value="cloudy">☁️ Cloudy</option>
+              <option value="rainy">🌧️ Rainy</option>
+              <option value="windy">💨 Windy</option>
+              <option value="snowy">❄️ Snowy</option>
+              <option value="hot">🔥 Hot</option>
+              <option value="cold">🥶 Cold</option>
+            </select>
+          </div>
+        )}
       </div>
 
       {/* Action Buttons */}
