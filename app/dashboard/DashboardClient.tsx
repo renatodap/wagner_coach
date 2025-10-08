@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Profile } from '@/lib/types'
 import BottomNavigation from '@/app/components/BottomNavigation'
 import { CircularProgress } from '@/components/dashboard/CircularProgress'
-import { Loader2, Plus, UtensilsCrossed } from 'lucide-react'
+import { Loader2, Plus, UtensilsCrossed, Activity } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 interface DashboardClientProps {
@@ -108,9 +108,18 @@ export default function DashboardClient({
                   <span>Log Meal</span>
                 </Button>
                 <Button
+                  onClick={() => router.push('/activities/log')}
+                  className="bg-iron-orange hover:bg-iron-orange/90 text-white font-medium h-auto py-4 flex flex-col items-center gap-2"
+                >
+                  <Activity size={24} />
+                  <span>Log Activity</span>
+                </Button>
+              </div>
+              <div className="mt-3">
+                <Button
                   onClick={() => router.push('/coach')}
                   variant="outline"
-                  className="border-iron-gray/30 text-white hover:bg-iron-gray/20 h-auto py-4 flex flex-col items-center gap-2"
+                  className="w-full border-iron-gray/30 text-white hover:bg-iron-gray/20 h-auto py-4 flex flex-col items-center gap-2"
                 >
                   <Plus size={24} />
                   <span>Ask Coach</span>

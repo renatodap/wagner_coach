@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { getActivities } from '@/lib/api/activities';
+import type { ActivityResponse } from '@/types/activity';
 import Link from 'next/link';
 import {
   Activity,
@@ -37,34 +38,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useRouter } from 'next/navigation';
 
-interface ActivityData {
-  id: string;
-  name: string;
-  activity_type: string;
-  sport_type: string;
-  start_date: string;
-  elapsed_time_seconds: number;
-  moving_time_seconds?: number;
-  distance_meters?: number;
-  average_heartrate?: number;
-  max_heartrate?: number;
-  calories?: number;
-  source: string;
-  average_speed?: number;
-  max_speed?: number;
-  total_elevation_gain?: number;
-  average_cadence?: number;
-  average_power?: number;
-  normalized_power?: number;
-  training_load?: number;
-  perceived_exertion?: number;
-  mood?: string;
-  energy_level?: number;
-  workout_rating?: number;
-  notes?: string;
-  weather_data?: any;
-  raw_data?: any;
-}
+// Use ActivityResponse from types
+type ActivityData = ActivityResponse;
 
 interface ActivityListProps {
   limit?: number;
@@ -120,7 +95,6 @@ export default function ActivityList({ limit = 10, showHeader = true, compact = 
   const [expandedActivities, setExpandedActivities] = useState<Set<string>>(new Set());
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const supabase = createClient();
   const router = useRouter();
 
   const toggleExpanded = (activityId: string) => {
@@ -142,15 +116,8 @@ export default function ActivityList({ limit = 10, showHeader = true, compact = 
   const fetchActivities = async () => {
     try {
       setIsLoading(true);
-      const { data, error } = await supabase
-        .from('activities')
-        .select('*')
-        .order('start_date', { ascending: false })
-        .limit(limit);
-
-      if (error) throw error;
-
-      setActivities(data || []);
+      const response = await getActivities({ limit });
+      setActivities(response.activities);
     } catch (err) {
       console.error('Failed to fetch activities:', err);
       setError('Failed to load activities');
@@ -164,12 +131,8 @@ export default function ActivityList({ limit = 10, showHeader = true, compact = 
 
     setDeletingId(activityId);
     try {
-      const { error } = await supabase
-        .from('activities')
-        .delete()
-        .eq('id', activityId);
-
-      if (error) throw error;
+      const { deleteActivity } = await import('@/lib/api/activities');
+      await deleteActivity(activityId);
 
       // Remove from local state
       setActivities(prev => prev.filter(a => a.id !== activityId));
