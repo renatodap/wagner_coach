@@ -1,129 +1,157 @@
 import Link from "next/link";
-import { MessageSquare, Mic, Camera, Calendar, TrendingUp, Zap } from "lucide-react";
+import { MessageSquare, Mic, Camera, Brain, Zap, TrendingUp, Check, X } from "lucide-react";
 
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-iron-black text-iron-white">
-      {/* Hero Section */}
-      <section className="px-4 py-12 md:py-20">
-        <div className="max-w-6xl mx-auto">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            {/* Left: Copy */}
-            <div className="space-y-6">
-              <div>
-                <h1 className="font-heading text-5xl md:text-7xl text-iron-orange uppercase tracking-wider mb-4">
-                  Iron Discipline
-                </h1>
-                <p className="text-2xl md:text-3xl text-iron-white mb-4">
-                  Your AI Fitness & Nutrition Coach
-                </p>
-                <p className="text-lg text-iron-gray">
-                  Log meals in 5 seconds with voice or photos. Get personalized coaching from an AI that actually understands your journey.
-                </p>
-              </div>
+      {/* Hero Section - Problem + Solution */}
+      <section className="px-4 py-20 md:py-32">
+        <div className="max-w-5xl mx-auto text-center space-y-8">
+          {/* Headline */}
+          <div className="space-y-4">
+            <h1 className="font-heading text-5xl md:text-7xl lg:text-8xl text-iron-white uppercase tracking-wide leading-tight">
+              Your AI Coach
+              <span className="block text-iron-orange mt-2">Who Never Forgets</span>
+            </h1>
+            <p className="text-xl md:text-2xl text-iron-gray max-w-3xl mx-auto leading-relaxed">
+              Remembers every meal, workout, and goal. Adapts your plan daily. Starts free.
+            </p>
+          </div>
 
-              {/* Features */}
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <Mic className="w-5 h-5 text-iron-orange" />
-                  <span className="text-iron-white">Voice logging - just say what you ate</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Camera className="w-5 h-5 text-iron-orange" />
-                  <span className="text-iron-white">Photo analysis - snap your meal, AI extracts nutrition</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <MessageSquare className="w-5 h-5 text-iron-orange" />
-                  <span className="text-iron-white">AI coach - chat about workouts, nutrition, progress</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Calendar className="w-5 h-5 text-iron-orange" />
-                  <span className="text-iron-white">12-week programs - AI-generated, personalized to you</span>
-                </div>
-              </div>
+          {/* CTA */}
+          <div className="pt-6">
+            <Link
+              href="/auth"
+              className="inline-block px-10 py-5 bg-iron-orange text-iron-black font-heading text-2xl uppercase tracking-widest hover:bg-orange-600 transition-colors"
+            >
+              Start Free
+            </Link>
+            <p className="text-iron-gray text-sm mt-4">
+              No credit card • 5-second logging • AI that remembers everything
+            </p>
+          </div>
 
-              {/* CTA */}
-              <div className="flex flex-col sm:flex-row gap-4 pt-4">
-                <Link
-                  href="/auth"
-                  className="px-8 py-4 bg-iron-orange text-iron-black font-heading text-xl uppercase tracking-widest hover:bg-orange-600 transition-colors text-center"
-                >
-                  Start Free
-                </Link>
-                <a
-                  href="#how-it-works"
-                  className="px-8 py-4 border-2 border-iron-orange text-iron-orange font-heading text-xl uppercase tracking-widest hover:bg-iron-orange hover:text-iron-black transition-colors text-center"
-                >
-                  See How
-                </a>
-              </div>
-
-              <p className="text-iron-gray text-sm">
-                No credit card required • Free forever for basic features
-              </p>
-            </div>
-
-            {/* Right: Wagner Photo / Demo */}
-            <div className="space-y-4">
-              <div className="relative h-96 border-2 border-iron-orange">
-                <div className="absolute inset-0 bg-iron-gray/20 flex items-center justify-center">
+          {/* Visual Demo */}
+          <div className="mt-16 max-w-4xl mx-auto">
+            <div className="relative aspect-video border-2 border-iron-orange bg-iron-gray/10">
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-6 p-8">
+                <div className="flex gap-8 text-iron-orange">
                   <div className="text-center">
-                    <span className="text-iron-gray text-3xl font-heading">WAGNER</span>
-                    <p className="text-iron-gray text-sm mt-2">[Demo Screenshot Here]</p>
+                    <Mic className="w-16 h-16 mx-auto mb-2" />
+                    <p className="text-sm text-iron-gray">Voice</p>
+                  </div>
+                  <div className="text-center">
+                    <Camera className="w-16 h-16 mx-auto mb-2" />
+                    <p className="text-sm text-iron-gray">Photo</p>
+                  </div>
+                  <div className="text-center">
+                    <Zap className="w-16 h-16 mx-auto mb-2" />
+                    <p className="text-sm text-iron-gray">Text</p>
                   </div>
                 </div>
-              </div>
-
-              {/* Social Proof */}
-              <div className="bg-iron-gray/10 border border-iron-gray p-4">
-                <p className="text-iron-gray text-sm italic">
-                  "Finally, a fitness app that doesn't make me spend 5 minutes logging breakfast. The voice logging is a game-changer."
+                <div className="text-center">
+                  <Brain className="w-12 h-12 text-iron-orange mx-auto mb-2" />
+                  <p className="text-iron-gray font-heading text-lg">AI BRAIN</p>
+                </div>
+                <p className="text-iron-gray text-sm text-center max-w-md">
+                  Say "Had eggs and oats" → Snap your plate → Type naturally
+                  <br />
+                  <span className="text-iron-orange">AI logs everything instantly</span>
                 </p>
-                <p className="text-iron-orange text-xs mt-2 uppercase">- Beta Tester</p>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Features Section */}
-      <section className="px-4 py-12 bg-iron-gray/5 border-y border-iron-gray">
-        <div className="max-w-6xl mx-auto">
+      {/* The Problem */}
+      <section className="px-4 py-16 bg-iron-gray/5 border-y border-iron-gray">
+        <div className="max-w-4xl mx-auto">
           <h2 className="font-heading text-3xl md:text-4xl text-iron-orange uppercase text-center mb-12">
-            Revolutionary Features
+            Fitness Apps Make You Work For Them
           </h2>
 
-          <div className="grid md:grid-cols-3 gap-8">
-            {/* Feature 1 */}
-            <div className="text-center space-y-4">
-              <div className="w-16 h-16 mx-auto bg-iron-orange/20 border border-iron-orange flex items-center justify-center">
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="border border-iron-gray p-6">
+              <p className="text-iron-white text-lg mb-2">❌ 5 minutes to log breakfast</p>
+              <p className="text-iron-gray text-sm">Search database → Select food → Enter amount → Repeat for each ingredient</p>
+            </div>
+
+            <div className="border border-iron-gray p-6">
+              <p className="text-iron-white text-lg mb-2">❌ $150/month for a human coach</p>
+              <p className="text-iron-gray text-sm">Limited availability, pre-set workouts, doesn't know your full history</p>
+            </div>
+
+            <div className="border border-iron-gray p-6">
+              <p className="text-iron-white text-lg mb-2">❌ Data scattered across 5 apps</p>
+              <p className="text-iron-gray text-sm">MyFitnessPal + Strava + Fitbit + Calendar + Notes = Chaos</p>
+            </div>
+
+            <div className="border border-iron-gray p-6">
+              <p className="text-iron-white text-lg mb-2">❌ Cookie-cutter plans that don't adapt</p>
+              <p className="text-iron-gray text-sm">Same workout every week, no adjustment based on YOUR progress</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* The Solution - 4 Core Features */}
+      <section className="px-4 py-16">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="font-heading text-4xl md:text-5xl text-iron-orange uppercase text-center mb-16">
+            Meet Your AI Coach
+          </h2>
+
+          <div className="grid md:grid-cols-2 gap-8">
+            {/* Feature 1: Instant Logging */}
+            <div className="border border-iron-gray p-8 hover:border-iron-orange transition-colors">
+              <div className="w-16 h-16 bg-iron-orange/20 border border-iron-orange flex items-center justify-center mb-4">
                 <Zap className="w-8 h-8 text-iron-orange" />
               </div>
-              <h3 className="font-heading text-xl text-iron-white uppercase">Quick Entry</h3>
-              <p className="text-iron-gray text-sm">
-                Log meals in 5 seconds with voice or photos. No manual tracking, no databases, no bullshit. Just talk or snap.
+              <h3 className="font-heading text-2xl text-iron-white uppercase mb-3">
+                Instant Logging
+              </h3>
+              <p className="text-iron-gray text-lg leading-relaxed">
+                Say "chicken and rice" or snap a photo. AI extracts nutrition, logs it automatically. <span className="text-iron-orange">5 seconds vs 5 minutes.</span>
               </p>
             </div>
 
-            {/* Feature 2 */}
-            <div className="text-center space-y-4">
-              <div className="w-16 h-16 mx-auto bg-iron-orange/20 border border-iron-orange flex items-center justify-center">
-                <MessageSquare className="w-8 h-8 text-iron-orange" />
+            {/* Feature 2: Total Memory */}
+            <div className="border border-iron-gray p-8 hover:border-iron-orange transition-colors">
+              <div className="w-16 h-16 bg-iron-orange/20 border border-iron-orange flex items-center justify-center mb-4">
+                <Brain className="w-8 h-8 text-iron-orange" />
               </div>
-              <h3 className="font-heading text-xl text-iron-white uppercase">AI Coach</h3>
-              <p className="text-iron-gray text-sm">
-                Chat with an AI that knows your entire fitness history. Get personalized advice on workouts, nutrition, and recovery.
+              <h3 className="font-heading text-2xl text-iron-white uppercase mb-3">
+                Total Memory
+              </h3>
+              <p className="text-iron-gray text-lg leading-relaxed">
+                AI remembers every meal, workout, sleep, injury you've ever logged. Ask "Am I eating enough protein?" → Get instant answers based on <span className="text-iron-orange">YOUR data.</span>
               </p>
             </div>
 
-            {/* Feature 3 */}
-            <div className="text-center space-y-4">
-              <div className="w-16 h-16 mx-auto bg-iron-orange/20 border border-iron-orange flex items-center justify-center">
+            {/* Feature 3: Adaptive Plans */}
+            <div className="border border-iron-gray p-8 hover:border-iron-orange transition-colors">
+              <div className="w-16 h-16 bg-iron-orange/20 border border-iron-orange flex items-center justify-center mb-4">
                 <TrendingUp className="w-8 h-8 text-iron-orange" />
               </div>
-              <h3 className="font-heading text-xl text-iron-white uppercase">Smart Programs</h3>
-              <p className="text-iron-gray text-sm">
-                AI generates personalized 12-week programs based on your goals, experience, and preferences. Daily meal plans + workouts.
+              <h3 className="font-heading text-2xl text-iron-white uppercase mb-3">
+                Adaptive Plans
+              </h3>
+              <p className="text-iron-gray text-lg leading-relaxed">
+                AI generates 12-week programs and adjusts based on how you're actually performing. Plateau? <span className="text-iron-orange">AI modifies your plan.</span> Not cookie-cutter.
+              </p>
+            </div>
+
+            {/* Feature 4: All-in-One */}
+            <div className="border border-iron-gray p-8 hover:border-iron-orange transition-colors">
+              <div className="w-16 h-16 bg-iron-orange/20 border border-iron-orange flex items-center justify-center mb-4">
+                <MessageSquare className="w-8 h-8 text-iron-orange" />
+              </div>
+              <h3 className="font-heading text-2xl text-iron-white uppercase mb-3">
+                All-in-One
+              </h3>
+              <p className="text-iron-gray text-lg leading-relaxed">
+                Meals, workouts, sleep, wearables (Strava/Garmin), analytics. Everything in one place. <span className="text-iron-orange">No more app-hopping.</span>
               </p>
             </div>
           </div>
@@ -131,98 +159,205 @@ export default function LandingPage() {
       </section>
 
       {/* How It Works */}
-      <section id="how-it-works" className="px-4 py-12">
-        <div className="max-w-4xl mx-auto">
-          <h2 className="font-heading text-3xl md:text-4xl text-iron-orange uppercase text-center mb-12">
+      <section className="px-4 py-16 bg-iron-gray/5 border-y border-iron-gray">
+        <div className="max-w-3xl mx-auto">
+          <h2 className="font-heading text-4xl md:text-5xl text-iron-orange uppercase text-center mb-12">
             How It Works
           </h2>
 
           <div className="space-y-8">
-            {/* Step 1 */}
-            <div className="flex gap-6">
-              <div className="flex-shrink-0 w-12 h-12 bg-iron-orange text-iron-black font-heading text-2xl flex items-center justify-center">
+            <div className="flex gap-6 items-start">
+              <div className="flex-shrink-0 w-14 h-14 bg-iron-orange text-iron-black font-heading text-2xl flex items-center justify-center">
                 1
               </div>
-              <div>
-                <h3 className="font-heading text-xl text-iron-white uppercase mb-2">Sign Up & Set Goals</h3>
-                <p className="text-iron-gray">
-                  Answer 3 quick questions about your fitness goals, experience level, and dietary preferences. Takes 30 seconds.
+              <div className="flex-1">
+                <h3 className="font-heading text-2xl text-iron-white uppercase mb-2">
+                  Log Instantly
+                </h3>
+                <p className="text-iron-gray text-lg">
+                  Talk, snap, or type. AI logs everything in 5 seconds.
                 </p>
               </div>
             </div>
 
-            {/* Step 2 */}
-            <div className="flex gap-6">
-              <div className="flex-shrink-0 w-12 h-12 bg-iron-orange text-iron-black font-heading text-2xl flex items-center justify-center">
+            <div className="flex gap-6 items-start">
+              <div className="flex-shrink-0 w-14 h-14 bg-iron-orange text-iron-black font-heading text-2xl flex items-center justify-center">
                 2
               </div>
-              <div>
-                <h3 className="font-heading text-xl text-iron-white uppercase mb-2">Log Your Life</h3>
-                <p className="text-iron-gray">
-                  Voice: "Just had chicken and rice" • Photo: Snap your meal • Text: Type naturally. AI figures out the rest.
+              <div className="flex-1">
+                <h3 className="font-heading text-2xl text-iron-white uppercase mb-2">
+                  Ask AI Anything
+                </h3>
+                <p className="text-iron-gray text-lg">
+                  Get answers based on YOUR complete fitness history. No generic advice.
                 </p>
               </div>
             </div>
 
-            {/* Step 3 */}
-            <div className="flex gap-6">
-              <div className="flex-shrink-0 w-12 h-12 bg-iron-orange text-iron-black font-heading text-2xl flex items-center justify-center">
+            <div className="flex gap-6 items-start">
+              <div className="flex-shrink-0 w-14 h-14 bg-iron-orange text-iron-black font-heading text-2xl flex items-center justify-center">
                 3
               </div>
-              <div>
-                <h3 className="font-heading text-xl text-iron-white uppercase mb-2">Get AI Coaching</h3>
-                <p className="text-iron-gray">
-                  Ask your AI coach anything: "Plan my meals", "Analyze my week", "What should I focus on?". Get instant, personalized answers.
+              <div className="flex-1">
+                <h3 className="font-heading text-2xl text-iron-white uppercase mb-2">
+                  AI Adapts
+                </h3>
+                <p className="text-iron-gray text-lg">
+                  Your plan evolves with you. Progress faster, plateau, get injured? AI adjusts.
                 </p>
               </div>
             </div>
           </div>
-
-          {/* CTA */}
-          <div className="text-center mt-12">
-            <Link
-              href="/auth"
-              className="inline-block px-8 py-4 bg-iron-orange text-iron-black font-heading text-xl uppercase tracking-widest hover:bg-orange-600 transition-colors"
-            >
-              Start Now - It's Free
-            </Link>
-          </div>
         </div>
       </section>
 
-      {/* Stats */}
-      <section className="px-4 py-12 bg-iron-gray/5 border-y border-iron-gray">
+      {/* Comparison Table */}
+      <section className="px-4 py-16">
         <div className="max-w-6xl mx-auto">
-          <div className="grid grid-cols-3 gap-8 text-center">
-            <div>
-              <p className="font-heading text-4xl text-iron-orange">5 SEC</p>
-              <p className="text-iron-gray text-sm uppercase mt-2">Avg. Log Time</p>
+          <h2 className="font-heading text-4xl md:text-5xl text-iron-orange uppercase text-center mb-12">
+            How We Compare
+          </h2>
+
+          {/* Desktop Table */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full border border-iron-gray">
+              <thead>
+                <tr className="border-b border-iron-gray">
+                  <th className="p-4 text-left font-heading text-iron-white uppercase">Feature</th>
+                  <th className="p-4 text-center font-heading text-iron-orange uppercase bg-iron-orange/10">Wagner</th>
+                  <th className="p-4 text-center font-heading text-iron-gray uppercase">MyFitnessPal</th>
+                  <th className="p-4 text-center font-heading text-iron-gray uppercase">Noom</th>
+                  <th className="p-4 text-center font-heading text-iron-gray uppercase">Future</th>
+                  <th className="p-4 text-center font-heading text-iron-gray uppercase">Fitbit</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-b border-iron-gray">
+                  <td className="p-4 text-iron-white">Logging Time</td>
+                  <td className="p-4 text-center text-iron-orange bg-iron-orange/10 font-bold">5 sec</td>
+                  <td className="p-4 text-center text-iron-gray">2-5 min</td>
+                  <td className="p-4 text-center text-iron-gray">2-5 min</td>
+                  <td className="p-4 text-center text-iron-gray">N/A</td>
+                  <td className="p-4 text-center text-iron-gray">Manual</td>
+                </tr>
+                <tr className="border-b border-iron-gray">
+                  <td className="p-4 text-iron-white">AI Coach</td>
+                  <td className="p-4 text-center bg-iron-orange/10"><Check className="w-6 h-6 text-iron-orange mx-auto" /></td>
+                  <td className="p-4 text-center"><X className="w-6 h-6 text-iron-gray mx-auto" /></td>
+                  <td className="p-4 text-center text-iron-gray">Human</td>
+                  <td className="p-4 text-center text-iron-gray">Human</td>
+                  <td className="p-4 text-center text-iron-gray">Basic</td>
+                </tr>
+                <tr className="border-b border-iron-gray">
+                  <td className="p-4 text-iron-white">Voice Logging</td>
+                  <td className="p-4 text-center bg-iron-orange/10"><Check className="w-6 h-6 text-iron-orange mx-auto" /></td>
+                  <td className="p-4 text-center"><X className="w-6 h-6 text-iron-gray mx-auto" /></td>
+                  <td className="p-4 text-center"><X className="w-6 h-6 text-iron-gray mx-auto" /></td>
+                  <td className="p-4 text-center"><X className="w-6 h-6 text-iron-gray mx-auto" /></td>
+                  <td className="p-4 text-center"><X className="w-6 h-6 text-iron-gray mx-auto" /></td>
+                </tr>
+                <tr className="border-b border-iron-gray">
+                  <td className="p-4 text-iron-white">Photo Logging</td>
+                  <td className="p-4 text-center bg-iron-orange/10"><Check className="w-6 h-6 text-iron-orange mx-auto" /></td>
+                  <td className="p-4 text-center"><X className="w-6 h-6 text-iron-gray mx-auto" /></td>
+                  <td className="p-4 text-center"><X className="w-6 h-6 text-iron-gray mx-auto" /></td>
+                  <td className="p-4 text-center"><X className="w-6 h-6 text-iron-gray mx-auto" /></td>
+                  <td className="p-4 text-center"><X className="w-6 h-6 text-iron-gray mx-auto" /></td>
+                </tr>
+                <tr className="border-b border-iron-gray">
+                  <td className="p-4 text-iron-white">Adaptive Plans</td>
+                  <td className="p-4 text-center bg-iron-orange/10"><Check className="w-6 h-6 text-iron-orange mx-auto" /></td>
+                  <td className="p-4 text-center"><X className="w-6 h-6 text-iron-gray mx-auto" /></td>
+                  <td className="p-4 text-center"><X className="w-6 h-6 text-iron-gray mx-auto" /></td>
+                  <td className="p-4 text-center"><X className="w-6 h-6 text-iron-gray mx-auto" /></td>
+                  <td className="p-4 text-center"><X className="w-6 h-6 text-iron-gray mx-auto" /></td>
+                </tr>
+                <tr className="border-b border-iron-gray">
+                  <td className="p-4 text-iron-white">Total Memory (RAG)</td>
+                  <td className="p-4 text-center bg-iron-orange/10"><Check className="w-6 h-6 text-iron-orange mx-auto" /></td>
+                  <td className="p-4 text-center"><X className="w-6 h-6 text-iron-gray mx-auto" /></td>
+                  <td className="p-4 text-center"><X className="w-6 h-6 text-iron-gray mx-auto" /></td>
+                  <td className="p-4 text-center"><X className="w-6 h-6 text-iron-gray mx-auto" /></td>
+                  <td className="p-4 text-center"><X className="w-6 h-6 text-iron-gray mx-auto" /></td>
+                </tr>
+                <tr>
+                  <td className="p-4 text-iron-white font-bold">Cost/Month</td>
+                  <td className="p-4 text-center text-iron-orange bg-iron-orange/10 font-heading text-2xl">FREE</td>
+                  <td className="p-4 text-center text-iron-gray">$10</td>
+                  <td className="p-4 text-center text-iron-gray">$70</td>
+                  <td className="p-4 text-center text-iron-gray">$150</td>
+                  <td className="p-4 text-center text-iron-gray">$10</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile Cards */}
+          <div className="md:hidden space-y-6">
+            <div className="border-2 border-iron-orange p-6 bg-iron-orange/10">
+              <h3 className="font-heading text-2xl text-iron-orange uppercase mb-4">Wagner Coach</h3>
+              <ul className="space-y-2 text-iron-white">
+                <li>✓ 5-second logging</li>
+                <li>✓ AI Coach with total memory</li>
+                <li>✓ Voice + Photo logging</li>
+                <li>✓ Adaptive plans</li>
+                <li className="font-heading text-xl text-iron-orange">FREE</li>
+              </ul>
             </div>
-            <div>
-              <p className="font-heading text-4xl text-iron-orange">AI</p>
-              <p className="text-iron-gray text-sm uppercase mt-2">Powered Coach</p>
-            </div>
-            <div>
-              <p className="font-heading text-4xl text-iron-orange">FREE</p>
-              <p className="text-iron-gray text-sm uppercase mt-2">Forever</p>
+
+            <div className="border border-iron-gray p-6">
+              <h3 className="font-heading text-xl text-iron-white uppercase mb-4">Others</h3>
+              <ul className="space-y-2 text-iron-gray">
+                <li>✗ 2-5 minute logging</li>
+                <li>✗ No AI or basic features</li>
+                <li>✗ Manual entry only</li>
+                <li>✗ Cookie-cutter plans</li>
+                <li className="text-iron-white">$10-$150/month</li>
+              </ul>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-iron-gray py-8">
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-iron-gray text-sm">
-              © 2024 Iron Discipline. No excuses.
+      {/* Social Proof */}
+      <section className="px-4 py-12 bg-iron-gray/5 border-y border-iron-gray">
+        <div className="max-w-3xl mx-auto">
+          <div className="border border-iron-orange p-8 text-center">
+            <p className="text-iron-white text-xl md:text-2xl italic mb-4 leading-relaxed">
+              "I used to spend 5 minutes logging every meal in MyFitnessPal. Now I just say 'had eggs and oats' and it's logged. The AI coach remembers everything I've eaten and gives me actual personalized advice. This is the future."
             </p>
-            <div className="flex gap-6 text-sm text-iron-gray">
-              <a href="#" className="hover:text-iron-orange transition-colors">Privacy</a>
-              <a href="#" className="hover:text-iron-orange transition-colors">Terms</a>
-              <a href="#" className="hover:text-iron-orange transition-colors">Contact</a>
-            </div>
+            <p className="text-iron-orange text-sm uppercase font-heading">
+              - Beta Tester
+            </p>
           </div>
+        </div>
+      </section>
+
+      {/* Final CTA */}
+      <section className="px-4 py-20">
+        <div className="max-w-3xl mx-auto text-center space-y-8">
+          <h2 className="font-heading text-4xl md:text-5xl text-iron-white uppercase leading-tight">
+            Ready to Stop Fighting
+            <span className="block text-iron-orange mt-2">Your Fitness App?</span>
+          </h2>
+          <Link
+            href="/auth"
+            className="inline-block px-10 py-5 bg-iron-orange text-iron-black font-heading text-2xl uppercase tracking-widest hover:bg-orange-600 transition-colors"
+          >
+            Start Free - No Credit Card
+          </Link>
+          <p className="text-iron-gray">
+            5-second logging • AI that remembers everything • Adaptive plans • FREE forever
+          </p>
+        </div>
+      </section>
+
+      {/* Minimal Footer */}
+      <footer className="border-t border-iron-gray py-8">
+        <div className="max-w-6xl mx-auto px-4 text-center">
+          <p className="text-iron-gray text-sm">
+            © 2024 Wagner Coach. AI-powered fitness for everyone.
+          </p>
         </div>
       </footer>
     </div>

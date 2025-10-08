@@ -44,12 +44,22 @@ export default function AuthPage() {
         if (error) throw error;
 
         if (data.user) {
-          await (supabase as any)
+          // Use UPSERT to create or update profile (defensive programming)
+          const { error: profileError } = await (supabase as any)
             .from('profiles')
-            .update({ full_name: fullName })
-            .eq('id', data.user.id);
+            .upsert({
+              id: data.user.id,
+              full_name: fullName
+            })
+            .select()
+            .single();
 
-          console.log('✅ Redirecting to onboarding');
+          if (profileError) {
+            console.error('❌ Profile creation error:', profileError);
+            throw new Error('Failed to create user profile. Please try again.');
+          }
+
+          console.log('✅ Profile created, redirecting to onboarding');
           router.push('/auth/onboarding');
         }
       } else {
