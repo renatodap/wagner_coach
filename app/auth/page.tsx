@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { CheckCircle } from 'lucide-react';
 
 export default function AuthPage() {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -12,98 +13,74 @@ export default function AuthPage() {
   const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [signupSuccess, setSignupSuccess] = useState(false);
   const router = useRouter();
   const supabase = createClient();
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('🔥 FORM SUBMITTED!');
-    console.log('📧 Email:', email);
-    console.log('🔑 Password length:', password.length);
-    console.log('📍 Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
-    console.log('🎫 Has API key:', !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
-
     setLoading(true);
     setError('');
 
     try {
       if (isSignUp) {
-        console.log('📝 Sign up mode');
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
+            emailRedirectTo: `${window.location.origin}/auth/callback`,
             data: {
               full_name: fullName,
             },
           },
         });
 
-        console.log('📦 SignUp Response:', { data, error });
-
         if (error) throw error;
 
         if (data.user) {
-          // Use UPSERT to create or update profile (defensive programming)
-          const { error: profileError } = await (supabase as any)
-            .from('profiles')
-            .upsert({
-              id: data.user.id,
-              full_name: fullName
-            })
-            .select()
-            .single();
+          // Show success message - user needs to verify email
+          setError('');
+          setSignupSuccess(true);
 
-          if (profileError) {
-            console.error('❌ Profile creation error:', profileError);
-            throw new Error('Failed to create user profile. Please try again.');
-          }
-
-          console.log('✅ Profile created, redirecting to onboarding');
-          router.push('/auth/onboarding');
+          // Reset form
+          setPassword('');
+          setFullName('');
         }
       } else {
-        console.log('🔐 Sign in mode - START');
         const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
 
-        console.log('📦 SignIn Response data:', data);
-        console.log('❌ SignIn Response error:', error);
-
-        if (error) {
-          console.error('💥 Auth error object:', error);
-          throw error;
-        }
+        if (error) throw error;
 
         if (data.user) {
-          console.log('👤 User logged in:', data.user.email);
-          const { data: profile } = await (supabase as any)
+          // Check if profile exists and if onboarding is completed
+          const { data: profile, error: profileError } = await (supabase as any)
             .from('profiles')
             .select('onboarding_completed')
             .eq('id', data.user.id)
             .single();
 
-          console.log('📋 Profile:', profile);
+          if (profileError) {
+            console.error('Profile fetch error:', profileError);
+            // Profile might not exist yet (shouldn't happen with trigger)
+            router.push('/auth/onboarding');
+            return;
+          }
 
           if (profile?.onboarding_completed) {
-            console.log('✅ Redirecting to dashboard');
             router.push('/dashboard');
           } else {
-            console.log('✅ Redirecting to onboarding');
             router.push('/auth/onboarding');
           }
         }
       }
     } catch (err) {
-      console.error('💥 CATCH BLOCK - Error:', err);
       const errorMessage = (err as Error).message || 'An error occurred';
-      console.log('💬 Setting error message:', errorMessage);
       setError(errorMessage);
     } finally {
       setLoading(false);
-      console.log('✅ Auth complete, loading=false');
     }
   };
 
@@ -126,7 +103,31 @@ export default function AuthPage() {
           </p>
         </div>
 
-        <form onSubmit={handleAuth} className="space-y-6">
+        {signupSuccess ? (
+          <div className="bg-green-900/20 border-2 border-green-600 rounded-lg p-6 space-y-3">
+            <div className="flex items-center gap-2 text-green-400">
+              <CheckCircle className="h-6 w-6" />
+              <h3 className="font-heading text-xl uppercase">Account Created!</h3>
+            </div>
+            <p className="text-iron-gray">
+              We've sent a verification email to <strong className="text-iron-white">{email}</strong>
+            </p>
+            <p className="text-sm text-iron-gray">
+              Check your inbox and click the verification link, then return here to log in.
+            </p>
+            <button
+              onClick={() => {
+                setSignupSuccess(false);
+                setIsSignUp(false);
+              }}
+              className="w-full mt-4 bg-iron-orange text-iron-black font-heading py-2 uppercase tracking-widest hover:bg-orange-600 transition-colors"
+            >
+              Go to Login
+            </button>
+          </div>
+        ) : (
+          <>
+            <form onSubmit={handleAuth} className="space-y-6">
           {isSignUp && (
             <div>
               <label htmlFor="fullName" className="block text-sm font-medium text-iron-gray uppercase tracking-wider">
@@ -189,19 +190,21 @@ export default function AuthPage() {
           </button>
         </form>
 
-        <div className="text-center">
-          <button
-            onClick={() => {
-              setIsSignUp(!isSignUp);
-              setError('');
-            }}
-            className="text-iron-gray hover:text-iron-orange transition-colors text-sm"
-          >
-            {isSignUp
-              ? 'Already have an account? Sign in'
-              : "Don't have an account? Sign up"}
-          </button>
-        </div>
+            <div className="text-center">
+              <button
+                onClick={() => {
+                  setIsSignUp(!isSignUp);
+                  setError('');
+                }}
+                className="text-iron-gray hover:text-iron-orange transition-colors text-sm"
+              >
+                {isSignUp
+                  ? 'Already have an account? Sign in'
+                  : "Don't have an account? Sign up"}
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
