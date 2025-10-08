@@ -311,6 +311,51 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
     }
   }
 
+  const loadConversation = async (convId: string) => {
+    try {
+      setIsLoading(true)
+      setError(null)
+
+      // Fetch conversation messages
+      const { messages: conversationMessages } = await getConversationMessages(convId)
+
+      // Update state with loaded messages
+      setMessages(conversationMessages)
+      setConversationId(convId)
+      setPendingLogPreview(null)
+
+      // Close mobile sidebar if open
+      if (isMobile) {
+        setShowHistorySidebar(false)
+      }
+
+      // Scroll to bottom to show messages
+      setTimeout(() => {
+        scrollToBottom(false) // instant scroll, not smooth
+      }, 100)
+
+      toast({
+        title: '💬 Conversation loaded',
+        description: `${conversationMessages.length} messages`,
+      })
+    } catch (err) {
+      console.error('Failed to load conversation:', err)
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load conversation'
+      setError({
+        message: `⚠️ ${errorMessage}`,
+        recoveryAction: () => loadConversation(convId),
+        recoveryLabel: 'Retry'
+      })
+      toast({
+        title: 'Error',
+        description: errorMessage,
+        variant: 'destructive'
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   const startNewChat = () => {
     setMessages([])
     setConversationId(null)
@@ -1301,27 +1346,37 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
               {conversations.length === 0 ? (
                 <p className="text-iron-gray text-sm text-center py-8">No previous conversations</p>
               ) : (
-                conversations.map(conv => (
-                  <button
-                    key={conv.id}
-                    onClick={() => {
-                      // TODO: Load conversation messages
-                    }}
-                    className="w-full text-left p-3 bg-iron-gray/20 hover:bg-iron-gray/40 border-l-4 border-transparent hover:border-iron-orange transition-all group"
-                  >
-                    <p className="font-bold text-iron-white truncate group-hover:text-iron-orange transition-colors">
-                      {conv.title || 'Untitled Conversation'}
-                    </p>
-                    {conv.last_message_preview && (
-                      <p className="text-xs text-iron-gray truncate mt-1">
-                        {conv.last_message_preview}
+                conversations.map(conv => {
+                  const isActive = conversationId === conv.id
+                  return (
+                    <button
+                      key={conv.id}
+                      onClick={() => loadConversation(conv.id)}
+                      className={`
+                        w-full text-left p-3 transition-all group
+                        ${isActive
+                          ? 'bg-iron-orange/20 border-l-4 border-iron-orange'
+                          : 'bg-iron-gray/20 hover:bg-iron-gray/40 border-l-4 border-transparent hover:border-iron-orange'
+                        }
+                      `}
+                      disabled={isLoading}
+                    >
+                      <p className={`font-bold truncate transition-colors ${
+                        isActive ? 'text-iron-orange' : 'text-iron-white group-hover:text-iron-orange'
+                      }`}>
+                        {conv.title || 'Untitled Conversation'}
                       </p>
-                    )}
-                    <p className="text-xs text-iron-gray/60 mt-1">
-                      {formatDistanceToNow(new Date(conv.last_message_at), { addSuffix: true })}
-                    </p>
-                  </button>
-                ))
+                      {conv.last_message_preview && (
+                        <p className="text-xs text-iron-gray truncate mt-1">
+                          {conv.last_message_preview}
+                        </p>
+                      )}
+                      <p className="text-xs text-iron-gray/60 mt-1">
+                        {formatDistanceToNow(new Date(conv.last_message_at), { addSuffix: true })}
+                      </p>
+                    </button>
+                  )
+                })
               )}
             </div>
           </div>
@@ -1341,28 +1396,37 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                 {conversations.length === 0 ? (
                   <p className="text-iron-gray text-sm text-center py-8">No previous conversations</p>
                 ) : (
-                  conversations.map(conv => (
-                    <button
-                      key={conv.id}
-                      onClick={() => {
-                        // TODO: Load conversation messages
-                        setShowHistorySidebar(false)
-                      }}
-                      className="w-full text-left p-3 bg-iron-gray/20 hover:bg-iron-gray/40 border-l-4 border-transparent hover:border-iron-orange transition-all group"
-                    >
-                      <p className="font-bold text-iron-white truncate group-hover:text-iron-orange transition-colors">
-                        {conv.title || 'Untitled Conversation'}
-                      </p>
-                      {conv.last_message_preview && (
-                        <p className="text-xs text-iron-gray truncate mt-1">
-                          {conv.last_message_preview}
+                  conversations.map(conv => {
+                    const isActive = conversationId === conv.id
+                    return (
+                      <button
+                        key={conv.id}
+                        onClick={() => loadConversation(conv.id)}
+                        className={`
+                          w-full text-left p-3 transition-all group
+                          ${isActive
+                            ? 'bg-iron-orange/20 border-l-4 border-iron-orange'
+                            : 'bg-iron-gray/20 hover:bg-iron-gray/40 border-l-4 border-transparent hover:border-iron-orange'
+                          }
+                        `}
+                        disabled={isLoading}
+                      >
+                        <p className={`font-bold truncate transition-colors ${
+                          isActive ? 'text-iron-orange' : 'text-iron-white group-hover:text-iron-orange'
+                        }`}>
+                          {conv.title || 'Untitled Conversation'}
                         </p>
-                      )}
-                      <p className="text-xs text-iron-gray/60 mt-1">
-                        {formatDistanceToNow(new Date(conv.last_message_at), { addSuffix: true })}
-                      </p>
-                    </button>
-                  ))
+                        {conv.last_message_preview && (
+                          <p className="text-xs text-iron-gray truncate mt-1">
+                            {conv.last_message_preview}
+                          </p>
+                        )}
+                        <p className="text-xs text-iron-gray/60 mt-1">
+                          {formatDistanceToNow(new Date(conv.last_message_at), { addSuffix: true })}
+                        </p>
+                      </button>
+                    )
+                  })
                 )}
               </div>
             </SheetContent>
