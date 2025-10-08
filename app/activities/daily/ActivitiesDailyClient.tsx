@@ -21,7 +21,7 @@ import {
 import Link from 'next/link';
 import BottomNavigation from '@/app/components/BottomNavigation';
 
-export default function WorkoutsDailyClient() {
+export default function ActivitiesDailyClient() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -42,7 +42,7 @@ export default function WorkoutsDailyClient() {
       // Get JWT token
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        setError('Please log in to view workouts');
+        setError('Please log in to view activities');
         setLoading(false);
         return;
       }
@@ -63,7 +63,7 @@ export default function WorkoutsDailyClient() {
       setTodaysActivities(response.activities || []);
     } catch (err) {
       console.error('Error fetching activities:', err);
-      setError('Failed to load workout data');
+      setError('Failed to load activity data');
     } finally {
       setLoading(false);
     }
@@ -213,7 +213,7 @@ export default function WorkoutsDailyClient() {
       <header className="border-b border-iron-gray">
         <div className="max-w-6xl mx-auto px-4 py-4 sm:py-6">
           <div className="flex items-center justify-between mb-3 sm:mb-4">
-            <h1 className="font-heading text-2xl sm:text-3xl lg:text-4xl text-iron-orange">DAILY WORKOUTS</h1>
+            <h1 className="font-heading text-2xl sm:text-3xl lg:text-4xl text-iron-orange">DAILY ACTIVITIES</h1>
             <div className="flex gap-1 sm:gap-2">
               <Link
                 href="/activities/add"
@@ -297,20 +297,20 @@ export default function WorkoutsDailyClient() {
         {/* Activities List */}
         <div>
           <h2 className="font-heading text-lg sm:text-xl lg:text-2xl text-iron-white mb-3 sm:mb-4">
-            {isToday() ? "TODAY'S" : formatSelectedDate()} WORKOUTS
+            {isToday() ? "TODAY'S" : formatSelectedDate()} ACTIVITIES
           </h2>
 
           {!todaysActivities || todaysActivities.length === 0 ? (
             <div className="border border-iron-gray p-6 sm:p-8 text-center">
               <p className="text-iron-gray mb-3 sm:mb-4 text-sm sm:text-base">
-                No workouts logged {isToday() ? 'today' : 'for this date'}
+                No activities logged {isToday() ? 'today' : 'for this date'}
               </p>
               {isToday() && (
                 <Link
                   href="/activities/add"
                   className="inline-block bg-iron-orange text-iron-black px-4 sm:px-6 py-2 font-heading text-sm sm:text-base uppercase tracking-wider hover:bg-orange-600 transition-colors"
                 >
-                  Log Your First Workout
+                  Log Your First Activity
                 </Link>
               )}
             </div>

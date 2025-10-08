@@ -33,29 +33,45 @@ interface NutritionData {
   }
 }
 
+interface ActivityData {
+  count: number
+  duration: number
+  calories: number
+  distance: number
+}
+
 export default function DashboardClient({
   profile,
 }: DashboardClientProps) {
   const router = useRouter()
   const [nutritionData, setNutritionData] = useState<NutritionData | null>(null)
+  const [activityData, setActivityData] = useState<ActivityData | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    async function fetchNutritionData() {
+    async function fetchDashboardData() {
       try {
-        const response = await fetch('/api/dashboard/nutrition')
-        if (response.ok) {
-          const data = await response.json()
-          setNutritionData(data)
+        // Fetch nutrition data
+        const nutritionResponse = await fetch('/api/dashboard/nutrition')
+        if (nutritionResponse.ok) {
+          const nutritionData = await nutritionResponse.json()
+          setNutritionData(nutritionData)
+        }
+
+        // Fetch activity data
+        const activityResponse = await fetch('/api/dashboard/activities')
+        if (activityResponse.ok) {
+          const activityData = await activityResponse.json()
+          setActivityData(activityData)
         }
       } catch (error) {
-        console.error('Failed to fetch nutrition data:', error)
+        console.error('Failed to fetch dashboard data:', error)
       } finally {
         setLoading(false)
       }
     }
 
-    fetchNutritionData()
+    fetchDashboardData()
   }, [])
 
   const getGreeting = () => {
@@ -67,6 +83,24 @@ export default function DashboardClient({
     if (hour < 17) return `Afternoon, ${name}`
     if (hour < 22) return `Evening, ${name}`
     return `Night Owl Mode, ${name}`
+  }
+
+  const formatDuration = (seconds: number) => {
+    const hours = Math.floor(seconds / 3600)
+    const minutes = Math.floor((seconds % 3600) / 60)
+
+    if (hours > 0) {
+      return `${hours}h ${minutes}m`
+    }
+    return `${minutes}m`
+  }
+
+  const formatDistance = (meters: number) => {
+    const km = meters / 1000
+    if (km >= 1) {
+      return `${km.toFixed(2)} km`
+    }
+    return `${meters.toFixed(0)} m`
   }
 
   return (
@@ -179,6 +213,44 @@ export default function DashboardClient({
               />
             </div>
             </div>
+
+            {/* Activity Progress */}
+            {activityData && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-semibold text-white">Today's Activity</h2>
+                  <button
+                    onClick={() => router.push('/activities/daily')}
+                    className="text-sm text-iron-orange hover:text-orange-400 underline"
+                  >
+                    View All
+                  </button>
+                </div>
+
+                <div className="bg-iron-black/50 backdrop-blur-sm border border-iron-gray/20 rounded-lg p-6">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    <div className="text-center">
+                      <p className="text-iron-gray text-sm mb-1">Activities</p>
+                      <p className="text-2xl font-bold text-white">{activityData.count}</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-iron-gray text-sm mb-1">Duration</p>
+                      <p className="text-2xl font-bold text-white">{formatDuration(activityData.duration)}</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-iron-gray text-sm mb-1">Calories</p>
+                      <p className="text-2xl font-bold text-white">{activityData.calories}</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-iron-gray text-sm mb-1">Distance</p>
+                      <p className="text-2xl font-bold text-white">
+                        {activityData.distance > 0 ? formatDistance(activityData.distance) : '-'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <div className="text-center py-20">

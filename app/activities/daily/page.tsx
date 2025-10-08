@@ -1,8 +1,8 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
-import WorkoutsDailyClient from './WorkoutsDailyClient';
+import ActivitiesDailyClient from './ActivitiesDailyClient';
 
-export default async function WorkoutsDailyPage() {
+export default async function ActivitiesDailyPage() {
   const supabase = await createClient();
 
   // Check authentication
@@ -12,5 +12,5 @@ export default async function WorkoutsDailyPage() {
     redirect('/auth');
   }
 
-  return <WorkoutsDailyClient />;
+  return <ActivitiesDailyClient />;
 }
