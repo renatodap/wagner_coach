@@ -191,6 +191,7 @@ export function SimpleChatClient() {
     console.log('[SimpleChatClient] Submit button clicked!')
     console.log('[SimpleChatClient] Text:', text)
 
+    // Validation - do nothing if no content or already loading
     if (!text.trim() && !attachedFiles.length) {
       console.log('[SimpleChatClient] Skipping - no text or files')
       return
@@ -586,12 +587,12 @@ export function SimpleChatClient() {
               rows={1}
             />
 
-            {/* Submit Button - Matches Paperclip Structure */}
+            {/* Submit Button - EXACT Paperclip Structure */}
             <button
               type="button"
               onClick={handleSubmit}
               className={`min-h-[56px] min-w-[56px] p-3 bg-iron-orange hover:bg-orange-600 rounded-lg transition-colors cursor-pointer flex items-center justify-center ${
-                isLoading || (!text.trim() && !attachedFiles.length) ? 'opacity-50 pointer-events-none' : ''
+                isLoading ? 'opacity-50 pointer-events-none' : ''
               }`}
               aria-label="Send message"
             >
@@ -606,7 +607,7 @@ export function SimpleChatClient() {
           {/* Debug Info */}
           <div className="mt-2 text-xs text-iron-gray">
             <p>Debug: {text.length} chars | {isLoading ? 'Loading...' : 'Ready'}</p>
-            <p className="text-green-500">✓ Matching button structures | ✓ No inline styles | ✓ iOS-safe</p>
+            <p className="text-green-500">✓ EXACT same conditional pattern | ✓ Only isLoading check | ✓ iOS-safe</p>
           </div>
         </div>
       </div>
