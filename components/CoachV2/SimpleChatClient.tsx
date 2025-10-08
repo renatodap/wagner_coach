@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Send, Loader2, MessageSquare, Plus } from 'lucide-react'
+import { Send, Loader2, MessageSquare, Plus, Zap } from 'lucide-react'
 import { sendMessageStreaming, getConversations, getConversationMessages } from '@/lib/api/unified-coach'
 import type { SendMessageResponse, ConversationSummary, UnifiedMessage } from '@/lib/api/unified-coach'
+import { getAutoLogPreference, updateAutoLogPreference } from '@/lib/api/profile'
 
 interface Message {
   id: string
@@ -25,14 +26,19 @@ export function SimpleChatClient() {
   const [conversations, setConversations] = useState<ConversationSummary[]>([])
   const [isLoadingConversations, setIsLoadingConversations] = useState(false)
 
+  // Auto-log preference
+  const [autoLogEnabled, setAutoLogEnabled] = useState(false)
+  const [isTogglingAutoLog, setIsTogglingAutoLog] = useState(false)
+
   // Auto-scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  // Load conversations on mount
+  // Load conversations and auto-log preference on mount
   useEffect(() => {
     loadConversations()
+    loadAutoLogPreference()
   }, [])
 
   async function loadConversations() {
@@ -76,6 +82,32 @@ export function SimpleChatClient() {
     setConversationId(null)
     setShowHistory(false)
     console.log('[SimpleChatClient] Started new conversation')
+  }
+
+  async function loadAutoLogPreference() {
+    try {
+      const { auto_log_enabled } = await getAutoLogPreference()
+      setAutoLogEnabled(auto_log_enabled)
+      console.log('[SimpleChatClient] Auto-log preference loaded:', auto_log_enabled)
+    } catch (error) {
+      console.error('[SimpleChatClient] Failed to load auto-log preference:', error)
+      // Default to false on error
+      setAutoLogEnabled(false)
+    }
+  }
+
+  async function toggleAutoLog() {
+    const newValue = !autoLogEnabled
+    try {
+      setIsTogglingAutoLog(true)
+      await updateAutoLogPreference(newValue)
+      setAutoLogEnabled(newValue)
+      console.log('[SimpleChatClient] Auto-log toggled to:', newValue)
+    } catch (error) {
+      console.error('[SimpleChatClient] Failed to toggle auto-log:', error)
+    } finally {
+      setIsTogglingAutoLog(false)
+    }
   }
 
   const handleSubmit = async () => {
@@ -274,13 +306,35 @@ export function SimpleChatClient() {
                 Real API + streaming + history
               </p>
             </div>
-            <button
-              onClick={() => setShowHistory(!showHistory)}
-              className="ml-4 p-2 hover:bg-zinc-800 rounded-lg transition-colors"
-              aria-label="Toggle conversation history"
-            >
-              <MessageSquare className="w-6 h-6 text-iron-orange" />
-            </button>
+            <div className="flex items-center gap-2">
+              {/* Auto-log toggle */}
+              <button
+                onClick={toggleAutoLog}
+                disabled={isTogglingAutoLog}
+                className={`p-2 rounded-lg transition-colors ${
+                  autoLogEnabled
+                    ? 'bg-iron-orange/20 text-iron-orange hover:bg-iron-orange/30'
+                    : 'hover:bg-zinc-800 text-iron-gray'
+                }`}
+                aria-label={`Auto-log ${autoLogEnabled ? 'enabled' : 'disabled'}. Click to ${autoLogEnabled ? 'disable' : 'enable'}`}
+                title={`Auto-log ${autoLogEnabled ? 'enabled' : 'disabled'}`}
+              >
+                {isTogglingAutoLog ? (
+                  <Loader2 className="w-6 h-6 animate-spin" />
+                ) : (
+                  <Zap className="w-6 h-6" />
+                )}
+              </button>
+
+              {/* Conversation history toggle */}
+              <button
+                onClick={() => setShowHistory(!showHistory)}
+                className="p-2 hover:bg-zinc-800 rounded-lg transition-colors"
+                aria-label="Toggle conversation history"
+              >
+                <MessageSquare className="w-6 h-6 text-iron-orange" />
+              </button>
+            </div>
           </div>
         </header>
 
