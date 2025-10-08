@@ -33,10 +33,6 @@ import {
   FileText,
   MessageSquare,
   History,
-  Zap,
-  DollarSign,
-  Database,
-  Info,
   RefreshCw,
   Plus
 } from 'lucide-react'
@@ -511,18 +507,8 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
         }
       }
 
-      // Optimistic UI update (AFTER image analysis so we show the analysis)
+      // DON'T add optimistic message yet - wait to see if it's a food image that will redirect
       const tempUserMessageId = `temp-${Date.now()}`
-      const optimisticUserMessage: UnifiedMessage = {
-        id: tempUserMessageId,
-        role: 'user',
-        content: messageText, // Use messageText which includes analysis if image was present
-        message_type: 'chat',
-        is_vectorized: false,
-        created_at: new Date().toISOString()
-      }
-
-      setMessages(prev => [...prev, optimisticUserMessage])
 
       // Create streaming request (NO image_urls - images are NOT sent to backend)
       const request = {
@@ -550,16 +536,7 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
             setConversationId(newConversationId)
           }
 
-          // Replace temp user message with real one
-          setMessages(prev =>
-            prev.map(msg =>
-              msg.id === tempUserMessageId
-                ? { ...msg, id: chunk.message_id }
-                : msg
-            )
-          )
-
-          // PRIORITY 1: Check if food was detected in image - AUTO-REDIRECT with database matching
+          // PRIORITY 1: Check if food was detected in image - AUTO-REDIRECT with database matching (NO CHAT MODE)
           if (chunk.food_detected && chunk.food_detected.is_food) {
             const foodData = chunk.food_detected
 
@@ -703,8 +680,18 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
             return
           }
 
-          // If it's a chat message, create AI message bubble
+          // If it's a chat message (not a redirect), add user message + AI message
           if (chunk.message) {
+            // Add user message first (now that we know it's not redirecting)
+            const userMessage: UnifiedMessage = {
+              id: chunk.message_id,
+              role: 'user',
+              content: messageText,
+              message_type: 'chat',
+              is_vectorized: false,
+              created_at: new Date().toISOString()
+            }
+
             accumulatedContent = chunk.message
             const aiMessage: UnifiedMessage = {
               id: aiMessageId,
@@ -714,7 +701,7 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
               is_vectorized: false,
               created_at: new Date().toISOString()
             }
-            setMessages(prev => [...prev, aiMessage])
+            setMessages(prev => [...prev, userMessage, aiMessage])
             setStreamedContent(accumulatedContent)
           }
 
@@ -754,8 +741,7 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
       // Reload conversation history
       loadConversationHistory()
     } catch (err) {
-      // Remove optimistic message on error
-      setMessages(prev => prev.filter(msg => msg.id !== tempUserMessageId))
+      // Error handling (no optimistic message to remove since we add it after food check)
 
       // Categorize error and provide recovery
       const errorMessage = err instanceof Error ? err.message : 'Failed to send message'
@@ -975,8 +961,8 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                 </div>
               )}
 
-              {/* Input Container with aggressive styling */}
-              <div className="bg-gradient-to-br from-iron-gray to-iron-gray/80 border-4 border-iron-orange/50 hover:border-iron-orange focus-within:border-iron-orange transition-all duration-300 flex items-end gap-2 p-3 shadow-2xl relative overflow-hidden">
+              {/* Input Container */}
+              <div className="bg-iron-gray border-2 border-iron-gray hover:border-iron-orange focus-within:border-iron-orange transition-colors flex items-end gap-2 p-3 rounded-lg shadow-lg">
 
                 {/* Log Type Selector */}
                 <div className="relative z-50" ref={dropdownRef}>
@@ -1001,7 +987,7 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                     <div
                       role="listbox"
                       aria-label="Log type options"
-                      className="absolute bottom-full mb-2 left-0 bg-iron-gray border-4 border-iron-orange shadow-2xl min-w-[200px] overflow-hidden"
+                      className="absolute bottom-full mb-2 left-0 bg-iron-gray border-2 border-iron-orange shadow-xl min-w-[200px] rounded overflow-hidden"
                     >
                       {(['auto', 'meal', 'workout', 'activity', 'note', 'measurement'] as LogType[]).map(type => (
                         <button
@@ -1097,7 +1083,7 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                   </button>
                 )}
 
-                {/* Submit Button with aggressive styling */}
+                {/* Submit Button */}
                 <button
                   type="button"
                   onClick={() => {
@@ -1106,7 +1092,7 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                     }
                   }}
                   disabled={(!text && attachedFiles.length === 0) || isLoading}
-                  className="relative z-50 min-h-[44px] min-w-[44px] p-3 bg-gradient-to-r from-iron-orange to-orange-600 hover:from-orange-600 hover:to-iron-orange active:from-orange-700 active:to-orange-800 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl active:scale-95 border-2 border-orange-700 flex items-center justify-center cursor-pointer touch-manipulation"
+                  className="relative z-50 min-h-[44px] min-w-[44px] p-3 bg-iron-orange hover:bg-orange-600 active:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed rounded-lg flex items-center justify-center cursor-pointer touch-manipulation"
                   style={{ WebkitTapHighlightColor: 'transparent' }}
                   title="Submit"
                   aria-label="Send message"
@@ -1139,8 +1125,8 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
 
   return (
     <div className="h-screen flex flex-col bg-iron-black" style={{ height: '100dvh' }}>
-      {/* Header with aggressive Iron Discipline styling */}
-      <header className="bg-gradient-to-r from-zinc-900 via-zinc-800 to-zinc-900 border-b-4 border-iron-orange sticky top-0 z-30 shadow-2xl">
+      {/* Header */}
+      <header className="bg-zinc-900 border-b-2 border-iron-orange sticky top-0 z-30 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -1185,7 +1171,7 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
       <div className="flex-1 flex overflow-hidden">
         {/* Desktop Sidebar (always visible on lg+) */}
         {!isMobile && (
-          <div className="w-80 bg-iron-black border-r-4 border-iron-orange flex flex-col">
+          <div className="w-80 bg-iron-black border-r-2 border-iron-gray flex flex-col">
             <div className="p-4 border-b border-iron-gray">
               <h2 className="text-iron-orange font-heading font-black text-lg tracking-wide uppercase">
                 Conversation History
@@ -1225,7 +1211,7 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
         {/* Mobile Sidebar (Sheet) */}
         {isMobile && (
           <Sheet open={showHistorySidebar} onOpenChange={setShowHistorySidebar}>
-            <SheetContent side="left" className="w-80 bg-iron-black border-r-4 border-iron-orange">
+            <SheetContent side="left" className="w-80 bg-iron-black border-r-2 border-iron-orange">
               <SheetHeader>
                 <SheetTitle className="text-iron-orange font-heading font-black text-xl tracking-wide">
                   CONVERSATION HISTORY
@@ -1281,87 +1267,33 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                   />
                 ))}
 
-                {/* Typing Indicator with aggressive styling */}
+                {/* Typing Indicator */}
                 {isStreaming && (
                   <div
-                    className="flex items-start gap-3 animate-pulse-subtle"
+                    className="flex items-start gap-3"
                     data-testid="typing-indicator"
                     role="status"
                     aria-live="polite"
                   >
                     <div className="relative">
-                      <div className="absolute inset-0 rounded-full border-4 border-iron-orange animate-ping opacity-40" />
-                      <div className="relative w-12 h-12 rounded-full border-4 border-iron-orange border-t-transparent animate-spin" />
+                      <Loader2 className="w-8 h-8 text-iron-orange animate-spin" />
                     </div>
 
-                    <div className="flex-1 bg-iron-gray/10 border-l-4 border-iron-orange px-4 py-4 relative overflow-hidden">
-                      {/* Streaming progress bar */}
-                      <div
-                        className="absolute top-0 left-0 h-1 bg-gradient-to-r from-iron-orange to-orange-600 transition-all duration-300"
-                        style={{ width: `${streamProgress}%` }}
-                      />
-
-                      <p className="text-iron-white font-bold text-sm mb-2 flex items-center gap-2">
-                        <span className="animate-pulse">COACH IS ANALYZING YOUR DATA</span>
+                    <div className="flex-1 bg-iron-gray/10 border-l-2 border-iron-orange px-4 py-3 rounded-r">
+                      <p className="text-iron-white font-medium text-sm mb-1">
+                        <span className="animate-pulse">Coach is thinking...</span>
                       </p>
 
                       {streamedContent && (
-                        <div className="text-iron-white text-sm leading-relaxed mb-2">
+                        <div className="text-iron-white text-sm leading-relaxed mt-2">
                           {streamedContent}
-                          <span className="inline-block w-2 h-5 bg-iron-orange animate-pulse ml-1" />
+                          <span className="inline-block w-1 h-4 bg-iron-orange animate-pulse ml-1" />
                         </div>
                       )}
-
-                      <div className="flex items-center gap-4 text-xs text-iron-gray">
-                        {tokensReceived > 0 && (
-                          <span className="flex items-center gap-1">
-                            <Zap className="w-3 h-3 text-iron-orange" />
-                            {tokensReceived} tokens
-                          </span>
-                        )}
-                        {lastRagSources && (
-                          <span className="flex items-center gap-1">
-                            <Database className="w-3 h-3 text-iron-orange" />
-                            {lastRagSources} sources
-                          </span>
-                        )}
-                        <span className="animate-pulse">Streaming...</span>
-                      </div>
                     </div>
                   </div>
                 )}
 
-                {/* Cost/Token Display after AI response */}
-                {lastTokens && !isStreaming && (
-                  <div className="px-4 py-2 bg-iron-gray/10 border-l-2 border-iron-gray text-xs text-iron-gray flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center gap-1">
-                        <Zap className="w-3 h-3 text-iron-orange" />
-                        <span className="font-mono">{lastTokens} tokens</span>
-                      </div>
-                      {lastCost && (
-                        <div className="flex items-center gap-1">
-                          <DollarSign className="w-3 h-3 text-iron-orange" />
-                          <span className="font-mono">${(lastCost * 1000).toFixed(3)}m</span>
-                        </div>
-                      )}
-                      {lastRagSources && (
-                        <div className="flex items-center gap-1">
-                          <Database className="w-3 h-3 text-iron-orange" />
-                          <span>{lastRagSources} sources</span>
-                        </div>
-                      )}
-                    </div>
-
-                    <button
-                      className="text-iron-gray hover:text-iron-white transition-colors"
-                      title="Token/cost info"
-                      aria-label="Show token and cost information"
-                    >
-                      <Info className="w-3 h-3" />
-                    </button>
-                  </div>
-                )}
 
                 {/* Log Preview - For non-meal logs (workout, activity, measurement) */}
                 {pendingLogPreview && (
@@ -1420,7 +1352,7 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
           </div>
 
           {/* Input Container - with proper bottom padding for bottom nav */}
-          <div className="bg-gradient-to-r from-zinc-900 via-zinc-800 to-zinc-900 border-t-4 border-iron-orange p-4 pb-20">
+          <div className="bg-zinc-900 border-t-2 border-iron-orange p-4 pb-20">
             <div className="max-w-4xl mx-auto">
               {/* Attached Files Preview */}
               {attachedFiles.length > 0 && (
@@ -1461,7 +1393,7 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
               )}
 
               {/* Input Container */}
-              <div className="bg-iron-black border-4 border-iron-orange/50 hover:border-iron-orange focus-within:border-iron-orange transition-colors flex items-end gap-2 p-3 relative overflow-hidden">
+              <div className="bg-iron-black border-2 border-iron-gray hover:border-iron-orange focus-within:border-iron-orange transition-colors flex items-end gap-2 p-3 rounded-lg">
 
                 {/* Log Type Selector */}
                 <div className="relative z-50" ref={dropdownRef}>
@@ -1486,7 +1418,7 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                     <div
                       role="listbox"
                       aria-label="Log type options"
-                      className="absolute bottom-full mb-2 left-0 bg-iron-black border-4 border-iron-orange shadow-2xl min-w-[200px] overflow-hidden"
+                      className="absolute bottom-full mb-2 left-0 bg-iron-black border-2 border-iron-orange shadow-xl min-w-[200px] rounded overflow-hidden"
                     >
                       {(['auto', 'meal', 'workout', 'activity', 'note', 'measurement'] as LogType[]).map(type => (
                         <button
@@ -1595,7 +1527,7 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                     }
                   }}
                   disabled={(!text && attachedFiles.length === 0) || isLoading || !!pendingLogPreview}
-                  className="relative z-50 min-h-[44px] min-w-[44px] p-3 bg-gradient-to-r from-iron-orange to-orange-600 hover:from-orange-600 hover:to-iron-orange active:from-orange-700 active:to-orange-800 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl active:scale-95 border-2 border-orange-700 flex items-center justify-center cursor-pointer touch-manipulation"
+                  className="relative z-50 min-h-[44px] min-w-[44px] p-3 bg-iron-orange hover:bg-orange-600 active:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed rounded-lg flex items-center justify-center cursor-pointer touch-manipulation"
                   style={{ WebkitTapHighlightColor: 'transparent' }}
                   title="Submit"
                   aria-label="Send message"
