@@ -155,36 +155,8 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
     }
   }, [text])
 
-  // Close dropdown on outside click/touch - using modern Pointer Events
-  useEffect(() => {
-    // Only listen when dropdown is actually open
-    if (!showTypeDropdown) return
-
-    const handleClickOutside = (event: PointerEvent) => {
-      const target = event.target as Node
-
-      // Log for debugging (remove after testing)
-      console.log('[Dropdown] Pointer event:', {
-        type: event.type,
-        pointerType: event.pointerType,
-        target: (target as HTMLElement)?.tagName,
-        dropdownOpen: showTypeDropdown
-      })
-
-      if (dropdownRef.current && !dropdownRef.current.contains(target)) {
-        console.log('[Dropdown] Closing dropdown')
-        setShowTypeDropdown(false)
-      }
-    }
-
-    // Use pointerdown - modern unified approach for mouse, touch, and pen
-    // This fires AFTER touchstart but BEFORE click, perfect for our use case
-    document.addEventListener('pointerdown', handleClickOutside)
-
-    return () => {
-      document.removeEventListener('pointerdown', handleClickOutside)
-    }
-  }, [showTypeDropdown])
+  // NOTE: Dropdown close is now handled by backdrop div (React events only)
+  // No document-level listeners to avoid native/synthetic event conflicts
 
   // Load conversation history on mount
   useEffect(() => {
@@ -1098,15 +1070,13 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                   <button
                     type="button"
                     onClick={() => {
-                      console.log('[Dropdown] Toggle clicked!', { currentState: showTypeDropdown })
+                      console.log('[Dropdown] Toggle clicked!')
                       setShowTypeDropdown(!showTypeDropdown)
                     }}
-                    onPointerDown={(e) => {
-                      console.log('[Dropdown] PointerDown', { pointerType: e.pointerType })
-                    }}
                     disabled={isLoading}
-                    className="min-h-[44px] min-w-[44px] p-3 hover:bg-iron-black/50 active:bg-iron-black/70 transition-colors disabled:opacity-50 rounded flex items-center justify-center gap-1 cursor-pointer touch-manipulation"
+                    className="min-h-[44px] min-w-[44px] p-3 hover:bg-iron-black/50 active:bg-iron-black/70 transition-colors disabled:opacity-50 rounded flex items-center justify-center gap-1 touch-manipulation"
                     style={{
+                      cursor: 'pointer',
                       WebkitTapHighlightColor: 'transparent',
                       touchAction: 'manipulation',
                       userSelect: 'none'
@@ -1121,29 +1091,45 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                   </button>
 
                   {showTypeDropdown && (
-                    <div
-                      role="listbox"
-                      aria-label="Log type options"
-                      className="absolute bottom-full mb-2 left-0 bg-iron-gray border-2 border-iron-orange shadow-xl min-w-[200px] rounded overflow-hidden"
-                    >
-                      {(['auto', 'meal', 'workout', 'activity', 'note', 'measurement'] as LogType[]).map(type => (
-                        <button
-                          key={type}
-                          role="option"
-                          aria-selected={selectedLogType === type}
-                          onClick={() => {
-                            setSelectedLogType(type)
-                            setShowTypeDropdown(false)
-                          }}
-                          className={`w-full text-left px-4 py-3 hover:bg-iron-black/50 transition-colors flex items-center gap-3 font-heading ${
-                            selectedLogType === type ? 'bg-iron-orange text-white font-black' : 'text-iron-white'
-                          }`}
-                        >
-                          <span className="text-xl">{getLogTypeIcon(type)}</span>
-                          <span className="text-sm font-bold tracking-wide uppercase">{getLogTypeLabel(type)}</span>
-                        </button>
-                      ))}
-                    </div>
+                    <>
+                      {/* Backdrop - closes dropdown when tapped (React events only) */}
+                      <div
+                        className="fixed inset-0 z-40"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          console.log('[Dropdown] Backdrop clicked - closing')
+                          setShowTypeDropdown(false)
+                        }}
+                        aria-hidden="true"
+                      />
+
+                      {/* Dropdown menu */}
+                      <div
+                        role="listbox"
+                        aria-label="Log type options"
+                        className="absolute bottom-full mb-2 left-0 bg-iron-gray border-2 border-iron-orange shadow-xl min-w-[200px] rounded overflow-hidden z-50"
+                      >
+                        {(['auto', 'meal', 'workout', 'activity', 'note', 'measurement'] as LogType[]).map(type => (
+                          <button
+                            key={type}
+                            role="option"
+                            aria-selected={selectedLogType === type}
+                            onClick={() => {
+                              console.log('[Dropdown] Option selected:', type)
+                              setSelectedLogType(type)
+                              setShowTypeDropdown(false)
+                            }}
+                            className={`w-full text-left px-4 py-3 hover:bg-iron-black/50 transition-colors flex items-center gap-3 font-heading ${
+                              selectedLogType === type ? 'bg-iron-orange text-white font-black' : 'text-iron-white'
+                            }`}
+                            style={{ cursor: 'pointer' }}
+                          >
+                            <span className="text-xl">{getLogTypeIcon(type)}</span>
+                            <span className="text-sm font-bold tracking-wide uppercase">{getLogTypeLabel(type)}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </>
                   )}
                 </div>
 
@@ -1154,12 +1140,10 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                     console.log('[File] Button clicked!')
                     fileInputRef.current?.click()
                   }}
-                  onPointerDown={(e) => {
-                    console.log('[File] PointerDown', { pointerType: e.pointerType })
-                  }}
                   disabled={isLoading}
-                  className="relative z-50 min-h-[44px] min-w-[44px] p-3 hover:bg-iron-black/50 active:bg-iron-black/70 transition-colors disabled:opacity-50 rounded flex items-center justify-center cursor-pointer touch-manipulation"
+                  className="relative z-50 min-h-[44px] min-w-[44px] p-3 hover:bg-iron-black/50 active:bg-iron-black/70 transition-colors disabled:opacity-50 rounded flex items-center justify-center touch-manipulation"
                   style={{
+                    cursor: 'pointer',
                     WebkitTapHighlightColor: 'transparent',
                     touchAction: 'manipulation',
                     userSelect: 'none'
@@ -1206,12 +1190,10 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                       console.log('[Mic] Start recording clicked!')
                       startVoiceRecording()
                     }}
-                    onPointerDown={(e) => {
-                      console.log('[Mic] PointerDown', { pointerType: e.pointerType })
-                    }}
                     disabled={isLoading}
-                    className="relative z-50 min-h-[44px] min-w-[44px] p-3 hover:bg-iron-black/50 active:bg-iron-black/70 transition-colors disabled:opacity-50 rounded flex items-center justify-center cursor-pointer touch-manipulation"
+                    className="relative z-50 min-h-[44px] min-w-[44px] p-3 hover:bg-iron-black/50 active:bg-iron-black/70 transition-colors disabled:opacity-50 rounded flex items-center justify-center touch-manipulation"
                     style={{
+                      cursor: 'pointer',
                       WebkitTapHighlightColor: 'transparent',
                       touchAction: 'manipulation',
                       userSelect: 'none'
@@ -1228,11 +1210,9 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                       console.log('[Mic] Stop recording clicked!')
                       stopVoiceRecording()
                     }}
-                    onPointerDown={(e) => {
-                      console.log('[Mic] Stop PointerDown', { pointerType: e.pointerType })
-                    }}
-                    className="relative z-50 min-h-[44px] min-w-[44px] p-3 bg-red-500 active:bg-red-600 animate-pulse flex items-center justify-center cursor-pointer touch-manipulation"
+                    className="relative z-50 min-h-[44px] min-w-[44px] p-3 bg-red-500 active:bg-red-600 animate-pulse flex items-center justify-center touch-manipulation"
                     style={{
+                      cursor: 'pointer',
                       WebkitTapHighlightColor: 'transparent',
                       touchAction: 'manipulation',
                       userSelect: 'none'
@@ -1247,35 +1227,16 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                 {/* Submit Button */}
                 <button
                   type="button"
-                  onClick={(e) => {
-                    console.log('[Submit] Button clicked!', {
-                      type: e.type,
-                      nativeEvent: e.nativeEvent.type,
-                      isLoading,
-                      hasText: !!text,
-                      hasFiles: attachedFiles.length > 0,
-                      disabled: (!text && attachedFiles.length === 0) || isLoading
-                    })
-
+                  onClick={() => {
+                    console.log('[Submit] Button clicked!')
                     if (!isLoading && (text || attachedFiles.length > 0)) {
-                      console.log('[Submit] Calling handleSendMessage()')
                       handleSendMessage()
-                    } else {
-                      console.log('[Submit] Button disabled or no content')
                     }
                   }}
-                  onTouchStart={(e) => {
-                    console.log('[Submit] TouchStart detected', { touches: e.touches.length })
-                  }}
-                  onTouchEnd={(e) => {
-                    console.log('[Submit] TouchEnd detected', { changedTouches: e.changedTouches.length })
-                  }}
-                  onPointerDown={(e) => {
-                    console.log('[Submit] PointerDown detected', { pointerType: e.pointerType })
-                  }}
                   disabled={(!text && attachedFiles.length === 0) || isLoading}
-                  className="relative z-50 min-h-[44px] min-w-[44px] p-3 bg-iron-orange hover:bg-orange-600 active:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed rounded-lg flex items-center justify-center cursor-pointer touch-manipulation"
+                  className="relative z-50 min-h-[44px] min-w-[44px] p-3 bg-iron-orange hover:bg-orange-600 active:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed rounded-lg flex items-center justify-center touch-manipulation"
                   style={{
+                    cursor: 'pointer',
                     WebkitTapHighlightColor: 'transparent',
                     touchAction: 'manipulation',
                     userSelect: 'none'
