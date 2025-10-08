@@ -626,6 +626,12 @@ export function SimpleChatClient() {
               onClick={() => fileInputRef.current?.click()}
               disabled={isLoading}
               className="min-h-[56px] min-w-[56px] p-3 hover:bg-zinc-800 rounded-lg transition-colors disabled:opacity-50"
+              style={{
+                cursor: 'pointer',
+                touchAction: 'manipulation',
+                userSelect: 'none',
+                WebkitTapHighlightColor: 'transparent'
+              }}
               aria-label="Attach file"
               title="Attach image, audio, or PDF"
             >
@@ -667,6 +673,12 @@ export function SimpleChatClient() {
                 onClick={startVoiceRecording}
                 disabled={isLoading}
                 className="min-h-[56px] min-w-[56px] p-3 hover:bg-zinc-800 rounded-lg transition-colors disabled:opacity-50"
+                style={{
+                  cursor: 'pointer',
+                  touchAction: 'manipulation',
+                  userSelect: 'none',
+                  WebkitTapHighlightColor: 'transparent'
+                }}
                 aria-label="Start voice recording"
                 title="Voice input"
               >
@@ -677,6 +689,12 @@ export function SimpleChatClient() {
                 type="button"
                 onClick={stopVoiceRecording}
                 className="min-h-[56px] min-w-[56px] p-3 bg-red-600 hover:bg-red-700 rounded-lg transition-colors animate-pulse"
+                style={{
+                  cursor: 'pointer',
+                  touchAction: 'manipulation',
+                  userSelect: 'none',
+                  WebkitTapHighlightColor: 'transparent'
+                }}
                 aria-label="Stop voice recording"
                 title="Stop recording"
               >
@@ -687,16 +705,7 @@ export function SimpleChatClient() {
             {/* Submit Button */}
             <button
               type="button"
-              onClick={() => {
-                console.log('[SimpleChatClient] Button CLICKED!')
-                handleSubmit()
-              }}
-              onTouchStart={() => {
-                console.log('[SimpleChatClient] TouchStart detected')
-              }}
-              onTouchEnd={() => {
-                console.log('[SimpleChatClient] TouchEnd detected')
-              }}
+              onClick={handleSubmit}
               disabled={(!text.trim() && !attachedFiles.length) || isLoading}
               className="min-w-[56px] min-h-[56px] bg-iron-orange hover:bg-orange-600 active:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg flex items-center justify-center transition-colors"
               style={{
@@ -707,7 +716,11 @@ export function SimpleChatClient() {
               }}
               aria-label="Send message"
             >
-              <Send className="w-5 h-5 text-white" />
+              {isLoading ? (
+                <Loader2 className="w-5 h-5 text-white animate-spin" />
+              ) : (
+                <Send className="w-5 h-5 text-white" />
+              )}
             </button>
           </div>
 
