@@ -5,6 +5,7 @@ import { Send, Loader2, MessageSquare, Plus, Zap } from 'lucide-react'
 import { sendMessageStreaming, getConversations, getConversationMessages } from '@/lib/api/unified-coach'
 import type { SendMessageResponse, ConversationSummary, UnifiedMessage } from '@/lib/api/unified-coach'
 import { getAutoLogPreference, updateAutoLogPreference } from '@/lib/api/profile'
+import BottomNavigation from '@/app/components/BottomNavigation'
 
 interface Message {
   id: string
@@ -339,7 +340,7 @@ export function SimpleChatClient() {
         </header>
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 mb-20">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-40">
         {messages.length === 0 ? (
           <div className="text-center text-iron-gray mt-20">
             <p className="text-lg font-medium">No messages yet</p>
@@ -385,8 +386,8 @@ export function SimpleChatClient() {
         )}
       </div>
 
-      {/* Input Area - Fixed at Bottom */}
-      <div className="fixed bottom-0 left-0 right-0 bg-zinc-900 border-t-2 border-iron-orange p-4 pb-safe">
+      {/* Input Area - Fixed at Bottom (above bottom nav) */}
+      <div className="fixed bottom-16 left-0 right-0 bg-zinc-900 border-t-2 border-iron-orange p-4">
         <div className="max-w-4xl mx-auto">
           <div className="flex gap-2 items-end">
             {/* Text Input */}
@@ -443,6 +444,8 @@ export function SimpleChatClient() {
         </div>
       </div>
       </div>
+
+      <BottomNavigation />
     </div>
   )
 }
