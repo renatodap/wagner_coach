@@ -1,22 +1,27 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2, ArrowLeft, Sparkles } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import BottomNavigation from '@/app/components/BottomNavigation';
+import { getEvents } from '@/lib/api/events';
+import type { Event } from '@/types/event';
+import { getEventTypeMetadata } from '@/types/event';
 
 interface ProgramRequest {
   specific_performance_goal?: string;
   event_date?: string;
+  event_id?: string;
   weak_points: string[];
   recovery_capacity: string;
   preferred_workout_duration: string;
   additional_context?: string;
 }
 
-export default function CreateProgramPage() {
+function CreateProgramContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const supabase = createClient();
 
   const [step, setStep] = useState(1);
@@ -24,6 +29,7 @@ export default function CreateProgramPage() {
   const [error, setError] = useState('');
   const [generationStatus, setGenerationStatus] = useState<'idle' | 'generating' | 'complete'>('idle');
   const [requestId, setRequestId] = useState<string | null>(null);
+  const [events, setEvents] = useState<Event[]>([]);
 
   const [data, setData] = useState<ProgramRequest>({
     weak_points: [],
@@ -32,6 +38,33 @@ export default function CreateProgramPage() {
   });
 
   const totalSteps = 5;
+
+  // Load events on mount
+  useEffect(() => {
+    async function loadEvents() {
+      try {
+        const eventList = await getEvents();
+        setEvents(eventList);
+
+        // If event_id was passed in URL, pre-select it
+        const eventIdParam = searchParams.get('event_id');
+        if (eventIdParam) {
+          const selectedEvent = eventList.find(e => e.id === eventIdParam);
+          if (selectedEvent) {
+            setData(prev => ({
+              ...prev,
+              event_id: selectedEvent.id,
+              event_date: selectedEvent.event_date,
+              specific_performance_goal: selectedEvent.goal_performance || prev.specific_performance_goal
+            }));
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load events:', err);
+      }
+    }
+    loadEvents();
+  }, [searchParams]);
 
   const updateField = (field: keyof ProgramRequest, value: any) => {
     setData(prev => ({ ...prev, [field]: value }));
@@ -130,16 +163,77 @@ export default function CreateProgramPage() {
 
       case 2:
         return (
-          <div className="space-y-4">
-            <h2 className="text-2xl font-heading text-iron-orange">Training for an Event?</h2>
-            <p className="text-iron-gray text-sm">Optional - Select date if you have a specific deadline</p>
-            <input
-              type="date"
-              value={data.event_date || ''}
-              onChange={(e) => updateField('event_date', e.target.value)}
-              className="w-full bg-iron-black border-2 border-iron-gray text-white p-4 focus:border-iron-orange focus:outline-none"
-              min={new Date().toISOString().split('T')[0]}
-            />
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-2xl font-heading text-iron-orange">Training for an Event?</h2>
+              <p className="text-iron-gray text-sm">Optional - Link to an existing event or enter a custom date</p>
+            </div>
+
+            {/* Event Selection Dropdown */}
+            {events.length > 0 && (
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-white">Select Event</label>
+                <select
+                  value={data.event_id || ''}
+                  onChange={(e) => {
+                    const eventId = e.target.value;
+                    if (eventId) {
+                      const selectedEvent = events.find(ev => ev.id === eventId);
+                      if (selectedEvent) {
+                        setData(prev => ({
+                          ...prev,
+                          event_id: selectedEvent.id,
+                          event_date: selectedEvent.event_date,
+                          specific_performance_goal: selectedEvent.goal_performance || prev.specific_performance_goal
+                        }));
+                      }
+                    } else {
+                      setData(prev => ({ ...prev, event_id: undefined }));
+                    }
+                  }}
+                  className="w-full bg-iron-black border-2 border-iron-gray text-white p-4 focus:border-iron-orange focus:outline-none cursor-pointer"
+                >
+                  <option value="">None - Custom date below</option>
+                  {events.map(event => {
+                    const eventMeta = getEventTypeMetadata(event.event_type);
+                    const daysUntil = Math.ceil(
+                      (new Date(event.event_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
+                    );
+                    return (
+                      <option key={event.id} value={event.id}>
+                        {eventMeta?.icon || '🎯'} {event.event_name} - {new Date(event.event_date).toLocaleDateString()} ({daysUntil} days)
+                      </option>
+                    );
+                  })}
+                </select>
+                {data.event_id && (
+                  <p className="text-xs text-iron-gray">
+                    ✓ Program will be periodized to peak at your event date
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Custom Date Input (only if no event selected) */}
+            {!data.event_id && (
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-white">Custom Event Date</label>
+                <input
+                  type="date"
+                  value={data.event_date || ''}
+                  onChange={(e) => updateField('event_date', e.target.value)}
+                  className="w-full bg-iron-black border-2 border-iron-gray text-white p-4 focus:border-iron-orange focus:outline-none"
+                  min={new Date().toISOString().split('T')[0]}
+                />
+              </div>
+            )}
+
+            {/* Info box */}
+            <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
+              <p className="text-sm text-blue-300">
+                💡 <strong>Tip:</strong> Linking to an event enables automatic periodization with base, build, peak, and taper phases calculated based on your event date.
+              </p>
+            </div>
           </div>
         );
 
@@ -383,5 +477,17 @@ export default function CreateProgramPage() {
 
       <BottomNavigation />
     </div>
+  );
+}
+
+export default function CreateProgramPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-iron-black text-iron-white flex items-center justify-center">
+        <Loader2 className="w-12 h-12 text-iron-orange animate-spin" />
+      </div>
+    }>
+      <CreateProgramContent />
+    </Suspense>
   );
 }

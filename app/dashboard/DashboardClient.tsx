@@ -6,9 +6,12 @@ import { Profile } from '@/lib/types'
 import BottomNavigation from '@/app/components/BottomNavigation'
 import { CircularProgress } from '@/components/dashboard/CircularProgress'
 import { DailyRecommendations } from '@/components/Dashboard/DailyRecommendations'
+import { EventCountdownWidget } from '@/components/Events/EventCountdownWidget'
 import { Loader2, Plus, UtensilsCrossed, Activity, MessageCircle, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { checkConsultationStatus } from '@/lib/api/consultation'
+import { getPrimaryEventCountdown } from '@/lib/api/events'
+import type { EventCountdown } from '@/types/event'
 
 interface DashboardClientProps {
   profile?: Profile | null
@@ -48,6 +51,7 @@ export default function DashboardClient({
   const router = useRouter()
   const [nutritionData, setNutritionData] = useState<NutritionData | null>(null)
   const [activityData, setActivityData] = useState<ActivityData | null>(null)
+  const [primaryEvent, setPrimaryEvent] = useState<EventCountdown | null>(null)
   const [loading, setLoading] = useState(true)
   const [hasCompletedConsultation, setHasCompletedConsultation] = useState<boolean | null>(null)
 
@@ -75,6 +79,15 @@ export default function DashboardClient({
         } catch (error) {
           console.error('Failed to check consultation status:', error)
           // Default to null (don't show banner on error)
+        }
+
+        // Fetch primary event countdown
+        try {
+          const eventCountdown = await getPrimaryEventCountdown()
+          setPrimaryEvent(eventCountdown)
+        } catch (error) {
+          // No primary event or error - not critical
+          console.log('No primary event or failed to fetch')
         }
       } catch (error) {
         console.error('Failed to fetch dashboard data:', error)
@@ -204,6 +217,13 @@ export default function DashboardClient({
                 </Button>
               </div>
             </div>
+
+            {/* Primary Event Countdown */}
+            {primaryEvent && (
+              <div>
+                <EventCountdownWidget event={primaryEvent} size="medium" showActions={true} />
+              </div>
+            )}
 
             {/* Daily Recommendations */}
             <div>

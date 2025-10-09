@@ -129,11 +129,49 @@ export function DailyRecommendations({
     }
   }
 
+  // Helper to get event badge from reasoning
+  function getEventBadge(reasoning?: string) {
+    if (!reasoning) return null;
+
+    const lowerReasoning = reasoning.toLowerCase();
+
+    // Check for event-related keywords in reasoning
+    if (lowerReasoning.includes('marathon') || lowerReasoning.includes('race')) {
+      if (lowerReasoning.includes('taper')) return { text: '🔥 Taper Week', color: 'bg-orange-500/20 text-orange-400 border-orange-400/40' };
+      if (lowerReasoning.includes('carb load') || lowerReasoning.includes('carb-load')) return { text: '⚡ Carb Loading', color: 'bg-yellow-500/20 text-yellow-400 border-yellow-400/40' };
+      if (lowerReasoning.includes('peak')) return { text: '🏔️ Peak Training', color: 'bg-purple-500/20 text-purple-400 border-purple-400/40' };
+      return { text: '🏃 Marathon Training', color: 'bg-blue-500/20 text-blue-400 border-blue-400/40' };
+    }
+
+    if (lowerReasoning.includes('powerlifting') || lowerReasoning.includes('strength')) {
+      return { text: '🏋️ Strength Training', color: 'bg-red-500/20 text-red-400 border-red-400/40' };
+    }
+
+    if (lowerReasoning.includes('bodybuilding') || lowerReasoning.includes('physique')) {
+      return { text: '💪 Physique Prep', color: 'bg-indigo-500/20 text-indigo-400 border-indigo-400/40' };
+    }
+
+    if (lowerReasoning.includes('event') && lowerReasoning.includes('day')) {
+      return { text: '🎯 Event Today', color: 'bg-green-500/20 text-green-400 border-green-400/40' };
+    }
+
+    return null;
+  }
+
   function renderMealRecommendation(rec: Recommendation) {
     const content = rec.content as any;
+    const eventBadge = getEventBadge(rec.reasoning);
+
     return (
       <div className="space-y-2">
-        <h4 className="font-semibold text-gray-900">{content.meal_name || 'Meal Suggestion'}</h4>
+        <div className="flex items-start justify-between gap-2">
+          <h4 className="font-semibold text-gray-900">{content.meal_name || 'Meal Suggestion'}</h4>
+          {eventBadge && (
+            <Badge variant="outline" className={`text-xs whitespace-nowrap ${eventBadge.color}`}>
+              {eventBadge.text}
+            </Badge>
+          )}
+        </div>
         {content.foods && content.foods.length > 0 && (
           <div className="flex flex-wrap gap-1">
             {content.foods.map((food: string, idx: number) => (
@@ -160,9 +198,18 @@ export function DailyRecommendations({
 
   function renderWorkoutRecommendation(rec: Recommendation) {
     const content = rec.content as any;
+    const eventBadge = getEventBadge(rec.reasoning);
+
     return (
       <div className="space-y-2">
-        <h4 className="font-semibold text-gray-900">{content.workout_name || 'Workout'}</h4>
+        <div className="flex items-start justify-between gap-2">
+          <h4 className="font-semibold text-gray-900">{content.workout_name || 'Workout'}</h4>
+          {eventBadge && (
+            <Badge variant="outline" className={`text-xs whitespace-nowrap ${eventBadge.color}`}>
+              {eventBadge.text}
+            </Badge>
+          )}
+        </div>
         {content.workout_type && (
           <Badge variant="outline">{content.workout_type}</Badge>
         )}
