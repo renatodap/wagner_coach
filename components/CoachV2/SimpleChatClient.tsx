@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Send, Loader2, MessageSquare, Plus, Zap } from 'lucide-react'
-import { sendMessageStreaming, getConversations, getConversationMessages } from '@/lib/api/unified-coach'
-import type { SendMessageResponse, ConversationSummary, UnifiedMessage } from '@/lib/api/unified-coach'
+import { sendMessageStreaming, getConversations, getConversationMessages, confirmLog, cancelLog } from '@/lib/api/unified-coach'
+import type { SendMessageResponse, ConversationSummary, UnifiedMessage, LogType } from '@/lib/api/unified-coach'
 import { getAutoLogPreference, updateAutoLogPreference } from '@/lib/api/profile'
 import BottomNavigation from '@/app/components/BottomNavigation'
 import { useToast } from '@/hooks/use-toast'
@@ -16,7 +17,20 @@ interface Message {
   isStreaming?: boolean
 }
 
+interface PendingLog {
+  log_type: LogType
+  data: Record<string, any>
+  message: string
+}
+
+interface AutoLoggedItem {
+  log_type: LogType
+  id: string
+  message: string
+}
+
 export function SimpleChatClient() {
+  const router = useRouter()
   const [text, setText] = useState('')
   const [messages, setMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -32,6 +46,11 @@ export function SimpleChatClient() {
   // Auto-log preference
   const [autoLogEnabled, setAutoLogEnabled] = useState(false)
   const [isTogglingAutoLog, setIsTogglingAutoLog] = useState(false)
+
+  // Meal logging state
+  const [pendingLogs, setPendingLogs] = useState<PendingLog[]>([])
+  const [showLogModal, setShowLogModal] = useState(false)
+  const [currentUserMessageId, setCurrentUserMessageId] = useState<string | null>(null)
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -135,6 +154,80 @@ export function SimpleChatClient() {
     }
   }
 
+  async function handleConfirmLog(pendingLog: PendingLog) {
+    if (!conversationId || !currentUserMessageId) {
+      toast({
+        title: 'Error',
+        description: 'Missing conversation context. Please try again.',
+        variant: 'destructive'
+      })
+      return
+    }
+
+    try {
+      await confirmLog({
+        conversation_id: conversationId,
+        user_message_id: currentUserMessageId,
+        log_type: pendingLog.log_type,
+        log_data: pendingLog.data
+      })
+
+      toast({
+        title: 'Logged successfully!',
+        description: pendingLog.message,
+        action: (
+          <button
+            onClick={() => {
+              router.refresh()
+              router.push('/nutrition')
+            }}
+            className="px-3 py-1 bg-iron-orange text-white text-sm rounded hover:bg-orange-600 transition-colors"
+          >
+            View
+          </button>
+        ),
+      })
+
+      // Close modal and clear pending logs
+      setShowLogModal(false)
+      setPendingLogs([])
+      setCurrentUserMessageId(null)
+    } catch (error) {
+      console.error('[SimpleChatClient] Failed to confirm log:', error)
+      toast({
+        title: 'Failed to save log',
+        description: 'Unable to save the log. Please try again.',
+        variant: 'destructive'
+      })
+    }
+  }
+
+  async function handleCancelLog() {
+    if (!conversationId || !currentUserMessageId) {
+      setShowLogModal(false)
+      setPendingLogs([])
+      return
+    }
+
+    try {
+      await cancelLog({
+        conversation_id: conversationId,
+        user_message_id: currentUserMessageId
+      })
+
+      // Close modal and clear pending logs
+      setShowLogModal(false)
+      setPendingLogs([])
+      setCurrentUserMessageId(null)
+    } catch (error) {
+      console.error('[SimpleChatClient] Failed to cancel log:', error)
+      // Still close modal even if API call fails
+      setShowLogModal(false)
+      setPendingLogs([])
+      setCurrentUserMessageId(null)
+    }
+  }
+
   const handleSubmit = async () => {
     if (!text.trim() || isLoading) {
       return
@@ -176,6 +269,8 @@ export function SimpleChatClient() {
 
       let fullResponse = ''
       let newConversationId = conversationId
+      let receivedPendingLogs: PendingLog[] = []
+      let receivedAutoLogged: AutoLoggedItem[] = []
 
       for await (const chunk of stream) {
         if (chunk.conversation_id && !newConversationId) {
@@ -197,6 +292,46 @@ export function SimpleChatClient() {
             )
           )
         }
+
+        // Check for pending logs (needs user confirmation)
+        if (chunk.pending_logs && chunk.pending_logs.length > 0) {
+          receivedPendingLogs = chunk.pending_logs
+        }
+
+        // Check for auto-logged items (already saved)
+        if (chunk.auto_logged && chunk.auto_logged.length > 0) {
+          receivedAutoLogged = chunk.auto_logged
+        }
+      }
+
+      // After streaming completes, handle logs
+      if (receivedPendingLogs.length > 0) {
+        setPendingLogs(receivedPendingLogs)
+        setCurrentUserMessageId(userMessage.id)
+        setShowLogModal(true)
+      }
+
+      if (receivedAutoLogged.length > 0) {
+        // Show success toast for auto-logged items
+        const mealCount = receivedAutoLogged.filter(item => item.log_type === 'meal').length
+        const workoutCount = receivedAutoLogged.filter(item => item.log_type === 'workout').length
+        const activityCount = receivedAutoLogged.filter(item => item.log_type === 'activity').length
+
+        toast({
+          title: 'Logged successfully!',
+          description: `${mealCount > 0 ? `${mealCount} meal(s)` : ''} ${workoutCount > 0 ? `${workoutCount} workout(s)` : ''} ${activityCount > 0 ? `${activityCount} activity(s)` : ''}`.trim(),
+          action: (
+            <button
+              onClick={() => {
+                router.refresh()
+                router.push('/nutrition')
+              }}
+              className="px-3 py-1 bg-iron-orange text-white text-sm rounded hover:bg-orange-600 transition-colors"
+            >
+              View
+            </button>
+          ),
+        })
       }
 
       // Mark streaming as complete
@@ -463,6 +598,74 @@ export function SimpleChatClient() {
         </div>
       </div>
       </div>
+
+      {/* Pending Log Confirmation Modal */}
+      {showLogModal && pendingLogs.length > 0 && (
+        <div className="fixed inset-0 bg-black/90 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+          <div className="bg-zinc-900 border-2 border-iron-orange max-w-2xl w-full max-h-[90vh] overflow-y-auto rounded-3xl shadow-2xl">
+            {/* Modal Header */}
+            <div className="p-6 border-b-2 border-iron-gray">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-heading text-iron-orange uppercase">
+                    Confirm Log
+                  </h2>
+                  <p className="text-sm text-iron-gray mt-1">
+                    Review and confirm before saving
+                  </p>
+                </div>
+                <button
+                  onClick={handleCancelLog}
+                  className="p-2 hover:bg-iron-gray/30 transition-colors rounded-xl"
+                  aria-label="Close modal"
+                >
+                  <span className="text-iron-white text-2xl">✕</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 space-y-6">
+              {pendingLogs.map((log, index) => (
+                <div key={index} className="bg-zinc-800 border border-iron-gray rounded-xl p-4">
+                  <div className="flex items-center gap-3 mb-4">
+                    <span className="text-3xl">
+                      {log.log_type === 'meal' ? '🍽️' : log.log_type === 'workout' ? '💪' : '🏃'}
+                    </span>
+                    <div>
+                      <h3 className="text-lg font-semibold text-iron-white capitalize">{log.log_type}</h3>
+                      <p className="text-sm text-iron-gray">{log.message}</p>
+                    </div>
+                  </div>
+
+                  {/* Display log data */}
+                  <div className="bg-zinc-900 rounded-lg p-3">
+                    <pre className="text-xs text-iron-gray overflow-auto">
+                      {JSON.stringify(log.data, null, 2)}
+                    </pre>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex gap-3 mt-4">
+                    <button
+                      onClick={() => handleConfirmLog(log)}
+                      className="flex-1 bg-iron-orange text-white py-3 px-4 rounded-xl font-bold hover:bg-orange-600 transition-all uppercase tracking-wide shadow-xl"
+                    >
+                      Confirm & Save
+                    </button>
+                    <button
+                      onClick={handleCancelLog}
+                      className="flex-1 bg-zinc-700 text-iron-white py-3 px-4 rounded-xl font-bold hover:bg-zinc-600 transition-colors uppercase tracking-wide"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       <BottomNavigation />
     </div>
