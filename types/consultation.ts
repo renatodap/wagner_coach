@@ -94,6 +94,21 @@ export interface ConsultationMessage {
   is_complete: boolean;
   wrap_up_message?: string;
   extraction_summary?: ConsultationSummary;
+
+  // Goal-driven consultation fields
+  goals_met?: number; // Number of goals completed (e.g., 4)
+  goals_total?: number; // Total number of goals (e.g., 10)
+  goals_detail?: Record<string, string>; // Goal status map (e.g., {"primary_fitness_goal": "✅ Identified", "measurements": "⏳ Pending"})
+  logged_items?: Array<{
+    // Items auto-logged during consultation
+    type: string; // "meal" or "activity"
+    content: string; // "Breakfast: 3 eggs, oatmeal, banana"
+  }>;
+
+  // Limit tracking fields
+  minutes_elapsed?: number; // Minutes since consultation started
+  messages_sent?: number; // Number of messages sent in consultation
+  approaching_limit?: boolean; // True if approaching 30 min or 50 messages limit
 }
 
 export interface ConsultationSummary {

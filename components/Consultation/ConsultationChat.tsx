@@ -11,7 +11,13 @@ import {
   Loader2,
   CheckCircle2,
   AlertCircle,
-  Sparkles
+  Sparkles,
+  Clock,
+  MessageSquare,
+  Target,
+  CheckCircle,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import type {
   SpecialistType,
@@ -55,11 +61,28 @@ export function ConsultationChat({
   const [isLoading, setIsLoading] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
   const [extractedData, setExtractedData] = useState<Record<string, any>>({});
+  const [goalsMet, setGoalsMet] = useState<number>(0);
+  const [goalsTotal, setGoalsTotal] = useState<number>(10);
+  const [goalsDetail, setGoalsDetail] = useState<Record<string, string>>({});
+  const [loggedItems, setLoggedItems] = useState<Array<{ type: string; content: string }>>([]);
+  const [minutesElapsed, setMinutesElapsed] = useState<number>(0);
+  const [messagesSent, setMessagesSent] = useState<number>(0);
+  const [approachingLimit, setApproachingLimit] = useState<boolean>(false);
+  const [showGoalsDetail, setShowGoalsDetail] = useState<boolean>(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const prevLoggedCountRef = useRef<number>(0);
   const { toast } = useToast();
   const router = useRouter();
 
   const specialist = SPECIALISTS[specialistType];
+
+  // Helper function to format goal names
+  const formatGoalName = (goalId: string): string => {
+    return goalId
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -97,6 +120,36 @@ export function ConsultationChat({
           ...prev,
           ...response.extracted_data
         }));
+      }
+
+      // Update goal-driven consultation state
+      if (response.goals_met !== undefined) setGoalsMet(response.goals_met);
+      if (response.goals_total !== undefined) setGoalsTotal(response.goals_total);
+      if (response.goals_detail) setGoalsDetail(response.goals_detail);
+      if (response.minutes_elapsed !== undefined) setMinutesElapsed(response.minutes_elapsed);
+      if (response.messages_sent !== undefined) setMessagesSent(response.messages_sent);
+      if (response.approaching_limit !== undefined) setApproachingLimit(response.approaching_limit);
+
+      // Handle auto-logged items (show toast notification for new items)
+      if (response.logged_items) {
+        const newLoggedCount = response.logged_items.length;
+        const prevCount = prevLoggedCountRef.current;
+
+        if (newLoggedCount > prevCount) {
+          // New items were logged
+          const newItems = response.logged_items.slice(prevCount);
+          newItems.forEach(item => {
+            toast({
+              title: '✅ Auto-Logged!',
+              description: `${item.type}: ${item.content}`,
+              variant: 'default',
+              duration: 4000
+            });
+          });
+        }
+
+        setLoggedItems(response.logged_items);
+        prevLoggedCountRef.current = newLoggedCount;
       }
 
       // Add AI response
@@ -195,7 +248,7 @@ export function ConsultationChat({
             <span className="text-iron-gray">Progress</span>
             <span className="font-medium text-white">{session.progress_percentage}%</span>
           </div>
-          <div className="h-2 bg-iron-gray/20 overflow-hidden">
+          <div className="h-2 bg-iron-gray/20 rounded-full overflow-hidden">
             <div
               className="h-full bg-iron-orange transition-all duration-300"
               style={{ width: `${session.progress_percentage}%` }}
@@ -205,6 +258,85 @@ export function ConsultationChat({
             Stage: {session.conversation_stage.replace(/_/g, ' ')}
           </p>
         </div>
+
+        {/* Time & Message Counters */}
+        {(minutesElapsed > 0 || messagesSent > 0) && (
+          <div className="flex items-center gap-4 mt-3 text-xs text-iron-gray">
+            {minutesElapsed > 0 && (
+              <div className="flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                <span>{minutesElapsed} min</span>
+              </div>
+            )}
+            {messagesSent > 0 && (
+              <div className="flex items-center gap-1">
+                <MessageSquare className="h-3 w-3" />
+                <span>{messagesSent}/50 messages</span>
+              </div>
+            )}
+            {approachingLimit && (
+              <span className="text-yellow-400 font-medium flex items-center gap-1">
+                <AlertCircle className="h-3 w-3" />
+                Nearing limit
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Goal Progress Indicator */}
+        {goalsTotal > 0 && (
+          <div className="mt-3 p-3 bg-iron-black/30 rounded-lg border border-iron-gray/20">
+            <button
+              onClick={() => setShowGoalsDetail(!showGoalsDetail)}
+              className="w-full flex items-center justify-between text-left"
+              aria-expanded={showGoalsDetail}
+            >
+              <div className="flex items-center gap-2">
+                <Target className="h-4 w-4 text-iron-orange" />
+                <span className="text-sm text-white font-medium">Goals Completed</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-iron-orange">
+                  {goalsMet}/{goalsTotal}
+                </span>
+                {showGoalsDetail ? (
+                  <ChevronUp className="h-4 w-4 text-iron-gray" />
+                ) : (
+                  <ChevronDown className="h-4 w-4 text-iron-gray" />
+                )}
+              </div>
+            </button>
+
+            {/* Goals Detail Dropdown */}
+            {showGoalsDetail && Object.keys(goalsDetail).length > 0 && (
+              <div className="mt-3 space-y-2 border-t border-iron-gray/20 pt-3">
+                {Object.entries(goalsDetail).map(([goalId, status]) => {
+                  const isCompleted = status.includes('✅');
+                  return (
+                    <div
+                      key={goalId}
+                      className="flex items-start gap-2 text-xs"
+                    >
+                      <span className="text-base">
+                        {isCompleted ? '✅' : '⏳'}
+                      </span>
+                      <div className="flex-1">
+                        <p className={`${isCompleted ? 'text-green-400' : 'text-iron-gray'}`}>
+                          {formatGoalName(goalId)}
+                        </p>
+                        {status.includes(':') && (
+                          <p className="text-iron-gray/70 mt-0.5">
+                            {status.split(':')[1]?.trim()}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Messages Area */}
@@ -260,6 +392,27 @@ export function ConsultationChat({
               <p className="text-xs font-medium text-white">
                 Data collected: {Object.keys(extractedData).join(', ')}
               </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Auto-Logged Items Display */}
+      {loggedItems.length > 0 && (
+        <div className="flex-shrink-0 px-4 py-2 bg-green-900/20 backdrop-blur-sm border-t border-green-500/30">
+          <div className="flex items-start gap-2">
+            <CheckCircle className="h-4 w-4 text-green-400 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-xs font-medium text-white mb-1">
+                📝 Auto-Logged ({loggedItems.length})
+              </p>
+              <div className="space-y-1">
+                {loggedItems.map((item, index) => (
+                  <p key={index} className="text-xs text-green-300">
+                    <span className="capitalize font-medium">{item.type}:</span> {item.content}
+                  </p>
+                ))}
+              </div>
             </div>
           </div>
         </div>
