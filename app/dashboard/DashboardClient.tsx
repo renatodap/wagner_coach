@@ -7,7 +7,7 @@ import BottomNavigation from '@/app/components/BottomNavigation'
 import { CircularProgress } from '@/components/dashboard/CircularProgress'
 import { DailyRecommendations } from '@/components/dashboard/DailyRecommendations'
 import { EventCountdownWidget } from '@/components/Events/EventCountdownWidget'
-import { Loader2, Plus, UtensilsCrossed, Activity, MessageCircle, Sparkles } from 'lucide-react'
+import { Loader2, Plus, UtensilsCrossed, Activity, MessageCircle, Sparkles, Camera } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { checkConsultationStatus } from '@/lib/api/consultation'
 import { getPrimaryEventCountdown } from '@/lib/api/events'
@@ -181,39 +181,55 @@ export default function DashboardClient({
 
             {/* Quick Actions Section */}
             <div className="bg-iron-black/50 backdrop-blur-sm border border-iron-gray/20 rounded-lg p-4">
-              <h2 className="text-lg font-semibold text-white mb-3">Quick Actions</h2>
-              <div className="grid grid-cols-2 gap-3">
+              <h2 className="text-lg font-semibold text-white mb-4">Quick Actions</h2>
+
+              {/* Primary Actions - 3 Button Layout */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <Button
                   onClick={() => router.push('/nutrition/log')}
-                  className="bg-iron-orange hover:bg-iron-orange/90 text-white font-medium h-auto py-4 flex flex-col items-center gap-2"
+                  className="bg-iron-orange hover:bg-iron-orange/90 text-white font-semibold h-auto py-6 flex flex-col items-center gap-2 transition-all hover:scale-105"
+                  aria-label="Log a meal manually"
                 >
-                  <UtensilsCrossed size={24} />
+                  <UtensilsCrossed size={28} />
                   <span>Log Meal</span>
                 </Button>
                 <Button
-                  onClick={() => router.push('/activities/log')}
-                  className="bg-iron-orange hover:bg-iron-orange/90 text-white font-medium h-auto py-4 flex flex-col items-center gap-2"
+                  onClick={() => router.push('/meal-scan')}
+                  className="bg-gradient-to-br from-iron-orange to-orange-600 hover:from-iron-orange/90 hover:to-orange-600/90 text-white font-semibold h-auto py-6 flex flex-col items-center gap-2 transition-all hover:scale-105"
+                  aria-label="Scan a meal with your camera"
                 >
-                  <Activity size={24} />
-                  <span>Log Activity</span>
+                  <Camera size={28} />
+                  <span>Scan Meal</span>
+                </Button>
+                <Button
+                  onClick={() => router.push('/coach-v2')}
+                  className="bg-iron-orange hover:bg-iron-orange/90 text-white font-semibold h-auto py-6 flex flex-col items-center gap-2 transition-all hover:scale-105"
+                  aria-label="Chat with your AI coach"
+                >
+                  <MessageCircle size={28} />
+                  <span>Ask Coach</span>
                 </Button>
               </div>
+
+              {/* Secondary Actions */}
               <div className="grid grid-cols-2 gap-3 mt-3">
                 <Button
-                  onClick={() => router.push('/coach')}
+                  onClick={() => router.push('/activities/log')}
                   variant="outline"
-                  className="border-iron-gray/30 text-white hover:bg-iron-gray/20 h-auto py-4 flex flex-col items-center gap-2"
+                  className="border-iron-gray/30 text-white hover:bg-iron-gray/20 h-auto py-3 flex flex-col items-center gap-1.5"
+                  aria-label="Log an activity or workout"
                 >
-                  <MessageCircle size={24} />
-                  <span>Ask Coach</span>
+                  <Activity size={20} />
+                  <span className="text-sm">Log Activity</span>
                 </Button>
                 <Button
                   onClick={() => router.push('/consultation')}
                   variant="outline"
-                  className="border-iron-gray/30 text-white hover:bg-iron-gray/20 h-auto py-4 flex flex-col items-center gap-2"
+                  className="border-iron-gray/30 text-white hover:bg-iron-gray/20 h-auto py-3 flex flex-col items-center gap-1.5"
+                  aria-label="Start a consultation with a specialist"
                 >
-                  <Sparkles size={24} />
-                  <span>Consultation</span>
+                  <Sparkles size={20} />
+                  <span className="text-sm">Consultation</span>
                 </Button>
               </div>
             </div>
