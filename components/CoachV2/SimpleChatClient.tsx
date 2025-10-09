@@ -187,12 +187,7 @@ export function SimpleChatClient() {
     setAttachedFiles(prev => prev.filter((_, i) => i !== index))
   }
 
-  const handleSubmit = async (e?: React.FormEvent) => {
-    // Prevent default form submission
-    if (e) {
-      e.preventDefault()
-    }
-
+  const handleSubmit = async () => {
     console.log('[SimpleChatClient] Submit triggered!')
     console.log('[SimpleChatClient] Text:', text)
 
@@ -561,7 +556,10 @@ export function SimpleChatClient() {
           )}
 
           {/* Native Form Submit Pattern - iOS-safe */}
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={(e) => {
+            e.preventDefault()
+            handleSubmit()
+          }}>
             <div className="flex gap-2 items-end">
               {/* Attach File Button - Native Label */}
               <label
@@ -614,7 +612,7 @@ export function SimpleChatClient() {
           {/* Debug Info */}
           <div className="mt-2 text-xs text-iron-gray">
             <p>Debug: {text.length} chars | {isLoading ? 'Loading...' : 'Ready'}</p>
-            <p className="text-green-500">✓ Native form submit | ✓ type=submit button | ✓ iOS-safe</p>
+            <p className="text-green-500">✓ Inline preventDefault | ✓ Sync before async | ✓ No reload</p>
           </div>
         </div>
       </div>
