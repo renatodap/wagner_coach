@@ -15,7 +15,6 @@ import {
   TrendingDown,
   Settings as SettingsIcon
 } from 'lucide-react';
-import StravaConnection from '@/components/StravaConnection';
 import GarminConnection from '@/components/GarminConnection';
 import BottomNavigation from '@/app/components/BottomNavigation';
 import { getAutoLogPreference, updateAutoLogPreference } from '@/lib/api/profile';
@@ -314,9 +313,6 @@ export default function SettingsClient({ profile, userEmail }: SettingsClientPro
             </p>
           </div>
         </div>
-
-        {/* Strava Integration */}
-        <StravaConnection />
 
         {/* Garmin Integration */}
         <GarminConnection />
