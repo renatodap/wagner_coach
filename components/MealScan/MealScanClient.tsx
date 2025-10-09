@@ -1,15 +1,19 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Camera, Upload, Loader2, CheckCircle, XCircle } from 'lucide-react'
 import { validateFile } from '@/lib/utils/file-upload'
 import { analyzeImage, formatAnalysisAsText } from '@/lib/services/client-image-analysis'
+import { createMeal } from '@/lib/api/meals'
+import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/hooks/use-toast'
 import BottomNavigation from '@/app/components/BottomNavigation'
 
 interface AnalysisResult {
   text: string
   timestamp: Date
+  data?: any // Raw analysis data
 }
 
 export function MealScanClient() {
@@ -17,7 +21,9 @@ export function MealScanClient() {
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null)
+  const [isSaving, setIsSaving] = useState(false)
   const { toast } = useToast()
+  const router = useRouter()
 
   function handleFileSelect(files: FileList | null) {
     if (!files || files.length === 0) return
@@ -69,7 +75,8 @@ export function MealScanClient() {
 
       setAnalysis({
         text: analysisText,
-        timestamp: new Date()
+        timestamp: new Date(),
+        data: result
       })
 
       toast({
@@ -92,6 +99,71 @@ export function MealScanClient() {
     setSelectedImage(null)
     setImagePreview(null)
     setAnalysis(null)
+  }
+
+  async function handleSaveMeal() {
+    if (!analysis?.data) return
+
+    setIsSaving(true)
+    toast({
+      title: '💾 Saving meal...',
+      description: 'Creating meal log entry',
+    })
+
+    try {
+      // Get auth token
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
+
+      if (!session?.access_token) {
+        throw new Error('Not authenticated')
+      }
+
+      const analysisData = analysis.data
+
+      // Calculate totals from detected food items
+      let totalCalories = 0
+      let totalProtein = 0
+      let totalCarbs = 0
+      let totalFat = 0
+
+      if (analysisData.nutrition) {
+        totalCalories = analysisData.nutrition.calories || 0
+        totalProtein = analysisData.nutrition.protein_g || 0
+        totalCarbs = analysisData.nutrition.carbs_g || 0
+        totalFat = analysisData.nutrition.fat_g || 0
+      }
+
+      // Create meal log
+      const mealData = {
+        meal_type: analysisData.meal_type || 'snack',
+        logged_at: new Date().toISOString(),
+        calories: Math.round(totalCalories),
+        protein_g: Math.round(totalProtein * 10) / 10,
+        carbs_g: Math.round(totalCarbs * 10) / 10,
+        fat_g: Math.round(totalFat * 10) / 10,
+        notes: `AI detected: ${analysisData.food_items?.map((f: any) => f.name).join(', ') || 'meal from photo'}`,
+      }
+
+      await createMeal(mealData, session.access_token)
+
+      toast({
+        title: '✅ Meal logged!',
+        description: `${totalCalories} calories saved`,
+      })
+
+      // Navigate to dashboard or meal history
+      router.push('/dashboard')
+    } catch (error) {
+      console.error('[MealScanClient] Save failed:', error)
+      toast({
+        title: '❌ Failed to save meal',
+        description: error instanceof Error ? error.message : 'Failed to save meal log',
+        variant: 'destructive'
+      })
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   return (
@@ -177,27 +249,50 @@ export function MealScanClient() {
             )}
 
             {/* Action Buttons */}
-            <div className="flex gap-3">
-              <button
-                onClick={handleReset}
-                className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-iron-white font-medium py-3 px-6 rounded-lg transition-colors border-2 border-iron-gray"
-              >
-                Choose Different Photo
-              </button>
-              <button
-                onClick={handleAnalyze}
-                disabled={isAnalyzing}
-                className="flex-1 bg-iron-orange hover:bg-orange-600 disabled:opacity-50 text-white font-medium py-3 px-6 rounded-lg flex items-center justify-center gap-2 transition-colors"
-              >
-                {isAnalyzing ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    Analyzing...
-                  </>
-                ) : (
-                  <>Analyze Meal</>
+            <div className="flex flex-col gap-3">
+              <div className="flex gap-3">
+                <button
+                  onClick={handleReset}
+                  className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-iron-white font-medium py-3 px-6 rounded-lg transition-colors border-2 border-iron-gray"
+                >
+                  Choose Different Photo
+                </button>
+                {!analysis && (
+                  <button
+                    onClick={handleAnalyze}
+                    disabled={isAnalyzing}
+                    className="flex-1 bg-iron-orange hover:bg-orange-600 disabled:opacity-50 text-white font-medium py-3 px-6 rounded-lg flex items-center justify-center gap-2 transition-colors"
+                  >
+                    {isAnalyzing ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        Analyzing...
+                      </>
+                    ) : (
+                      <>Analyze Meal</>
+                    )}
+                  </button>
                 )}
-              </button>
+              </div>
+              {analysis && (
+                <button
+                  onClick={handleSaveMeal}
+                  disabled={isSaving}
+                  className="w-full bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white font-bold py-4 px-6 rounded-lg flex items-center justify-center gap-2 transition-colors"
+                >
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Saving Meal...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="w-5 h-5" />
+                      Log This Meal
+                    </>
+                  )}
+                </button>
+              )}
             </div>
           </div>
         )}

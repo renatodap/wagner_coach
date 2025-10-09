@@ -22,15 +22,11 @@
 import { useState, useEffect, useRef, useCallback, memo } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {
-  Mic,
-  Paperclip,
   Send,
   X,
   Loader2,
   ChevronDown,
   AlertCircle,
-  Volume2,
-  FileText,
   MessageSquare,
   History,
   RefreshCw,
@@ -59,20 +55,11 @@ import {
   type ConversationSummary,
   type FoodDetected,
 } from '@/lib/api/unified-coach'
-import { uploadFiles, validateFile } from '@/lib/utils/file-upload'
-import { analyzeImage, formatAnalysisAsText } from '@/lib/services/client-image-analysis'
-import { matchDetectedFoods, type DetectedFood } from '@/lib/api/foods'
 import { createClient } from '@/lib/supabase/client'
 
 interface UnifiedCoachClientProps {
   userId: string
   initialConversationId?: string | null
-}
-
-interface AttachedFile {
-  file: File
-  preview?: string
-  type: 'image' | 'audio' | 'pdf' | 'other'
 }
 
 type LogType = 'auto' | 'meal' | 'workout' | 'activity' | 'note' | 'measurement'
@@ -111,8 +98,6 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
   // Input state
   const [text, setText] = useState('')
   const [selectedLogType, setSelectedLogType] = useState<LogType>('auto')
-  const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([])
-  const [isRecording, setIsRecording] = useState(false)
   const [showTypeDropdown, setShowTypeDropdown] = useState(false)
   const [autoLogEnabled, setAutoLogEnabled] = useState(false)
   const [isLoadingPreference, setIsLoadingPreference] = useState(false)
@@ -125,8 +110,6 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const recognitionRef = useRef<any>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
@@ -137,7 +120,7 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
 
   // Determine if we're in chat mode or entry mode
   const hasStartedChat = messages.length > 0
-  const hasContent = text || attachedFiles.length > 0
+  const hasContent = text.trim()
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -345,184 +328,9 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
     setConversationId(null)
     setPendingLogPreview(null)
     setText('')
-    setAttachedFiles([])
     setError(null)
     if (isMobile) {
       setShowHistorySidebar(false)
-    }
-  }
-
-  // ============================================================================
-  // FILE HANDLING
-  // ============================================================================
-
-  const handleFileSelect = (files: FileList) => {
-    const newFiles: AttachedFile[] = []
-
-    Array.from(files).forEach(file => {
-      const validation = validateFile(file, {
-        maxSizeMB: 10,
-        allowedTypes: ['image/*', 'audio/*', 'application/pdf']
-      })
-
-      if (!validation.valid) {
-        toast({
-          title: '📎 File Error',
-          description: validation.error,
-          variant: 'destructive'
-        })
-        return
-      }
-
-      let fileType: AttachedFile['type'] = 'other'
-
-      if (file.type.startsWith('image/')) {
-        fileType = 'image'
-        const reader = new FileReader()
-        reader.onloadend = () => {
-          setAttachedFiles(prev => prev.map(f =>
-            f.file === file ? { ...f, preview: reader.result as string } : f
-          ))
-        }
-        reader.onerror = () => {
-          toast({
-            title: '📎 Image Preview Failed',
-            description: 'Could not load image preview, but file is attached',
-            variant: 'destructive'
-          })
-        }
-        reader.readAsDataURL(file)
-      } else if (file.type.startsWith('audio/')) {
-        fileType = 'audio'
-      } else if (file.type === 'application/pdf') {
-        fileType = 'pdf'
-      }
-
-      newFiles.push({ file, type: fileType })
-    })
-
-    if (newFiles.length > 0) {
-      setAttachedFiles(prev => [...prev, ...newFiles])
-      setError(null)
-
-      // Show success toast
-      const fileTypeLabel = newFiles[0].type === 'image' ? 'Image' :
-                           newFiles[0].type === 'audio' ? 'Audio' :
-                           newFiles[0].type === 'pdf' ? 'PDF' : 'File'
-      toast({
-        title: `📎 ${fileTypeLabel} attached`,
-        description: `${newFiles[0].file.name} (${(newFiles[0].file.size / 1024).toFixed(1)} KB)`,
-      })
-    }
-  }
-
-  const removeFile = (index: number) => {
-    setAttachedFiles(prev => prev.filter((_, i) => i !== index))
-  }
-
-  // ============================================================================
-  // VOICE RECORDING
-  // ============================================================================
-
-  const startVoiceRecording = () => {
-    try {
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-
-      if (!SpeechRecognition) {
-        const message = 'Voice input not supported on this browser. Try using the text input or file upload instead.'
-        toast({
-          title: '🎤 Voice Not Supported',
-          description: message,
-          variant: 'destructive'
-        })
-        setError({
-          message,
-          recoveryAction: undefined
-        })
-        return
-      }
-
-      const recognition = new SpeechRecognition()
-      recognition.continuous = false
-      recognition.interimResults = false
-      recognition.lang = 'en-US'
-
-      recognition.onstart = () => {
-        setIsRecording(true)
-        setError(null)
-        toast({
-          title: '🎤 Listening...',
-          description: 'Speak now to add text',
-        })
-      }
-
-      recognition.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript
-        setText(prev => prev ? `${prev} ${transcript}` : transcript)
-        setIsRecording(false)
-        toast({
-          title: '✅ Voice recognized',
-          description: `Added: "${transcript.slice(0, 50)}${transcript.length > 50 ? '...' : ''}"`,
-        })
-      }
-
-      recognition.onerror = (event: any) => {
-        console.error('Speech recognition error:', event.error)
-
-        let errorMessage = 'Voice input failed'
-        let errorDescription = 'Please try again or use text input'
-
-        if (event.error === 'not-allowed') {
-          errorMessage = 'Microphone Permission Denied'
-          errorDescription = 'Please enable microphone access in your browser settings'
-        } else if (event.error === 'no-speech') {
-          errorMessage = 'No Speech Detected'
-          errorDescription = 'Try speaking louder or closer to the microphone'
-        } else if (event.error === 'network') {
-          errorMessage = 'Network Error'
-          errorDescription = 'Voice recognition requires an internet connection'
-        }
-
-        toast({
-          title: `🎤 ${errorMessage}`,
-          description: errorDescription,
-          variant: 'destructive'
-        })
-
-        setError({
-          message: errorDescription,
-          recoveryAction: event.error !== 'not-allowed' ? () => startVoiceRecording() : undefined,
-          recoveryLabel: 'Try Again'
-        })
-        setIsRecording(false)
-      }
-
-      recognition.onend = () => {
-        setIsRecording(false)
-      }
-
-      recognitionRef.current = recognition
-      recognition.start()
-    } catch (err) {
-      console.error('Voice recording error:', err)
-      const message = 'Failed to start voice recording. Please use text input instead.'
-      toast({
-        title: '🎤 Voice Input Failed',
-        description: message,
-        variant: 'destructive'
-      })
-      setError({
-        message,
-        recoveryAction: () => startVoiceRecording(),
-        recoveryLabel: 'Try Again'
-      })
-    }
-  }
-
-  const stopVoiceRecording = () => {
-    if (recognitionRef.current) {
-      recognitionRef.current.stop()
-      setIsRecording(false)
     }
   }
 
@@ -531,7 +339,7 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
   // ============================================================================
 
   async function handleSendMessage() {
-    if (!text.trim() && !attachedFiles.length) return
+    if (!text.trim()) return
 
     setError(null)
     setIsLoading(true)
@@ -540,63 +348,13 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
     setStreamProgress(0)
     setTokensReceived(0)
 
-    let messageText = text
+    const messageText = text
 
     try {
-      // ============================================================================
-      // CLIENT-SIDE IMAGE ANALYSIS (NEW FLOW)
-      // ============================================================================
-      // Analyze images BEFORE sending to backend to avoid backend storage costs
-      // The analysis is converted to text and prepended to the user's message
-
-      if (attachedFiles.length > 0 && attachedFiles[0].type === 'image') {
-        const imageFile = attachedFiles[0].file
-
-        toast({
-          title: '🔍 Analyzing image...',
-          description: 'This may take a few seconds',
-        })
-
-        try {
-          // Analyze image using OpenAI Vision API (client-side)
-          const analysis = await analyzeImage(imageFile, text)
-
-          console.log('[UnifiedCoachClient] Image analysis result:', analysis)
-
-          // Format analysis as text
-          const analysisText = formatAnalysisAsText(analysis)
-
-          // Prepend analysis to user's message
-          messageText = analysisText + (text || '')
-
-          console.log('[UnifiedCoachClient] Message with analysis attached:', messageText)
-
-          toast({
-            title: '✅ Image analyzed!',
-            description: analysis.is_food
-              ? `Detected ${analysis.food_items?.length || 0} food items`
-              : 'Image processed',
-          })
-        } catch (err) {
-          console.error('[UnifiedCoachClient] Image analysis failed:', err)
-          toast({
-            title: '⚠️ Image analysis failed',
-            description: 'Continuing without image analysis',
-            variant: 'destructive',
-          })
-          // Continue without analysis - user message will still be sent
-        }
-      }
-
-      // DON'T add optimistic message yet - wait to see if it's a food image that will redirect
-      const tempUserMessageId = `temp-${Date.now()}`
-
-      // Create streaming request (NO image_urls - images are NOT sent to backend)
+      // Create streaming request
       const request = {
         message: messageText,
         conversation_id: conversationId,
-        has_image: false, // Always false now since we analyze client-side
-        image_urls: undefined // Never send images to backend
       }
 
       // Use streaming API
@@ -617,116 +375,7 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
             setConversationId(newConversationId)
           }
 
-          // PRIORITY 1: Check if food was detected in image - AUTO-REDIRECT with database matching (NO CHAT MODE)
-          if (chunk.food_detected && chunk.food_detected.is_food) {
-            const foodData = chunk.food_detected
-
-            try {
-              // Show matching toast
-              toast({
-                title: '🔍 Matching foods to database...',
-                description: 'Finding nutrition information',
-              })
-
-              // Get auth token
-              const supabase = createClient()
-              const { data: { session } } = await supabase.auth.getSession()
-
-              if (!session?.access_token) {
-                throw new Error('Not authenticated')
-              }
-
-              // Call backend matching API
-              const detectedFoods: DetectedFood[] = foodData.food_items.map(item => ({
-                name: item.name,
-                quantity: item.quantity || '1',
-                unit: item.unit || 'serving'
-              }))
-
-              const matchResult = await matchDetectedFoods(detectedFoods, session.access_token)
-
-              // Build meal data with matched foods
-              const mealData = {
-                meal_type: foodData.meal_type || 'dinner',
-                notes: `Detected from image: ${foodData.description}`,
-                foods: matchResult.matched_foods.map(food => ({
-                  food_id: food.id,
-                  name: food.name,
-                  brand: food.brand_name,
-                  quantity: food.detected_quantity,
-                  unit: food.detected_unit,
-                  serving_size: food.serving_size,
-                  serving_unit: food.serving_unit,
-                  calories: food.calories,
-                  protein_g: food.protein_g,
-                  carbs_g: food.carbs_g,
-                  fat_g: food.fat_g,
-                  fiber_g: food.fiber_g
-                }))
-              }
-
-              // Add unmatched foods to notes
-              if (matchResult.unmatched_foods.length > 0) {
-                mealData.notes += `\n\nCouldn't find in database: ${matchResult.unmatched_foods.map(f => f.name).join(', ')}`
-              }
-
-              // Show success toast
-              toast({
-                title: '✅ Food matching complete!',
-                description: `Matched ${matchResult.matched_foods.length}/${foodData.food_items.length} foods`,
-              })
-
-              // Redirect to meal log with enriched data
-              const params = new URLSearchParams({
-                previewData: JSON.stringify(mealData),
-                returnTo: '/coach',
-                conversationId: newConversationId || '',
-                userMessageId: chunk.message_id,
-                logType: 'meal'
-              })
-
-              setText('')
-              setAttachedFiles([])
-              setIsLoading(false)
-              setIsStreaming(false)
-
-              router.push(`/nutrition/log?${params.toString()}`)
-              return
-            } catch (error) {
-              // Fallback: redirect with original data (no matches)
-              console.error('Food matching failed:', error)
-              toast({
-                title: '⚠️ Auto-match failed',
-                description: 'Please search for foods manually',
-                variant: 'destructive'
-              })
-
-              // Still redirect, but without matched nutrition (user can search manually)
-              const fallbackData = {
-                meal_type: foodData.meal_type || 'dinner',
-                notes: `Detected from image: ${foodData.description}\n\nDetected foods: ${foodData.food_items.map(item => `${item.name} (${item.quantity} ${item.unit})`).join(', ')}\n\n(Auto-match failed - please search and add foods manually)`,
-                foods: [] // Empty - user must add manually
-              }
-
-              const params = new URLSearchParams({
-                previewData: JSON.stringify(fallbackData),
-                returnTo: '/coach',
-                conversationId: newConversationId || '',
-                userMessageId: chunk.message_id,
-                logType: 'meal'
-              })
-
-              setText('')
-              setAttachedFiles([])
-              setIsLoading(false)
-              setIsStreaming(false)
-
-              router.push(`/nutrition/log?${params.toString()}`)
-              return
-            }
-          }
-
-          // PRIORITY 2: Check for non-food log previews (workouts, measurements, etc.)
+          // Check for log previews
           if (chunk.is_log_preview && chunk.log_preview) {
             // For meals, redirect immediately to meal log page with pre-filled data
             if (chunk.log_preview.log_type === 'meal') {
@@ -739,7 +388,6 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
               })
 
               setText('')
-              setAttachedFiles([])
               setIsLoading(false)
               setIsStreaming(false)
 
@@ -759,7 +407,6 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
               })
 
               setText('')
-              setAttachedFiles([])
               setIsLoading(false)
               setIsStreaming(false)
 
@@ -775,7 +422,6 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
             })
 
             setText('')
-            setAttachedFiles([])
             setIsLoading(false)
             setIsStreaming(false)
             return
@@ -837,7 +483,6 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
       // Mark streaming complete
       setStreamProgress(100)
       setText('')
-      setAttachedFiles([])
 
       // Reload conversation history
       loadConversationHistory()
@@ -1025,43 +670,6 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
 
             {/* ChatGPT-Style Input Box */}
             <div className="w-full">
-              {/* Attached Files Preview */}
-              {attachedFiles.length > 0 && (
-                <div className="mb-3 flex flex-wrap gap-2">
-                  {attachedFiles.map((attached, index) => (
-                    <div
-                      key={index}
-                      className="relative bg-iron-gray p-2 flex items-center gap-2 border-l-4 border-iron-orange"
-                    >
-                      {attached.type === 'image' && attached.preview ? (
-                        <img
-                          src={attached.preview}
-                          alt="Preview"
-                          className="w-12 h-12 object-cover"
-                        />
-                      ) : attached.type === 'audio' ? (
-                        <div className="w-12 h-12 bg-iron-black flex items-center justify-center">
-                          <Volume2 className="w-6 h-6 text-iron-orange" />
-                        </div>
-                      ) : (
-                        <div className="w-12 h-12 bg-iron-black flex items-center justify-center">
-                          <FileText className="w-6 h-6 text-iron-orange" />
-                        </div>
-                      )}
-                      <span className="text-xs text-iron-white truncate max-w-[100px]">
-                        {attached.file.name}
-                      </span>
-                      <button
-                        onClick={() => removeFile(index)}
-                        className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 flex items-center justify-center hover:bg-red-600 transition-colors"
-                      >
-                        <X className="w-3 h-3 text-white" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
               {/* Input Container */}
               <div className="bg-iron-gray border-2 border-iron-gray hover:border-iron-orange focus-within:border-iron-orange transition-colors flex items-end gap-2 p-3 rounded-lg shadow-lg">
 
@@ -1133,36 +741,6 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                   )}
                 </div>
 
-                {/* File Attachment */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    console.log('[File] Button clicked!')
-                    fileInputRef.current?.click()
-                  }}
-                  disabled={isLoading}
-                  className="relative z-50 min-h-[44px] min-w-[44px] p-3 hover:bg-iron-black/50 active:bg-iron-black/70 transition-colors disabled:opacity-50 rounded flex items-center justify-center touch-manipulation"
-                  style={{
-                    cursor: 'pointer',
-                    WebkitTapHighlightColor: 'transparent',
-                    touchAction: 'manipulation',
-                    userSelect: 'none'
-                  }}
-                  title="Attach file"
-                  aria-label="Attach file"
-                >
-                  <Paperclip className="w-5 h-5 text-iron-white pointer-events-none" />
-                </button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*,audio/*,application/pdf"
-                  multiple
-                  className="hidden"
-                  onChange={(e) => e.target.files && handleFileSelect(e.target.files)}
-                  aria-label="File upload input"
-                />
-
                 {/* Text Input */}
                 <textarea
                   ref={textareaRef}
@@ -1182,58 +760,16 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                   aria-label="Message input"
                 />
 
-                {/* Voice Recording */}
-                {!isRecording ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      console.log('[Mic] Start recording clicked!')
-                      startVoiceRecording()
-                    }}
-                    disabled={isLoading}
-                    className="relative z-50 min-h-[44px] min-w-[44px] p-3 hover:bg-iron-black/50 active:bg-iron-black/70 transition-colors disabled:opacity-50 rounded flex items-center justify-center touch-manipulation"
-                    style={{
-                      cursor: 'pointer',
-                      WebkitTapHighlightColor: 'transparent',
-                      touchAction: 'manipulation',
-                      userSelect: 'none'
-                    }}
-                    title="Voice input"
-                    aria-label="Start voice input"
-                  >
-                    <Mic className="w-5 h-5 text-iron-white pointer-events-none" />
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      console.log('[Mic] Stop recording clicked!')
-                      stopVoiceRecording()
-                    }}
-                    className="relative z-50 min-h-[44px] min-w-[44px] p-3 bg-red-500 active:bg-red-600 animate-pulse flex items-center justify-center touch-manipulation"
-                    style={{
-                      cursor: 'pointer',
-                      WebkitTapHighlightColor: 'transparent',
-                      touchAction: 'manipulation',
-                      userSelect: 'none'
-                    }}
-                    title="Stop recording"
-                    aria-label="Stop recording"
-                  >
-                    <Mic className="w-5 h-5 text-white pointer-events-none" />
-                  </button>
-                )}
-
                 {/* Submit Button */}
                 <button
                   type="button"
                   onClick={() => {
                     console.log('[Submit] Button clicked!')
-                    if (!isLoading && (text || attachedFiles.length > 0)) {
+                    if (!isLoading && text.trim()) {
                       handleSendMessage()
                     }
                   }}
-                  disabled={(!text && attachedFiles.length === 0) || isLoading}
+                  disabled={!text.trim() || isLoading}
                   className="relative z-50 min-h-[44px] min-w-[44px] p-3 bg-iron-orange hover:bg-orange-600 active:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed rounded-lg flex items-center justify-center touch-manipulation"
                   style={{
                     cursor: 'pointer',
@@ -1567,44 +1103,6 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
           {/* Input Container - with proper bottom padding for bottom nav */}
           <div className="bg-zinc-900 border-t-2 border-iron-orange p-4 pb-20">
             <div className="max-w-4xl mx-auto">
-              {/* Attached Files Preview */}
-              {attachedFiles.length > 0 && (
-                <div className="mb-3 flex flex-wrap gap-2">
-                  {attachedFiles.map((attached, index) => (
-                    <div
-                      key={index}
-                      className="relative bg-iron-black p-2 flex items-center gap-2 border-l-4 border-iron-orange"
-                    >
-                      {attached.type === 'image' && attached.preview ? (
-                        <img
-                          src={attached.preview}
-                          alt="Preview"
-                          className="w-12 h-12 object-cover"
-                        />
-                      ) : attached.type === 'audio' ? (
-                        <div className="w-12 h-12 bg-iron-gray flex items-center justify-center">
-                          <Volume2 className="w-6 h-6 text-iron-orange" />
-                        </div>
-                      ) : (
-                        <div className="w-12 h-12 bg-iron-gray flex items-center justify-center">
-                          <FileText className="w-6 h-6 text-iron-orange" />
-                        </div>
-                      )}
-                      <span className="text-xs text-iron-white truncate max-w-[100px]">
-                        {attached.file.name}
-                      </span>
-                      <button
-                        onClick={() => removeFile(index)}
-                        className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 flex items-center justify-center hover:bg-red-600 transition-colors"
-                        aria-label={`Remove ${attached.file.name}`}
-                      >
-                        <X className="w-3 h-3 text-white" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
               {/* Input Container */}
               <div className="bg-iron-black border-2 border-iron-gray hover:border-iron-orange focus-within:border-iron-orange transition-colors flex items-end gap-2 p-3 rounded-lg">
 
@@ -1654,30 +1152,6 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                   )}
                 </div>
 
-                {/* File Attachment */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    fileInputRef.current?.click()
-                  }}
-                  disabled={isLoading || !!pendingLogPreview}
-                  className="relative z-50 min-h-[44px] min-w-[44px] p-3 hover:bg-iron-gray/50 active:bg-iron-gray/70 transition-colors disabled:opacity-50 rounded flex items-center justify-center cursor-pointer touch-manipulation"
-                  style={{ WebkitTapHighlightColor: 'transparent' }}
-                  title="Attach file"
-                  aria-label="Attach file"
-                >
-                  <Paperclip className="w-5 h-5 text-iron-white pointer-events-none" />
-                </button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*,audio/*,application/pdf"
-                  multiple
-                  className="hidden"
-                  onChange={(e) => e.target.files && handleFileSelect(e.target.files)}
-                  aria-label="File upload input"
-                />
-
                 {/* Text Input */}
                 <textarea
                   ref={textareaRef}
@@ -1701,45 +1175,15 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                   aria-label="Message input"
                 />
 
-                {/* Voice Recording */}
-                {!isRecording ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      startVoiceRecording()
-                    }}
-                    disabled={isLoading || !!pendingLogPreview}
-                    className="relative z-50 min-h-[44px] min-w-[44px] p-3 hover:bg-iron-gray/50 active:bg-iron-gray/70 transition-colors disabled:opacity-50 rounded flex items-center justify-center cursor-pointer touch-manipulation"
-                    style={{ WebkitTapHighlightColor: 'transparent' }}
-                    title="Voice input"
-                    aria-label="Start voice input"
-                  >
-                    <Mic className="w-5 h-5 text-iron-white pointer-events-none" />
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      stopVoiceRecording()
-                    }}
-                    className="relative z-50 min-h-[44px] min-w-[44px] p-3 bg-red-500 active:bg-red-600 animate-pulse flex items-center justify-center cursor-pointer touch-manipulation"
-                    style={{ WebkitTapHighlightColor: 'transparent' }}
-                    title="Stop recording"
-                    aria-label="Stop recording"
-                  >
-                    <Mic className="w-5 h-5 text-white pointer-events-none" />
-                  </button>
-                )}
-
                 {/* Submit Button */}
                 <button
                   type="button"
                   onClick={() => {
-                    if (!isLoading && !pendingLogPreview && (text || attachedFiles.length > 0)) {
+                    if (!isLoading && !pendingLogPreview && text.trim()) {
                       handleSendMessage()
                     }
                   }}
-                  disabled={(!text && attachedFiles.length === 0) || isLoading || !!pendingLogPreview}
+                  disabled={!text.trim() || isLoading || !!pendingLogPreview}
                   className="relative z-50 min-h-[44px] min-w-[44px] p-3 bg-iron-orange hover:bg-orange-600 active:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed rounded-lg flex items-center justify-center cursor-pointer touch-manipulation"
                   style={{ WebkitTapHighlightColor: 'transparent' }}
                   title="Submit"

@@ -21,9 +21,9 @@ export default function BottomNavigation() {
     },
     {
       name: 'Coach',
-      href: '/coach-v2',  // TESTING: Points to new minimal coach page
+      href: '/coach',
       icon: MessageSquare,
-      current: pathname === '/coach-v2' || pathname === '/coach' || pathname === '/quick-entry' || pathname === '/quick-entry-optimized'
+      current: pathname === '/coach' || pathname === '/coach-v2' || pathname === '/quick-entry' || pathname === '/quick-entry-optimized'
     },
     {
       name: 'Scan',
