@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import GarminConnection from '@/components/GarminConnection';
 
 interface ProfileStats {
   totalWorkouts: number;
@@ -357,32 +358,7 @@ export function ProfileView({
 
       {/* Integrations Section */}
       <section aria-label="Integrations section">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <LinkIcon className="mr-2 h-5 w-5" />
-              Integrations
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="p-4 border rounded-lg">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-blue-500 rounded flex items-center justify-center">
-                    <Activity className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <p className="font-medium">Garmin Connect</p>
-                    <p className="text-sm text-muted-foreground">Sync activities and health metrics</p>
-                  </div>
-                </div>
-                <Button variant="outline" size="sm" onClick={() => window.location.href = '/settings'}>
-                  Configure
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <GarminConnection />
       </section>
 
       {/* Account Actions */}
