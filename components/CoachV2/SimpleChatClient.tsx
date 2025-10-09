@@ -6,6 +6,7 @@ import { sendMessageStreaming, getConversations, getConversationMessages } from 
 import type { SendMessageResponse, ConversationSummary, UnifiedMessage } from '@/lib/api/unified-coach'
 import { getAutoLogPreference, updateAutoLogPreference } from '@/lib/api/profile'
 import BottomNavigation from '@/app/components/BottomNavigation'
+import { useToast } from '@/hooks/use-toast'
 
 interface Message {
   id: string
@@ -21,6 +22,7 @@ export function SimpleChatClient() {
   const [isLoading, setIsLoading] = useState(false)
   const [conversationId, setConversationId] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const { toast } = useToast()
 
   // Conversation history
   const [showHistory, setShowHistory] = useState(false)
@@ -49,6 +51,11 @@ export function SimpleChatClient() {
       setConversations(response.conversations)
     } catch (error) {
       console.error('[SimpleChatClient] Failed to load conversations:', error)
+      toast({
+        title: 'Failed to load conversations',
+        description: 'Unable to load your chat history. Please try again.',
+        variant: 'destructive'
+      })
     } finally {
       setIsLoadingConversations(false)
     }
@@ -70,9 +77,17 @@ export function SimpleChatClient() {
       setMessages(loadedMessages)
       setConversationId(convId)
       setShowHistory(false)
-      console.log('[SimpleChatClient] Loaded conversation:', convId, loadedMessages.length, 'messages')
+      toast({
+        title: 'Conversation loaded',
+        description: `${loadedMessages.length} messages restored`
+      })
     } catch (error) {
       console.error('[SimpleChatClient] Failed to load conversation:', error)
+      toast({
+        title: 'Failed to load conversation',
+        description: 'Unable to load this conversation. Please try again.',
+        variant: 'destructive'
+      })
     } finally {
       setIsLoading(false)
     }
@@ -82,18 +97,17 @@ export function SimpleChatClient() {
     setMessages([])
     setConversationId(null)
     setShowHistory(false)
-    console.log('[SimpleChatClient] Started new conversation')
   }
 
   async function loadAutoLogPreference() {
     try {
       const { auto_log_enabled } = await getAutoLogPreference()
       setAutoLogEnabled(auto_log_enabled)
-      console.log('[SimpleChatClient] Auto-log preference loaded:', auto_log_enabled)
     } catch (error) {
       console.error('[SimpleChatClient] Failed to load auto-log preference:', error)
-      // Default to false on error
+      // Default to false on error (safer option)
       setAutoLogEnabled(false)
+      // Don't show toast for this - it's not critical and happens on load
     }
   }
 
@@ -103,20 +117,26 @@ export function SimpleChatClient() {
       setIsTogglingAutoLog(true)
       await updateAutoLogPreference(newValue)
       setAutoLogEnabled(newValue)
-      console.log('[SimpleChatClient] Auto-log toggled to:', newValue)
+      toast({
+        title: `Auto-log ${newValue ? 'enabled' : 'disabled'}`,
+        description: newValue
+          ? 'Meals and activities will be logged automatically'
+          : 'You will need to manually confirm before logging'
+      })
     } catch (error) {
       console.error('[SimpleChatClient] Failed to toggle auto-log:', error)
+      toast({
+        title: 'Failed to update preference',
+        description: 'Unable to change auto-log setting. Please try again.',
+        variant: 'destructive'
+      })
     } finally {
       setIsTogglingAutoLog(false)
     }
   }
 
   const handleSubmit = async () => {
-    console.log('[SimpleChatClient] Submit button clicked!')
-    console.log('[SimpleChatClient] Text:', text)
-
     if (!text.trim() || isLoading) {
-      console.log('[SimpleChatClient] Skipping - no text or loading')
       return
     }
 
@@ -131,7 +151,6 @@ export function SimpleChatClient() {
     }
 
     setMessages(prev => [...prev, userMessage])
-    console.log('[SimpleChatClient] Added user message')
 
     // Clear input
     setText('')
@@ -150,8 +169,6 @@ export function SimpleChatClient() {
 
     try {
       // Call real backend API with streaming
-      console.log('[SimpleChatClient] Calling backend API...')
-
       const stream = sendMessageStreaming({
         message: userMessageContent,
         conversation_id: conversationId,
@@ -161,8 +178,6 @@ export function SimpleChatClient() {
       let newConversationId = conversationId
 
       for await (const chunk of stream) {
-        console.log('[SimpleChatClient] Received chunk:', chunk)
-
         if (chunk.conversation_id && !newConversationId) {
           newConversationId = chunk.conversation_id
           setConversationId(chunk.conversation_id)
@@ -193,8 +208,6 @@ export function SimpleChatClient() {
         )
       )
 
-      console.log('[SimpleChatClient] Streaming complete!')
-
     } catch (error) {
       console.error('[SimpleChatClient] Error calling API:', error)
 
@@ -204,12 +217,18 @@ export function SimpleChatClient() {
           msg.id === aiMessageId
             ? {
                 ...msg,
-                content: `Error: ${error instanceof Error ? error.message : 'Failed to get response'}`,
+                content: `I'm having trouble responding right now. Please try again in a moment.`,
                 isStreaming: false
               }
             : msg
         )
       )
+
+      toast({
+        title: 'Failed to send message',
+        description: 'Unable to reach the coach. Please check your connection and try again.',
+        variant: 'destructive'
+      })
     } finally {
       setIsLoading(false)
     }
@@ -270,6 +289,8 @@ export function SimpleChatClient() {
                           ? 'bg-iron-orange/20 border border-iron-orange'
                           : 'hover:bg-zinc-800'
                       }`}
+                      aria-label={`Load conversation: ${conv.title || 'Untitled Chat'}, ${conv.message_count} messages, last message ${new Date(conv.last_message_at).toLocaleDateString()}`}
+                      aria-current={conversationId === conv.id ? 'true' : 'false'}
                     >
                       <div className="flex items-start gap-2">
                         <MessageSquare className="w-4 h-4 text-iron-gray mt-1 flex-shrink-0" />
@@ -301,10 +322,10 @@ export function SimpleChatClient() {
           <div className="flex items-center justify-between">
             <div className="flex-1">
               <h1 className="text-iron-orange font-black text-2xl tracking-tight">
-                COACH V2 (TEST)
+                WAGNER COACH
               </h1>
               <p className="text-iron-gray text-sm mt-1">
-                Real API + streaming + history
+                Your AI fitness & nutrition coach
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -340,7 +361,12 @@ export function SimpleChatClient() {
         </header>
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-40">
+      <div
+        className="flex-1 overflow-y-auto p-4 space-y-4 pb-40"
+        role="log"
+        aria-live="polite"
+        aria-label="Chat messages"
+      >
         {messages.length === 0 ? (
           <div className="text-center text-iron-gray mt-20">
             <p className="text-lg font-medium">No messages yet</p>
@@ -352,6 +378,8 @@ export function SimpleChatClient() {
               <div
                 key={message.id}
                 className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                role="article"
+                aria-label={`${message.role === 'user' ? 'Your message' : 'Coach response'} at ${message.timestamp.toLocaleTimeString()}`}
               >
                 <div
                   className={`max-w-[80%] rounded-lg px-4 py-3 ${
@@ -393,10 +421,7 @@ export function SimpleChatClient() {
             {/* Text Input */}
             <textarea
               value={text}
-              onChange={(e) => {
-                console.log('[SimpleChatClient] Text changed:', e.target.value)
-                setText(e.target.value)
-              }}
+              onChange={(e) => setText(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault()
@@ -407,21 +432,16 @@ export function SimpleChatClient() {
               disabled={isLoading}
               className="flex-1 bg-zinc-800 text-iron-white placeholder-iron-gray/60 border-2 border-iron-gray focus:border-iron-orange outline-none rounded-lg px-4 py-3 resize-none min-h-[56px] max-h-[200px] disabled:opacity-50"
               rows={1}
+              aria-label="Chat message input"
+              aria-describedby="send-hint"
             />
 
             {/* Submit Button */}
             <button
               type="button"
-              onClick={() => {
-                console.log('[SimpleChatClient] Button CLICKED!')
-                handleSubmit()
-              }}
-              onTouchStart={() => {
-                console.log('[SimpleChatClient] TouchStart detected')
-              }}
-              onTouchEnd={() => {
-                console.log('[SimpleChatClient] TouchEnd detected')
-              }}
+              onClick={handleSubmit}
+              onTouchStart={() => {}}
+              onTouchEnd={() => {}}
               disabled={!text.trim() || isLoading}
               className="min-w-[56px] min-h-[56px] bg-iron-orange hover:bg-orange-600 active:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg flex items-center justify-center transition-colors"
               style={{
@@ -430,17 +450,16 @@ export function SimpleChatClient() {
                 userSelect: 'none',
                 WebkitTapHighlightColor: 'transparent'
               }}
-              aria-label="Send message"
+              aria-label={isLoading ? 'Sending message' : 'Send message'}
             >
               <Send className="w-5 h-5 text-white" />
             </button>
           </div>
 
-          {/* Debug Info */}
-          <div className="mt-2 text-xs text-iron-gray">
-            <p>Debug: {text.length} chars | {isLoading ? 'Loading...' : 'Ready'}</p>
-            <p className="text-green-500">✓ Pure React events | ✓ cursor: pointer | ✓ No overlays</p>
-          </div>
+          {/* Screen reader hint */}
+          <span id="send-hint" className="sr-only">
+            Press Enter to send, Shift+Enter for new line
+          </span>
         </div>
       </div>
       </div>
