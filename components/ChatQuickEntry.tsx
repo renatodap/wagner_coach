@@ -12,6 +12,7 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Mic,
   Paperclip,
@@ -26,6 +27,7 @@ import {
   FileText
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import QuickEntryPreview from '@/components/quick-entry/QuickEntryPreview';
 import BottomNavigation from '@/app/components/BottomNavigation';
 
@@ -65,6 +67,11 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:800
 // ============================================================================
 
 export default function ChatQuickEntry() {
+  // Hooks
+  const router = useRouter();
+  const { toast } = useToast();
+  const supabase = createClient();
+
   // State
   const [text, setText] = useState('');
   const [selectedLogType, setSelectedLogType] = useState<LogType>('auto');
@@ -86,8 +93,6 @@ export default function ChatQuickEntry() {
   const recognitionRef = useRef<any>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
-
-  const supabase = createClient();
 
   // ============================================================================
   // EFFECTS
@@ -354,7 +359,16 @@ export default function ChatQuickEntry() {
         throw new Error(errorData.detail || `Failed to save: ${response.statusText}`);
       }
 
-      // Success! Clear form and close modal
+      // Success! Show toast and redirect to appropriate page
+      const entryTypeLabel = processedEntry.type.charAt(0).toUpperCase() + processedEntry.type.slice(1);
+
+      toast({
+        title: `${entryTypeLabel} saved!`,
+        description: 'Your entry has been logged successfully.',
+        variant: 'default',
+      });
+
+      // Clear form and close modal
       setText('');
       setAttachedFiles([]);
       setShowConfirmation(false);
@@ -362,9 +376,31 @@ export default function ChatQuickEntry() {
       setIsEditing(false);
       setEditedData({});
 
+      // Navigate to appropriate page based on entry type
+      if (processedEntry.type === 'meal') {
+        // Refresh and navigate to nutrition page to see the saved meal
+        router.refresh();
+        router.push('/nutrition');
+      } else if (processedEntry.type === 'workout') {
+        router.refresh();
+        router.push('/workouts');
+      } else if (processedEntry.type === 'activity') {
+        router.refresh();
+        router.push('/activities');
+      }
+      // For other types, stay on quick-entry page
+
     } catch (err) {
       console.error('Save error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to save entry');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to save entry';
+      setError(errorMessage);
+
+      // Also show error toast
+      toast({
+        title: 'Save failed',
+        description: errorMessage,
+        variant: 'destructive',
+      });
     } finally {
       setIsSaving(false);
     }

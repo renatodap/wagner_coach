@@ -81,6 +81,7 @@ export function MealEditor({ data, onChange }: MealEditorProps) {
             <SelectItem value="lunch">☀️ Lunch</SelectItem>
             <SelectItem value="dinner">🌙 Dinner</SelectItem>
             <SelectItem value="snack">🍎 Snack</SelectItem>
+            <SelectItem value="other">📌 Other</SelectItem>
           </SelectContent>
         </Select>
       </div>

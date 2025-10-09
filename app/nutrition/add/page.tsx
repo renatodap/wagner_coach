@@ -68,6 +68,7 @@ export default function AddMealPage() {
       }
 
       console.log('Meal saved successfully:', responseData);
+      router.refresh(); // Force re-fetch of nutrition page data
       router.push('/nutrition');
     } catch (error) {
       console.error('Error saving meal:', error);
@@ -113,6 +114,7 @@ export default function AddMealPage() {
       console.log('Meal saved successfully:', responseData);
 
       // Redirect to nutrition dashboard on success
+      router.refresh(); // Force re-fetch of nutrition page data
       router.push('/nutrition');
     } catch (error) {
       console.error('Error saving meal:', error);
