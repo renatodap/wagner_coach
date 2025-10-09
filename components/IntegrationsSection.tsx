@@ -16,13 +16,10 @@ import { Button } from '@/components/ui/button';
 export default function IntegrationsSection() {
   const supabase = createClient();
 
-  const [stravaConnected, setStravaConnected] = useState(false);
   const [garminConnected, setGarminConnected] = useState(false);
-  const [stravaSyncing, setStravaSyncing] = useState(false);
   const [garminSyncing, setGarminSyncing] = useState(false);
   const [showGarminForm, setShowGarminForm] = useState(false);
   const [garminCredentials, setGarminCredentials] = useState({ email: '', password: '' });
-  const [storedGarminCreds, setStoredGarminCreds] = useState({ email: '', password: '' });
   const [connectionError, setConnectionError] = useState('');
   const [isLoading, setIsLoading] = useState(true);
 
@@ -34,18 +31,9 @@ export default function IntegrationsSection() {
     try {
       setIsLoading(true);
 
-      // Check Strava connection
+      // Check Garmin connection
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const { data: stravaConnection } = await supabase
-          .from('strava_connections')
-          .select('*')
-          .eq('user_id', user.id)
-          .single();
-
-        setStravaConnected(!!stravaConnection);
-
-        // Check Garmin connection from Supabase
         const garminResponse = await fetch('/api/activities/garmin');
         if (garminResponse.ok) {
           const garminData = await garminResponse.json();
@@ -56,55 +44,6 @@ export default function IntegrationsSection() {
       console.error('Error checking connections:', error);
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const connectStrava = () => {
-    const clientId = process.env.NEXT_PUBLIC_STRAVA_CLIENT_ID;
-    const redirectUri = `${window.location.origin}/api/strava/callback`;
-    const scope = 'read,activity:read,activity:read_all';
-    const state = 'strava_connect';
-
-    const authUrl = `https://www.strava.com/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&state=${state}`;
-    window.location.href = authUrl;
-  };
-
-  const disconnectStrava = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        await supabase
-          .from('strava_connections')
-          .delete()
-          .eq('user_id', user.id);
-
-        setStravaConnected(false);
-      }
-    } catch (error) {
-      console.error('Error disconnecting Strava:', error);
-    }
-  };
-
-  const syncStrava = async () => {
-    try {
-      setStravaSyncing(true);
-      const response = await fetch('/api/strava/activities', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ source: 'strava' })
-      });
-
-      if (!response.ok) {
-        throw new Error('Sync failed');
-      }
-
-      const data = await response.json();
-      alert(`Synced ${data.syncedCount || 0} activities from Strava`);
-    } catch (error) {
-      console.error('Strava sync error:', error);
-      alert('Failed to sync Strava activities');
-    } finally {
-      setStravaSyncing(false);
     }
   };
 
@@ -288,56 +227,6 @@ export default function IntegrationsSection() {
         <LinkIcon className="w-5 h-5 text-iron-orange" />
         ACTIVITY SYNC
       </h3>
-
-      {/* Strava Integration */}
-      <div className="mb-4 p-4 border border-iron-gray rounded">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-3">
-            <Activity className="w-6 h-6 text-orange-500" />
-            <div>
-              <p className="text-iron-white font-medium">Strava</p>
-              <p className="text-xs text-iron-gray">
-                {stravaConnected ? 'Connected' : 'Not connected'}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            {stravaConnected ? (
-              <>
-                <Button
-                  onClick={syncStrava}
-                  disabled={stravaSyncing}
-                  size="sm"
-                  className="bg-iron-orange hover:bg-orange-600"
-                >
-                  {stravaSyncing ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <RefreshCw className="h-4 w-4" />
-                  )}
-                  <span className="ml-2">Sync</span>
-                </Button>
-                <Button
-                  onClick={disconnectStrava}
-                  size="sm"
-                  variant="ghost"
-                  className="text-red-400 hover:text-red-500"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </>
-            ) : (
-              <Button
-                onClick={connectStrava}
-                size="sm"
-                className="bg-orange-500 hover:bg-orange-600"
-              >
-                Connect
-              </Button>
-            )}
-          </div>
-        </div>
-      </div>
 
       {/* Garmin Integration */}
       <div className="p-4 border border-iron-gray rounded">

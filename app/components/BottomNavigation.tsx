@@ -7,7 +7,8 @@ import {
   MessageSquare,
   User,
   Camera,
-  Target
+  Target,
+  HeartPulse
 } from 'lucide-react'
 
 export default function BottomNavigation() {
@@ -25,6 +26,12 @@ export default function BottomNavigation() {
       href: '/events',
       icon: Target,
       current: pathname === '/events' || pathname.startsWith('/events/')
+    },
+    {
+      name: 'Recovery',
+      href: '/recovery',
+      icon: HeartPulse,
+      current: pathname === '/recovery' || pathname.startsWith('/recovery/')
     },
     {
       name: 'Coach',
@@ -48,8 +55,8 @@ export default function BottomNavigation() {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-iron-black border-t border-iron-gray z-40">
-      <div className="max-w-4xl mx-auto px-4">
-        <div className="grid grid-cols-5 py-2">
+      <div className="max-w-4xl mx-auto px-2">
+        <div className="grid grid-cols-6 py-2">
           {navigation.map((item) => {
             const Icon = item.icon
             return (

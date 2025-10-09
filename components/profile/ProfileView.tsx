@@ -368,32 +368,17 @@ export function ProfileView({
             <div className="p-4 border rounded-lg">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-orange-500 rounded flex items-center justify-center">
-                    <Activity className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <p className="font-medium">Strava</p>
-                    <p className="text-sm text-muted-foreground">Sync workouts automatically</p>
-                  </div>
-                </div>
-                <Button variant="outline" size="sm" onClick={() => window.location.href = '/settings'}>
-                  Configure
-                </Button>
-              </div>
-            </div>
-
-            <div className="p-4 border rounded-lg">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 bg-blue-500 rounded flex items-center justify-center">
                     <Activity className="w-6 h-6 text-white" />
                   </div>
                   <div>
                     <p className="font-medium">Garmin Connect</p>
-                    <p className="text-sm text-muted-foreground">Import training data</p>
+                    <p className="text-sm text-muted-foreground">Sync activities and health metrics</p>
                   </div>
                 </div>
-                <Badge variant="secondary">Coming Soon</Badge>
+                <Button variant="outline" size="sm" onClick={() => window.location.href = '/settings'}>
+                  Configure
+                </Button>
               </div>
             </div>
           </CardContent>
