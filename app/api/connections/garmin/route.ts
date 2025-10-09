@@ -84,7 +84,7 @@ except Exception as e:
       // If Python execution fails, try the API endpoint as fallback
       console.log('Direct Python test failed, trying API endpoint...');
 
-      const testResponse = await fetch(`${process.env.GARMIN_API_URL || 'http://localhost:3001'}/api/garmin/test`, {
+      const testResponse = await fetch(`${process.env.GARMIN_API_URL || 'http://localhost:3001'}/api/v1/garmin/test-connection`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' }
       }).catch(() => null);
@@ -97,7 +97,7 @@ except Exception as e:
       }
 
       // Try to validate credentials via API
-      const syncResponse = await fetch(`${process.env.GARMIN_API_URL || 'http://localhost:3001'}/api/garmin/sync`, {
+      const syncResponse = await fetch(`${process.env.GARMIN_API_URL || 'http://localhost:3001'}/api/v1/garmin/sync`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

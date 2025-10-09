@@ -56,7 +56,7 @@ export default function IntegrationsSection() {
 
       console.log('Testing Garmin connection...');
 
-      const response = await fetch(`${backendUrl}/api/garmin/test`, {
+      const response = await fetch(`${backendUrl}/api/v1/garmin/test-connection`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(garminCredentials)
@@ -149,7 +149,7 @@ export default function IntegrationsSection() {
       const backendUrl = (process.env.NEXT_PUBLIC_GARMIN_BACKEND_URL || 'http://localhost:8000').replace(/\/$/, '');
 
       // Sync with Garmin backend
-      const response = await fetch(`${backendUrl}/api/garmin/sync`, {
+      const response = await fetch(`${backendUrl}/api/v1/garmin/sync`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
