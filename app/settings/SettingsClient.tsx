@@ -147,7 +147,7 @@ export default function SettingsClient({ profile, userEmail }: SettingsClientPro
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center gap-4">
             <Link
-              href="/workouts"
+              href="/profile"
               className="flex items-center gap-2 text-iron-gray hover:text-iron-orange transition-colors"
             >
               <ArrowLeft className="w-5 h-5" />

@@ -230,7 +230,10 @@ export async function POST(request: NextRequest) {
           .from('meal_log_foods')
           .insert({
             meal_log_id: meal.id,
+            item_type: 'food',  // All items in this route are foods
             food_id: body.food_id,
+            template_id: null,
+            order_index: 0,
             quantity: body.quantity || 1,
             unit: body.unit || 'serving'
           });
@@ -330,9 +333,12 @@ export async function POST(request: NextRequest) {
         }
 
         // Add all foods to the meal
-        const foodInserts = body.foods.map((food: any) => ({
+        const foodInserts = body.foods.map((food: any, index: number) => ({
           meal_log_id: meal.id,
-          food_id: food.food_id,
+          item_type: food.item_type || 'food',  // Support both foods and templates
+          food_id: food.item_type === 'template' ? null : food.food_id,
+          template_id: food.item_type === 'template' ? food.template_id : null,
+          order_index: index,  // Maintain order
           quantity: food.quantity || 1,
           unit: food.unit || 'serving'
         }));

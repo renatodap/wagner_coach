@@ -56,6 +56,10 @@ export interface MealLog {
   logged_at: string;
   notes?: string | null;
 
+  // Template tracking (NEW)
+  template_id?: string | null;
+  created_from_template?: boolean | null;
+
   // Calculated totals
   total_calories: number;
   total_protein_g: number;
@@ -71,7 +75,12 @@ export interface MealLog {
 export interface MealLogFood {
   id: string;
   meal_log_id: string;
-  food_id: string;
+
+  // Item can be food OR template (NEW)
+  item_type: 'food' | 'template';
+  food_id?: string | null;
+  template_id?: string | null;
+  order_index?: number;
 
   // Quantity consumed
   quantity: number;
@@ -98,6 +107,12 @@ export interface MealTemplate {
   category: MealCategory;
   description?: string | null;
 
+  // Usage tracking (NEW)
+  is_favorite?: boolean;
+  use_count?: number;
+  last_used_at?: string | null;
+  tags?: string[] | null;
+
   // Calculated totals
   total_calories: number;
   total_protein_g: number;
@@ -113,7 +128,13 @@ export interface MealTemplate {
 export interface MealTemplateFood {
   id: string;
   meal_template_id: string;
-  food_id: string;
+
+  // Item can be food OR template (NEW - recursive templates)
+  item_type: 'food' | 'template';
+  food_id?: string | null;
+  child_template_id?: string | null;
+  order_index?: number;
+
   quantity: number;
   unit: FoodUnit;
   created_at: string;
@@ -150,7 +171,9 @@ export interface CreateMealLogRequest {
   logged_at: string;
   notes?: string;
   foods: {
-    food_id: string;
+    item_type?: 'food' | 'template';  // NEW: defaults to 'food'
+    food_id?: string;  // Required if item_type='food'
+    template_id?: string;  // Required if item_type='template'
     quantity: number;
     unit: FoodUnit;
   }[];
@@ -170,8 +193,11 @@ export interface CreateMealTemplateRequest {
   name: string;
   category: MealCategory;
   description?: string;
+  tags?: string[];  // NEW
   foods: {
-    food_id: string;
+    item_type?: 'food' | 'template';  // NEW: defaults to 'food'
+    food_id?: string;  // Required if item_type='food'
+    child_template_id?: string;  // Required if item_type='template'
     quantity: number;
     unit: FoodUnit;
   }[];
