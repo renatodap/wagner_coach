@@ -5,6 +5,7 @@
  */
 
 import { createClient } from '@/lib/supabase/client';
+import { ConsultationError } from '@/types/consultation';
 import type {
   StartConsultationRequest,
   SendMessageRequest,
@@ -17,8 +18,7 @@ import type {
   CompleteConsultationResponse,
   DailyPlan,
   NextAction,
-  Recommendation,
-  ConsultationError
+  Recommendation
 } from '@/types/consultation';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
