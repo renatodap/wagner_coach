@@ -25,7 +25,6 @@ import {
   Send,
   X,
   Loader2,
-  ChevronDown,
   AlertCircle,
   MessageSquare,
   History,
@@ -62,8 +61,6 @@ interface UnifiedCoachClientProps {
   initialConversationId?: string | null
 }
 
-type LogType = 'auto' | 'meal' | 'workout' | 'activity' | 'note' | 'measurement'
-
 interface ErrorState {
   message: string
   recoveryAction?: () => void
@@ -97,8 +94,6 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
 
   // Input state
   const [text, setText] = useState('')
-  const [selectedLogType, setSelectedLogType] = useState<LogType>('auto')
-  const [showTypeDropdown, setShowTypeDropdown] = useState(false)
   const [autoLogEnabled, setAutoLogEnabled] = useState(false)
   const [isLoadingPreference, setIsLoadingPreference] = useState(false)
 
@@ -111,7 +106,6 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const dropdownRef = useRef<HTMLDivElement>(null)
 
   // Hooks
   const { toast } = useToast()
@@ -595,35 +589,6 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
   }
 
   // ============================================================================
-  // RENDER HELPERS
-  // ============================================================================
-
-  const getLogTypeLabel = (type: LogType) => {
-    const labels: Record<LogType, string> = {
-      auto: 'Auto-detect',
-      meal: 'Meal',
-      workout: 'Workout',
-      activity: 'Activity',
-      note: 'Note',
-      measurement: 'Measurement',
-    }
-    return labels[type]
-  }
-
-  const getLogTypeIcon = (type: string) => {
-    const icons: Record<string, string> = {
-      meal: '🍽️',
-      workout: '💪',
-      activity: '🏃',
-      note: '📝',
-      measurement: '📊',
-      unknown: '❓',
-      auto: '✨',
-    }
-    return icons[type] || '❓'
-  }
-
-  // ============================================================================
   // RENDER - PRE-CHAT (ENTRY SCREEN)
   // ============================================================================
 
@@ -672,74 +637,6 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
             <div className="w-full">
               {/* Input Container */}
               <div className="bg-iron-gray border-2 border-iron-gray hover:border-iron-orange focus-within:border-iron-orange transition-colors flex items-end gap-2 p-3 rounded-lg shadow-lg">
-
-                {/* Log Type Selector */}
-                <div className="relative z-50" ref={dropdownRef}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      console.log('[Dropdown] Toggle clicked!')
-                      setShowTypeDropdown(!showTypeDropdown)
-                    }}
-                    disabled={isLoading}
-                    className="min-h-[44px] min-w-[44px] p-3 hover:bg-iron-black/50 active:bg-iron-black/70 transition-colors disabled:opacity-50 rounded flex items-center justify-center gap-1 touch-manipulation"
-                    style={{
-                      cursor: 'pointer',
-                      WebkitTapHighlightColor: 'transparent',
-                      touchAction: 'manipulation',
-                      userSelect: 'none'
-                    }}
-                    title="Select log type"
-                    aria-label={`Select log type. Current: ${getLogTypeLabel(selectedLogType)}`}
-                    aria-haspopup="listbox"
-                    aria-expanded={showTypeDropdown}
-                  >
-                    <span className="text-2xl pointer-events-none">{getLogTypeIcon(selectedLogType)}</span>
-                    <ChevronDown className="w-4 h-4 text-iron-white pointer-events-none" />
-                  </button>
-
-                  {showTypeDropdown && (
-                    <>
-                      {/* Backdrop - closes dropdown when tapped (React events only) */}
-                      <div
-                        className="fixed inset-0 z-40"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          console.log('[Dropdown] Backdrop clicked - closing')
-                          setShowTypeDropdown(false)
-                        }}
-                        aria-hidden="true"
-                      />
-
-                      {/* Dropdown menu */}
-                      <div
-                        role="listbox"
-                        aria-label="Log type options"
-                        className="absolute bottom-full mb-2 left-0 bg-iron-gray border-2 border-iron-orange shadow-xl min-w-[200px] rounded overflow-hidden z-50"
-                      >
-                        {(['auto', 'meal', 'workout', 'activity', 'note', 'measurement'] as LogType[]).map(type => (
-                          <button
-                            key={type}
-                            role="option"
-                            aria-selected={selectedLogType === type}
-                            onClick={() => {
-                              console.log('[Dropdown] Option selected:', type)
-                              setSelectedLogType(type)
-                              setShowTypeDropdown(false)
-                            }}
-                            className={`w-full text-left px-4 py-3 hover:bg-iron-black/50 transition-colors flex items-center gap-3 font-heading ${
-                              selectedLogType === type ? 'bg-iron-orange text-white font-black' : 'text-iron-white'
-                            }`}
-                            style={{ cursor: 'pointer' }}
-                          >
-                            <span className="text-xl">{getLogTypeIcon(type)}</span>
-                            <span className="text-sm font-bold tracking-wide uppercase">{getLogTypeLabel(type)}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                </div>
 
                 {/* Text Input */}
                 <textarea
@@ -1105,52 +1002,6 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
             <div className="max-w-4xl mx-auto">
               {/* Input Container */}
               <div className="bg-iron-black border-2 border-iron-gray hover:border-iron-orange focus-within:border-iron-orange transition-colors flex items-end gap-2 p-3 rounded-lg">
-
-                {/* Log Type Selector */}
-                <div className="relative z-50" ref={dropdownRef}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowTypeDropdown(!showTypeDropdown)
-                    }}
-                    disabled={isLoading || !!pendingLogPreview}
-                    className="min-h-[44px] min-w-[44px] p-3 hover:bg-iron-gray/50 active:bg-iron-gray/70 transition-colors disabled:opacity-50 rounded flex items-center justify-center gap-1 cursor-pointer touch-manipulation"
-                    style={{ WebkitTapHighlightColor: 'transparent' }}
-                    title="Select log type"
-                    aria-label={`Select log type. Current: ${getLogTypeLabel(selectedLogType)}`}
-                    aria-haspopup="listbox"
-                    aria-expanded={showTypeDropdown}
-                  >
-                    <span className="text-2xl pointer-events-none">{getLogTypeIcon(selectedLogType)}</span>
-                    <ChevronDown className="w-4 h-4 text-iron-white pointer-events-none" />
-                  </button>
-
-                  {showTypeDropdown && (
-                    <div
-                      role="listbox"
-                      aria-label="Log type options"
-                      className="absolute bottom-full mb-2 left-0 bg-iron-black border-2 border-iron-orange shadow-xl min-w-[200px] rounded overflow-hidden"
-                    >
-                      {(['auto', 'meal', 'workout', 'activity', 'note', 'measurement'] as LogType[]).map(type => (
-                        <button
-                          key={type}
-                          role="option"
-                          aria-selected={selectedLogType === type}
-                          onClick={() => {
-                            setSelectedLogType(type)
-                            setShowTypeDropdown(false)
-                          }}
-                          className={`w-full text-left px-4 py-3 hover:bg-iron-gray/50 transition-colors flex items-center gap-3 font-heading ${
-                            selectedLogType === type ? 'bg-iron-orange text-white font-black' : 'text-iron-white'
-                          }`}
-                        >
-                          <span className="text-xl">{getLogTypeIcon(type)}</span>
-                          <span className="text-sm font-bold tracking-wide uppercase">{getLogTypeLabel(type)}</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
 
                 {/* Text Input */}
                 <textarea
