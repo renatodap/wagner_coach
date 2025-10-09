@@ -497,26 +497,6 @@ export function SimpleChatClient() {
       {/* Input Area - Fixed at Bottom (above bottom nav) */}
       <div className="fixed bottom-16 left-0 right-0 bg-zinc-900 border-t-2 border-iron-orange p-4">
         <div className="max-w-4xl mx-auto">
-          {/* Hidden File Input - Native Label Association */}
-          <input
-            id="file-upload-input"
-            type="file"
-            accept="image/*"
-            style={{
-              position: 'absolute',
-              width: '1px',
-              height: '1px',
-              padding: 0,
-              margin: '-1px',
-              overflow: 'hidden',
-              clip: 'rect(0, 0, 0, 0)',
-              whiteSpace: 'nowrap',
-              border: 0
-            }}
-            onChange={(e) => e.target.files && handleFileSelect(e.target.files)}
-            aria-label="File upload input"
-          />
-
           {/* Attached Files Preview */}
           {attachedFiles.length > 0 && (
             <div className="mb-3 flex flex-wrap gap-2">
@@ -618,10 +598,20 @@ export function SimpleChatClient() {
             </button>
           </div>
 
+          {/* Hidden File Input - Moved to END, display:none for iOS safety */}
+          <input
+            id="file-upload-input"
+            type="file"
+            accept="image/*"
+            style={{ display: 'none' }}
+            onChange={(e) => e.target.files && handleFileSelect(e.target.files)}
+            aria-label="File upload input"
+          />
+
           {/* Debug Info */}
           <div className="mt-2 text-xs text-iron-gray">
             <p>Debug: {text.length} chars | {isLoading ? 'Loading...' : 'Ready'}</p>
-            <p className="text-green-500">✓ EXACT 3ceb13e format | ✓ type=button + onClick | ✓ Touch handlers</p>
+            <p className="text-green-500">✓ File input at END | ✓ display:none | ✓ Can't block buttons</p>
           </div>
         </div>
       </div>
