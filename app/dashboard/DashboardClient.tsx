@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { Profile } from '@/lib/types'
 import BottomNavigation from '@/app/components/BottomNavigation'
 import { CircularProgress } from '@/components/dashboard/CircularProgress'
-import { DailyRecommendations } from '@/components/dashboard/DailyRecommendations'
 import { EventCountdownWidget } from '@/components/Events/EventCountdownWidget'
 import { Loader2, Plus, UtensilsCrossed, Activity, MessageCircle, Sparkles, Camera } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -240,15 +239,6 @@ export default function DashboardClient({
                 <EventCountdownWidget event={primaryEvent} size="medium" showActions={true} />
               </div>
             )}
-
-            {/* Daily Recommendations */}
-            <div>
-              <DailyRecommendations
-                showAcceptReject={true}
-                showNextAction={true}
-                maxRecommendations={5}
-              />
-            </div>
 
             {/* Nutrition Progress */}
             <div className="space-y-8">
