@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import {
   Send,
@@ -181,46 +180,51 @@ export function ConsultationChat({
   return (
     <div className="flex flex-col h-full max-h-[calc(100vh-12rem)]">
       {/* Header */}
-      <div className="flex-shrink-0 p-4 border-b bg-white">
+      <div className="flex-shrink-0 p-4 border-b border-iron-gray/20 bg-iron-black/50 backdrop-blur-sm">
         <div className="flex items-center gap-3 mb-3">
           <span className="text-3xl">{specialist.icon}</span>
           <div className="flex-1">
-            <h2 className="text-lg font-semibold">{specialist.name}</h2>
-            <p className="text-sm text-gray-600">{specialist.description}</p>
+            <h2 className="text-lg font-semibold text-white">{specialist.name}</h2>
+            <p className="text-sm text-iron-gray">{specialist.description}</p>
           </div>
         </div>
 
         {/* Progress Bar */}
         <div className="space-y-1">
           <div className="flex justify-between text-sm">
-            <span className="text-gray-600">Progress</span>
-            <span className="font-medium">{session.progress_percentage}%</span>
+            <span className="text-iron-gray">Progress</span>
+            <span className="font-medium text-white">{session.progress_percentage}%</span>
           </div>
-          <Progress value={session.progress_percentage} className="h-2" />
-          <p className="text-xs text-gray-500 capitalize">
+          <div className="h-2 bg-iron-gray/20 overflow-hidden">
+            <div
+              className="h-full bg-iron-orange transition-all duration-300"
+              style={{ width: `${session.progress_percentage}%` }}
+            />
+          </div>
+          <p className="text-xs text-iron-gray capitalize">
             Stage: {session.conversation_stage.replace(/_/g, ' ')}
           </p>
         </div>
       </div>
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-br from-iron-black to-neutral-900">
         {messages.map((message, index) => (
           <div
             key={index}
             className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
           >
             <div
-              className={`max-w-[80%] rounded-lg px-4 py-3 ${
+              className={`max-w-[80%] px-4 py-3 ${
                 message.role === 'user'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-white border border-gray-200'
+                  ? 'bg-iron-orange text-white'
+                  : 'bg-iron-black/50 backdrop-blur-sm border border-iron-gray/20 text-white'
               }`}
             >
               <p className="text-sm whitespace-pre-wrap">{message.content}</p>
               <p
                 className={`text-xs mt-1 ${
-                  message.role === 'user' ? 'text-blue-100' : 'text-gray-500'
+                  message.role === 'user' ? 'text-white/70' : 'text-iron-gray'
                 }`}
               >
                 {message.timestamp.toLocaleTimeString([], {
@@ -235,8 +239,8 @@ export function ConsultationChat({
         {/* Loading indicator */}
         {isLoading && (
           <div className="flex justify-start">
-            <div className="bg-white border border-gray-200 rounded-lg px-4 py-3">
-              <div className="flex items-center gap-2 text-gray-600">
+            <div className="bg-iron-black/50 backdrop-blur-sm border border-iron-gray/20 px-4 py-3">
+              <div className="flex items-center gap-2 text-iron-gray">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 <span className="text-sm">Thinking...</span>
               </div>
@@ -249,11 +253,11 @@ export function ConsultationChat({
 
       {/* Extracted Data Preview (if any) */}
       {Object.keys(extractedData).length > 0 && (
-        <div className="flex-shrink-0 px-4 py-2 bg-blue-50 border-t border-blue-100">
+        <div className="flex-shrink-0 px-4 py-2 bg-iron-black/50 backdrop-blur-sm border-t border-iron-orange/30">
           <div className="flex items-start gap-2">
-            <Sparkles className="h-4 w-4 text-blue-600 mt-0.5" />
+            <Sparkles className="h-4 w-4 text-iron-orange mt-0.5" />
             <div className="flex-1">
-              <p className="text-xs font-medium text-blue-900">
+              <p className="text-xs font-medium text-white">
                 Data collected: {Object.keys(extractedData).join(', ')}
               </p>
             </div>
@@ -262,7 +266,7 @@ export function ConsultationChat({
       )}
 
       {/* Input Area */}
-      <div className="flex-shrink-0 p-4 border-t bg-white">
+      <div className="flex-shrink-0 p-4 border-t border-iron-gray/20 bg-iron-black/50 backdrop-blur-sm">
         {!isComplete ? (
           <div className="flex gap-2">
             <Textarea
@@ -271,14 +275,14 @@ export function ConsultationChat({
               onKeyDown={handleKeyPress}
               placeholder="Share your thoughts..."
               disabled={isLoading}
-              className="flex-1 min-h-[60px] max-h-[120px] resize-none"
+              className="flex-1 min-h-[60px] max-h-[120px] resize-none bg-iron-black/50 border-iron-gray/30 text-white placeholder:text-iron-gray"
               rows={2}
             />
             <Button
               onClick={handleSendMessage}
               disabled={isLoading || !input.trim()}
               size="lg"
-              className="px-6"
+              className="px-6 bg-iron-orange hover:bg-iron-orange/90 text-white"
             >
               {isLoading ? (
                 <Loader2 className="h-5 w-5 animate-spin" />
@@ -289,15 +293,15 @@ export function ConsultationChat({
           </div>
         ) : (
           <div className="space-y-3">
-            <div className="flex items-center gap-2 text-green-600">
+            <div className="flex items-center gap-2 text-iron-orange">
               <CheckCircle2 className="h-5 w-5" />
-              <p className="font-medium">Consultation Complete!</p>
+              <p className="font-medium text-white">Consultation Complete!</p>
             </div>
             <Button
               onClick={handleComplete}
               disabled={isCompleting}
               size="lg"
-              className="w-full"
+              className="w-full bg-iron-orange hover:bg-iron-orange/90 text-white"
             >
               {isCompleting ? (
                 <>
@@ -314,7 +318,7 @@ export function ConsultationChat({
           </div>
         )}
 
-        <p className="text-xs text-gray-500 mt-2 text-center">
+        <p className="text-xs text-iron-gray mt-2 text-center">
           Press Enter to send • Shift+Enter for new line
         </p>
       </div>
