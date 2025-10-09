@@ -662,25 +662,28 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                   type="button"
                   onClick={() => {
                     console.log('[Submit] Button clicked!')
-                    if (!isLoading && text.trim()) {
-                      handleSendMessage()
-                    }
+                    handleSendMessage()
+                  }}
+                  onTouchStart={() => {
+                    console.log('[Submit] TouchStart detected')
+                  }}
+                  onTouchEnd={() => {
+                    console.log('[Submit] TouchEnd detected')
                   }}
                   disabled={!text.trim() || isLoading}
-                  className="relative z-50 min-h-[44px] min-w-[44px] p-3 bg-iron-orange hover:bg-orange-600 active:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed rounded-lg flex items-center justify-center touch-manipulation"
+                  className="min-w-[56px] min-h-[56px] bg-iron-orange hover:bg-orange-600 active:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg flex items-center justify-center transition-colors"
                   style={{
                     cursor: 'pointer',
-                    WebkitTapHighlightColor: 'transparent',
                     touchAction: 'manipulation',
-                    userSelect: 'none'
+                    userSelect: 'none',
+                    WebkitTapHighlightColor: 'transparent'
                   }}
-                  title="Submit"
                   aria-label="Send message"
                 >
                   {isLoading ? (
-                    <Loader2 className="w-5 h-5 text-white animate-spin pointer-events-none" />
+                    <Loader2 className="w-5 h-5 text-white animate-spin" />
                   ) : (
-                    <Send className="w-5 h-5 text-white pointer-events-none" />
+                    <Send className="w-5 h-5 text-white" />
                   )}
                 </button>
               </div>
@@ -1030,20 +1033,29 @@ export function UnifiedCoachClient({ userId, initialConversationId }: UnifiedCoa
                 <button
                   type="button"
                   onClick={() => {
-                    if (!isLoading && !pendingLogPreview && text.trim()) {
-                      handleSendMessage()
-                    }
+                    console.log('[Submit] Button clicked!')
+                    handleSendMessage()
+                  }}
+                  onTouchStart={() => {
+                    console.log('[Submit] TouchStart detected')
+                  }}
+                  onTouchEnd={() => {
+                    console.log('[Submit] TouchEnd detected')
                   }}
                   disabled={!text.trim() || isLoading || !!pendingLogPreview}
-                  className="relative z-50 min-h-[44px] min-w-[44px] p-3 bg-iron-orange hover:bg-orange-600 active:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed rounded-lg flex items-center justify-center cursor-pointer touch-manipulation"
-                  style={{ WebkitTapHighlightColor: 'transparent' }}
-                  title="Submit"
+                  className="min-w-[56px] min-h-[56px] bg-iron-orange hover:bg-orange-600 active:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg flex items-center justify-center transition-colors"
+                  style={{
+                    cursor: 'pointer',
+                    touchAction: 'manipulation',
+                    userSelect: 'none',
+                    WebkitTapHighlightColor: 'transparent'
+                  }}
                   aria-label="Send message"
                 >
                   {isLoading ? (
-                    <Loader2 className="w-5 h-5 text-white animate-spin pointer-events-none" />
+                    <Loader2 className="w-5 h-5 text-white animate-spin" />
                   ) : (
-                    <Send className="w-5 h-5 text-white pointer-events-none" />
+                    <Send className="w-5 h-5 text-white" />
                   )}
                 </button>
               </div>
