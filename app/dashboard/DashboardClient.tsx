@@ -5,8 +5,10 @@ import { useRouter } from 'next/navigation'
 import { Profile } from '@/lib/types'
 import BottomNavigation from '@/app/components/BottomNavigation'
 import { CircularProgress } from '@/components/dashboard/CircularProgress'
-import { Loader2, Plus, UtensilsCrossed, Activity } from 'lucide-react'
+import { DailyRecommendations } from '@/components/Dashboard/DailyRecommendations'
+import { Loader2, Plus, UtensilsCrossed, Activity, MessageCircle, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { checkConsultationStatus } from '@/lib/api/consultation'
 
 interface DashboardClientProps {
   profile?: Profile | null
@@ -47,6 +49,7 @@ export default function DashboardClient({
   const [nutritionData, setNutritionData] = useState<NutritionData | null>(null)
   const [activityData, setActivityData] = useState<ActivityData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [hasCompletedConsultation, setHasCompletedConsultation] = useState<boolean | null>(null)
 
   useEffect(() => {
     async function fetchDashboardData() {
@@ -63,6 +66,15 @@ export default function DashboardClient({
         if (activityResponse.ok) {
           const activityData = await activityResponse.json()
           setActivityData(activityData)
+        }
+
+        // Check if user has completed consultation
+        try {
+          const consultationStatus = await checkConsultationStatus()
+          setHasCompletedConsultation(consultationStatus.has_completed)
+        } catch (error) {
+          console.error('Failed to check consultation status:', error)
+          // Default to null (don't show banner on error)
         }
       } catch (error) {
         console.error('Failed to fetch dashboard data:', error)
@@ -130,6 +142,30 @@ export default function DashboardClient({
           </div>
         ) : nutritionData ? (
           <div className="space-y-8">
+            {/* First-Time User Consultation Banner */}
+            {hasCompletedConsultation === false && (
+              <div className="bg-gradient-to-r from-iron-orange to-orange-600 rounded-lg p-6 border border-orange-400">
+                <div className="flex items-start gap-4">
+                  <Sparkles className="h-8 w-8 text-white flex-shrink-0 mt-1" />
+                  <div className="flex-1">
+                    <h3 className="text-xl font-bold text-white mb-2">
+                      🎯 Complete Your Personalized Consultation
+                    </h3>
+                    <p className="text-white/90 mb-4">
+                      Get AI-powered recommendations tailored to YOUR goals, preferences, and lifestyle.
+                      This 5-minute consultation will unlock personalized meal plans, workout programs, and daily recommendations.
+                    </p>
+                    <Button
+                      onClick={() => router.push('/consultation')}
+                      className="bg-white text-iron-orange hover:bg-gray-100 font-semibold"
+                    >
+                      Start Consultation Now
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Quick Actions Section */}
             <div className="bg-iron-black/50 backdrop-blur-sm border border-iron-gray/20 rounded-lg p-4">
               <h2 className="text-lg font-semibold text-white mb-3">Quick Actions</h2>
@@ -149,16 +185,33 @@ export default function DashboardClient({
                   <span>Log Activity</span>
                 </Button>
               </div>
-              <div className="mt-3">
+              <div className="grid grid-cols-2 gap-3 mt-3">
                 <Button
                   onClick={() => router.push('/coach')}
                   variant="outline"
-                  className="w-full border-iron-gray/30 text-white hover:bg-iron-gray/20 h-auto py-4 flex flex-col items-center gap-2"
+                  className="border-iron-gray/30 text-white hover:bg-iron-gray/20 h-auto py-4 flex flex-col items-center gap-2"
                 >
-                  <Plus size={24} />
+                  <MessageCircle size={24} />
                   <span>Ask Coach</span>
                 </Button>
+                <Button
+                  onClick={() => router.push('/consultation')}
+                  variant="outline"
+                  className="border-iron-gray/30 text-white hover:bg-iron-gray/20 h-auto py-4 flex flex-col items-center gap-2"
+                >
+                  <Sparkles size={24} />
+                  <span>Consultation</span>
+                </Button>
               </div>
+            </div>
+
+            {/* Daily Recommendations */}
+            <div>
+              <DailyRecommendations
+                showAcceptReject={true}
+                showNextAction={true}
+                maxRecommendations={5}
+              />
             </div>
 
             {/* Nutrition Progress */}

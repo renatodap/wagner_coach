@@ -47,6 +47,8 @@ export async function middleware(request: NextRequest) {
                         request.nextUrl.pathname.startsWith('/_next') ||
                         request.nextUrl.pathname.startsWith('/api')
 
+  // Note: /consultation is a protected route (requires authentication)
+
   // If no user and trying to access protected route, redirect to auth
   if (!user && !isPublicRoute) {
     return NextResponse.redirect(new URL('/auth', request.url))
