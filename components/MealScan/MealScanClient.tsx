@@ -126,9 +126,9 @@ export function MealScanClient() {
                 serving_unit: food.serving_unit,
                 calories: food.calories,
                 protein_g: food.protein_g,
-                carbs_g: food.carbs_g,
-                fat_g: food.fat_g,
-                fiber_g: food.fiber_g
+                carbs_g: food.total_carbs_g,      // Backend field name
+                fat_g: food.total_fat_g,          // Backend field name
+                fiber_g: food.dietary_fiber_g     // Backend field name
               }))
             }
 
