@@ -58,14 +58,14 @@ export default function DashboardClient({
     async function fetchDashboardData() {
       try {
         // Fetch nutrition data
-        const nutritionResponse = await fetch('/api/dashboard/nutrition')
+        const nutritionResponse = await fetch('/api/v1/nutrition/summary/today')
         if (nutritionResponse.ok) {
           const nutritionData = await nutritionResponse.json()
           setNutritionData(nutritionData)
         }
 
         // Fetch activity data
-        const activityResponse = await fetch('/api/dashboard/activities')
+        const activityResponse = await fetch('/api/v1/activities/summary/today')
         if (activityResponse.ok) {
           const activityData = await activityResponse.json()
           setActivityData(activityData)
