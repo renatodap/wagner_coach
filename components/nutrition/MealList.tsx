@@ -70,11 +70,11 @@ function MealListItem({ meal, onRelog, onDelete, onEdit, isRelogging = false }: 
               </div>
               <div>
                 <span className="text-muted-foreground">Carbs</span>
-                <div className="font-medium">{meal.carbs_g?.toFixed(1) || 0}g</div>
+                <div className="font-medium">{(meal.total_carbs_g || meal.carbs_g)?.toFixed(1) || 0}g</div>
               </div>
               <div>
                 <span className="text-muted-foreground">Fat</span>
-                <div className="font-medium">{meal.fat_g?.toFixed(1) || 0}g</div>
+                <div className="font-medium">{(meal.total_fat_g || meal.fat_g)?.toFixed(1) || 0}g</div>
               </div>
             </div>
 

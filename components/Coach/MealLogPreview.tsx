@@ -69,9 +69,10 @@ export function MealLogPreview({ initialData, onSave, onCancel }: MealLogPreview
         serving_unit: food.serving_unit || 'g',
         calories: food.calories || 0,
         protein_g: food.protein_g || 0,
-        carbs_g: food.carbs_g || 0,
-        fat_g: food.fat_g || 0,
-        fiber_g: food.fiber_g || 0
+        // V2: support both old and new field names
+        carbs_g: (food as any).total_carbs_g || food.carbs_g || 0,
+        fat_g: (food as any).total_fat_g || food.fat_g || 0,
+        fiber_g: (food as any).dietary_fiber_g || food.fiber_g || 0
       }))
       setFoods(convertedFoods)
     }
