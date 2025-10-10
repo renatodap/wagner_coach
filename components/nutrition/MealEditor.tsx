@@ -164,6 +164,20 @@ export function MealEditor({ foods, onFoodsChange, showTotals = true }: MealEdit
               // Edit mode with DualQuantityEditor
               <div className="space-y-3">
                 <div className="font-medium text-white mb-3">{food.name}</div>
+                {(() => {
+                  // Debug logging
+                  console.log('🔍 [MealEditor] Editing food:', {
+                    name: food.name,
+                    serving_size: food.serving_size,
+                    food_serving_unit: food.food_serving_unit,
+                    household_serving_size: food.household_serving_size,
+                    household_serving_unit: food.household_serving_unit,
+                    serving_quantity: food.serving_quantity,
+                    serving_unit: food.serving_unit,
+                    gram_quantity: food.gram_quantity
+                  })
+                  return null
+                })()}
                 <DualQuantityEditor
                   food={{
                     id: food.food_id,
@@ -172,11 +186,23 @@ export function MealEditor({ foods, onFoodsChange, showTotals = true }: MealEdit
                     serving_unit: food.food_serving_unit,
                     household_serving_size: food.household_serving_size || null,
                     household_serving_unit: food.household_serving_unit || null,
-                    calories: food.calories / (food.gram_quantity / food.serving_size),
-                    protein_g: food.protein_g / (food.gram_quantity / food.serving_size),
-                    total_carbs_g: food.carbs_g / (food.gram_quantity / food.serving_size),
-                    total_fat_g: food.fat_g / (food.gram_quantity / food.serving_size),
-                    dietary_fiber_g: food.fiber_g / (food.gram_quantity / food.serving_size),
+                    // Calculate per-serving nutrition (nutrition values stored are for current quantity)
+                    // We need to normalize back to per-serving-size values
+                    calories: food.serving_size > 0 && food.gram_quantity > 0 
+                      ? (food.calories * food.serving_size) / food.gram_quantity 
+                      : food.calories,
+                    protein_g: food.serving_size > 0 && food.gram_quantity > 0
+                      ? (food.protein_g * food.serving_size) / food.gram_quantity
+                      : food.protein_g,
+                    total_carbs_g: food.serving_size > 0 && food.gram_quantity > 0
+                      ? (food.carbs_g * food.serving_size) / food.gram_quantity
+                      : food.carbs_g,
+                    total_fat_g: food.serving_size > 0 && food.gram_quantity > 0
+                      ? (food.fat_g * food.serving_size) / food.gram_quantity
+                      : food.fat_g,
+                    dietary_fiber_g: food.serving_size > 0 && food.gram_quantity > 0
+                      ? (food.fiber_g * food.serving_size) / food.gram_quantity
+                      : food.fiber_g,
                     total_sugars_g: 0,
                     sodium_mg: 0
                   } as FoodEnhanced}

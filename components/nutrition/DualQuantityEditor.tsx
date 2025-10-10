@@ -41,6 +41,15 @@ export function DualQuantityEditor({
   // Check if food has household serving unit
   const hasHouseholdServing = Boolean(food.household_serving_unit)
   
+  // Debug logging
+  console.log('🎨 [DualQuantityEditor] Rendering:', {
+    food_name: food.name,
+    household_serving_unit: food.household_serving_unit,
+    hasHouseholdServing,
+    initialQuantity,
+    currentQuantity: quantity
+  })
+  
   /**
    * Handle serving quantity change
    * User edited the serving input -> calculate new gram quantity
