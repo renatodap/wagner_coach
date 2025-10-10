@@ -2,71 +2,49 @@
  * Meals API Client
  *
  * Client functions for meal logging and management.
+ * Aligned with V2 comprehensive food system schema.
  */
+
+import { 
+  Meal as MealV2, 
+  MealFood, 
+  CreateMealRequest as CreateMealRequestV2,
+  MealCategory 
+} from '../../types/nutrition-v2'
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
 
-// Types
-export interface FoodItem {
-  food_id: string
+// Food item in meal (with dual quantity tracking)
+export interface MealFoodItem extends MealFood {
   name: string
-  brand?: string | null
-  quantity: number
-  unit: string
+  brand_name?: string | null
   serving_size: number
   serving_unit: string
-  calories: number
-  protein_g: number
-  carbs_g: number
-  fat_g: number
-  fiber_g: number
-  sugar_g?: number | null
-  sodium_mg?: number | null
-  order: number
+  order?: number  // For display ordering
 }
 
-export interface Meal {
-  id: string
-  user_id: string
-  name?: string | null
-  category: 'breakfast' | 'lunch' | 'dinner' | 'snack'
-  logged_at: string
-  notes?: string | null
-  total_calories: number
-  total_protein_g: number
-  total_carbs_g: number
-  total_fat_g: number
-  total_fiber_g: number
-  total_sugar_g?: number | null
-  total_sodium_mg?: number | null
-  foods: FoodItem[]
-  source: string
-  estimated: boolean
-  created_at: string
-  updated_at: string
+// Meal with expanded food details
+export interface Meal extends MealV2 {
+  foods: MealFoodItem[]
+  source?: string      // 'manual', 'photo', 'template'
+  estimated?: boolean  // For photo analysis meals
 }
 
-export interface CreateMealRequest {
-  name?: string
-  category: 'breakfast' | 'lunch' | 'dinner' | 'snack'
-  logged_at: string
-  notes?: string
-  foods: Array<{
-    food_id: string
-    quantity: number
-    unit: string
-  }>
-}
+// Create meal request (V2 with dual quantity)
+export interface CreateMealRequest extends CreateMealRequestV2 {}
 
+// Update meal request
 export interface UpdateMealRequest {
   name?: string
-  category?: 'breakfast' | 'lunch' | 'dinner' | 'snack'
+  category?: MealCategory
   logged_at?: string
   notes?: string
   foods?: Array<{
     food_id: string
-    quantity: number
-    unit: string
+    serving_quantity: number
+    serving_unit?: string
+    gram_quantity: number
+    last_edited_field: 'serving' | 'grams'
   }>
 }
 

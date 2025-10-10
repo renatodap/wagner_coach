@@ -2,47 +2,33 @@
  * Foods API Client
  *
  * Client functions for food search and meal logging.
+ * Aligned with V2 comprehensive food system schema.
  */
+
+import { Food as FoodV2, FoodType } from '../../types/nutrition-v2'
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
 
-// Types
-export interface Food {
-  id: string
-  name: string
-  brand_name?: string
-  food_group?: string
-  serving_size: number
-  serving_unit: string
-  household_serving_size?: string  // e.g., "1 cup", "2 slices"
-  household_serving_unit?: string  // e.g., "cup", "slice"
-  calories?: number
-  protein_g?: number
-  total_carbs_g?: number  // Backend returns total_carbs_g, not carbs_g
-  total_fat_g?: number    // Backend returns total_fat_g, not fat_g
-  dietary_fiber_g?: number  // Backend returns dietary_fiber_g, not fiber_g
-  total_sugars_g?: number  // Backend returns total_sugars_g, not sugar_g
-  sodium_mg?: number
+// Extended Food type for API responses (includes usage stats)
+export interface Food extends Omit<FoodV2, 'food_type'> {
+  food_type: FoodType
+  
+  // Usage stats (from food_preferences)
   is_recent?: boolean
-  is_generic?: boolean
-  is_branded?: boolean
-  data_quality_score?: number
   last_quantity?: number
   last_unit?: string
   last_logged_at?: string
   log_count?: number
-
+  
   // Template-specific fields (for unified search results)
   is_template?: boolean         // True if this is a meal template (not an atomic food)
   is_user_template?: boolean    // True if this is user's private template
-  is_restaurant?: boolean       // True if this is a restaurant meal template
+  is_restaurant?: boolean       // True if restaurant food (food_type === 'restaurant')
   is_community?: boolean        // True if this is a community template
   template_category?: string    // Meal type: breakfast, lunch, dinner, snack
-  description?: string          // Template description
   tags?: string[]               // Template tags
-  is_favorite?: boolean         // True if user favorited this template
-  use_count?: number            // Number of times template was used
-  popularity_score?: number     // Template popularity score
+  is_favorite?: boolean         // True if user favorited this
+  use_count?: number            // Number of times used
 }
 
 export interface FoodSearchResponse {
