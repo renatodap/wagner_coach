@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import type { Food } from '@/lib/api/foods'
-import { FoodQuantityEditor } from './FoodQuantityEditor'
+import { DualQuantityEditor } from './DualQuantityEditor'
+import { FoodQuantityConverter, type FoodEnhanced, type FoodQuantity, type NutritionValues } from '@/lib/utils/food-quantity-converter'
 
 // Base weight units available for all foods
 const BASE_WEIGHT_UNITS = ['g', 'oz']
@@ -15,13 +16,20 @@ export interface MealFood {
   food_id: string
   name: string
   brand?: string | null
-  quantity: number
-  unit: string
+  
+  // NEW: Dual quantity tracking
+  serving_quantity: number  // e.g., 2.5
+  serving_unit: string | null  // e.g., "slice", "medium", null
+  gram_quantity: number  // always in grams
+  last_edited_field: 'serving' | 'grams'
+  
+  // Food serving info (for display and conversion)
   serving_size: number
-  serving_unit: string
-  // Household serving fields (e.g., "1 slice", "1 medium")
+  food_serving_unit: string
   household_serving_size?: string
   household_serving_unit?: string
+  
+  // Calculated nutrition (from gram_quantity)
   calories: number
   protein_g: number
   carbs_g: number
@@ -50,24 +58,18 @@ function getAvailableUnits(food: MealFood): string[] {
   return units
 }
 
-// Helper: Format display text for quantity + unit (e.g., "2 slices (214g)")
+// Helper: Format display text for quantity + unit (e.g., "2 slices (56g)")
 function formatQuantityDisplay(food: MealFood): string {
-  const { quantity, unit, household_serving_unit } = food
+  const { serving_quantity, serving_unit, gram_quantity } = food
 
-  // If using household unit, show both serving and grams
-  if (unit === household_serving_unit && household_serving_unit) {
-    // Calculate equivalent grams
-    const grams = convertToGrams(quantity, unit, food)
-    const roundedGrams = Math.round(grams)
-
-    // Pluralize unit if quantity > 1
-    const pluralUnit = quantity > 1 ? pluralizeUnit(unit) : unit
-
-    return `${quantity} ${pluralUnit} (${roundedGrams}g)`
+  // If has serving unit, show both
+  if (serving_unit) {
+    const formatted = FoodQuantityConverter.formatServingDisplay(serving_quantity, serving_unit)
+    return `${formatted} (${gram_quantity.toFixed(0)}g)`
   }
 
-  // Otherwise just show the unit
-  return `${quantity} ${unit}`
+  // Otherwise just show grams
+  return `${gram_quantity.toFixed(0)}g`
 }
 
 // Helper: Pluralize common household units
@@ -125,7 +127,20 @@ export function MealEditor({ foods, onFoodsChange, showTotals = true }: MealEdit
     setEditingIndex(null)
   }
 
-  function handleFoodUpdate(index: number, updatedFood: MealFood) {
+  function handleFoodUpdate(index: number, quantity: FoodQuantity, nutrition: NutritionValues) {
+    const food = foods[index]
+    const updatedFood: MealFood = {
+      ...food,
+      serving_quantity: quantity.servingQuantity,
+      serving_unit: quantity.servingUnit,
+      gram_quantity: quantity.gramQuantity,
+      last_edited_field: quantity.lastEditedField,
+      calories: nutrition.calories,
+      protein_g: nutrition.protein_g,
+      carbs_g: nutrition.carbs_g,
+      fat_g: nutrition.fat_g,
+      fiber_g: nutrition.fiber_g
+    }
     const newFoods = [...foods]
     newFoods[index] = updatedFood
     onFoodsChange(newFoods)
@@ -146,14 +161,32 @@ export function MealEditor({ foods, onFoodsChange, showTotals = true }: MealEdit
         {foods.map((food, index) => (
           <div key={index} className="border border-iron-gray/30 rounded-lg p-4 bg-neutral-800 hover:bg-neutral-700/50 transition-all">
             {editingIndex === index ? (
-              // Edit mode with new FoodQuantityEditor
+              // Edit mode with DualQuantityEditor
               <div className="space-y-3">
                 <div className="font-medium text-white mb-3">{food.name}</div>
-                <FoodQuantityEditor
-                  food={food}
-                  onChange={(updatedFood) => handleFoodUpdate(index, updatedFood)}
-                  showModeToggle={true}
-                  initialMode="servings"
+                <DualQuantityEditor
+                  food={{
+                    id: food.food_id,
+                    name: food.name,
+                    serving_size: food.serving_size,
+                    serving_unit: food.food_serving_unit,
+                    household_serving_size: food.household_serving_size || null,
+                    household_serving_unit: food.household_serving_unit || null,
+                    calories: food.calories / (food.gram_quantity / food.serving_size),
+                    protein_g: food.protein_g / (food.gram_quantity / food.serving_size),
+                    total_carbs_g: food.carbs_g / (food.gram_quantity / food.serving_size),
+                    total_fat_g: food.fat_g / (food.gram_quantity / food.serving_size),
+                    dietary_fiber_g: food.fiber_g / (food.gram_quantity / food.serving_size),
+                    total_sugars_g: 0,
+                    sodium_mg: 0
+                  } as FoodEnhanced}
+                  initialQuantity={{
+                    servingQuantity: food.serving_quantity,
+                    servingUnit: food.serving_unit,
+                    gramQuantity: food.gram_quantity,
+                    lastEditedField: food.last_edited_field
+                  }}
+                  onChange={(quantity, nutrition) => handleFoodUpdate(index, quantity, nutrition)}
                 />
                 <div className="flex gap-2 mt-4">
                   <Button
@@ -242,38 +275,62 @@ export function MealEditor({ foods, onFoodsChange, showTotals = true }: MealEdit
 }
 
 // Helper function to convert a Food to a MealFood with initial quantity
-export function foodToMealFood(food: Food, quantity: number = 1, unit?: string): MealFood {
-  const selectedUnit = unit || food.serving_unit || 'serving'
-
-  // Calculate nutrition scaling
-  const mealFood: MealFood = {
-    food_id: food.id,
+export function foodToMealFood(food: Food, initialQuantity: number = 1, initialField: 'serving' | 'grams' = 'serving'): MealFood {
+  // Convert to FoodEnhanced format
+  const foodEnhanced: FoodEnhanced = {
+    id: food.id,
     name: food.name,
-    brand: food.brand_name,
-    quantity,
-    unit: selectedUnit,
     serving_size: food.serving_size,
     serving_unit: food.serving_unit,
-    household_serving_size: food.household_serving_size,
-    household_serving_unit: food.household_serving_unit,
-    calories: 0,
-    protein_g: 0,
-    carbs_g: 0,
-    fat_g: 0,
-    fiber_g: 0
+    household_serving_size: food.household_serving_size || null,
+    household_serving_unit: food.household_serving_unit || null,
+    calories: food.calories || 0,
+    protein_g: food.protein_g || 0,
+    total_carbs_g: food.total_carbs_g || 0,
+    total_fat_g: food.total_fat_g || 0,
+    dietary_fiber_g: food.dietary_fiber_g || 0,
+    total_sugars_g: food.total_sugars_g || 0,
+    sodium_mg: food.sodium_mg || 0
   }
 
-  const convertedQuantity = convertToBaseUnit(quantity, selectedUnit, mealFood)
-  const quantityMultiplier = food.serving_size > 0 ? convertedQuantity / food.serving_size : 1
+  // Calculate both quantities using converter
+  const quantities = FoodQuantityConverter.calculateQuantities(
+    foodEnhanced,
+    initialQuantity,
+    initialField
+  )
 
-  // Apply multiplier to nutrition
-  mealFood.calories = (food.calories || 0) * quantityMultiplier
-  mealFood.protein_g = (food.protein_g || 0) * quantityMultiplier
-  mealFood.carbs_g = (food.total_carbs_g || 0) * quantityMultiplier
-  mealFood.fat_g = (food.total_fat_g || 0) * quantityMultiplier
-  mealFood.fiber_g = (food.dietary_fiber_g || 0) * quantityMultiplier
+  // Calculate nutrition from gram quantity
+  const nutrition = FoodQuantityConverter.calculateNutrition(
+    foodEnhanced,
+    quantities.gramQuantity
+  )
 
-  return mealFood
+  // Build MealFood with dual quantity tracking
+  return {
+    food_id: food.id,
+    name: food.name,
+    brand: food.brand_name || null,
+    
+    // Dual quantity tracking
+    serving_quantity: quantities.servingQuantity,
+    serving_unit: quantities.servingUnit,
+    gram_quantity: quantities.gramQuantity,
+    last_edited_field: quantities.lastEditedField,
+    
+    // Food serving info
+    serving_size: food.serving_size,
+    food_serving_unit: food.serving_unit,
+    household_serving_size: food.household_serving_size,
+    household_serving_unit: food.household_serving_unit,
+    
+    // Calculated nutrition
+    calories: nutrition.calories,
+    protein_g: nutrition.protein_g,
+    carbs_g: nutrition.carbs_g,
+    fat_g: nutrition.fat_g,
+    fiber_g: nutrition.fiber_g
+  }
 }
 
 /**
