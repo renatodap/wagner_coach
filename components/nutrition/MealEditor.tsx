@@ -238,10 +238,32 @@ export function MealEditor({ foods, onFoodsChange, showTotals = true }: MealEdit
                         </span>
                       )}
                     </div>
-                    <div className="text-sm text-iron-gray mt-1">
-                      {formatQuantityDisplay(food)}
+
+                    {/* Dual Quantity Display - Shows BOTH values prominently */}
+                    <div className="flex gap-3 mt-2 flex-wrap">
+                      {/* Serving quantity - only show if has household serving */}
+                      {food.serving_unit && (
+                        <div className="flex items-center gap-1.5 bg-iron-gray/10 px-3 py-1.5 rounded-md hover:bg-iron-gray/20 transition-colors cursor-pointer group" onClick={() => startEditing(index)}>
+                          <span className="text-iron-gray text-xs uppercase font-medium">{food.serving_unit}:</span>
+                          <span className="text-iron-white font-semibold text-sm">
+                            {FoodQuantityConverter.formatServingDisplay(food.serving_quantity, food.serving_unit)}
+                          </span>
+                          <Edit2 size={12} className="text-iron-gray group-hover:text-iron-orange opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </div>
+                      )}
+
+                      {/* Gram quantity - always shown */}
+                      <div className="flex items-center gap-1.5 bg-iron-gray/10 px-3 py-1.5 rounded-md hover:bg-iron-gray/20 transition-colors cursor-pointer group" onClick={() => startEditing(index)}>
+                        <span className="text-iron-gray text-xs uppercase font-medium">Weight:</span>
+                        <span className="text-iron-white font-semibold text-sm">
+                          {food.gram_quantity.toFixed(0)}g
+                        </span>
+                        <Edit2 size={12} className="text-iron-gray group-hover:text-iron-orange opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </div>
                     </div>
-                    <div className="text-sm text-iron-gray mt-1">
+
+                    {/* Nutrition summary */}
+                    <div className="text-sm text-iron-gray mt-2">
                       {Math.round(food.calories)} cal • {food.protein_g.toFixed(1)}g P • {food.carbs_g.toFixed(1)}g C • {food.fat_g.toFixed(1)}g F
                     </div>
                   </div>
@@ -249,7 +271,8 @@ export function MealEditor({ foods, onFoodsChange, showTotals = true }: MealEdit
                     <button
                       onClick={() => startEditing(index)}
                       className="p-2 text-iron-gray hover:text-iron-orange hover:bg-iron-orange/10 rounded transition-colors"
-                      aria-label="Edit food"
+                      aria-label="Edit food quantities"
+                      title="Edit servings or weight"
                     >
                       <Edit2 size={16} />
                     </button>

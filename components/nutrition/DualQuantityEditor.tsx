@@ -1,12 +1,12 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Minus, Plus } from 'lucide-react'
-import { 
-  FoodQuantityConverter, 
-  type FoodEnhanced, 
-  type FoodQuantity, 
-  type NutritionValues 
+import { Minus, Plus, Info } from 'lucide-react'
+import {
+  FoodQuantityConverter,
+  type FoodEnhanced,
+  type FoodQuantity,
+  type NutritionValues
 } from '@/lib/utils/food-quantity-converter'
 
 interface DualQuantityEditorProps {
@@ -114,6 +114,14 @@ export function DualQuantityEditor({
   
   return (
     <div className="space-y-4">
+      {/* Info banner explaining dual sync */}
+      <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 flex items-start gap-2">
+        <Info size={16} className="text-blue-400 mt-0.5 flex-shrink-0" />
+        <p className="text-sm text-blue-400">
+          <strong>Dual Quantity Editing:</strong> {hasHouseholdServing ? 'Edit either servings or grams - the other updates automatically.' : 'Edit grams to adjust the quantity.'}
+        </p>
+      </div>
+
       {/* Serving Input - Only show if food has household serving */}
       {hasHouseholdServing && (
         <div className="space-y-2">
