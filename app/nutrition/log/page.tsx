@@ -84,10 +84,20 @@ function LogMealForm() {
             food_id: food.food_id || `temp-${Date.now()}-${Math.random()}`,
             name: food.name,
             brand: food.brand || null,
-            quantity: food.quantity || 1,
-            unit: food.unit || 'serving',
+            
+            // NEW: Dual quantity tracking
+            serving_quantity: food.serving_quantity || food.quantity || 1,
+            serving_unit: food.serving_unit || (food.unit !== 'g' && food.unit !== 'oz' ? food.unit : null) || null,
+            gram_quantity: food.gram_quantity || food.serving_size || 100,
+            last_edited_field: food.last_edited_field || 'serving',
+            
+            // Food serving info
             serving_size: food.serving_size || 100,
-            serving_unit: food.serving_unit || 'g',
+            food_serving_unit: food.food_serving_unit || food.serving_unit || 'g',
+            household_serving_size: food.household_serving_size,
+            household_serving_unit: food.household_serving_unit,
+            
+            // Calculated nutrition
             calories: food.calories || 0,
             protein_g: food.protein_g || 0,
             carbs_g: food.carbs_g || 0,
@@ -109,26 +119,27 @@ function LogMealForm() {
     // 3. serving_size + serving_unit (database default, usually 100g)
     // 4. Fallback to 1 serving
 
-    let quantity: number
-    let unit: string
+    let initialQuantity: number
+    let initialField: 'serving' | 'grams'
 
     if (food.last_quantity && food.last_unit) {
       // User logged this food before - use their last quantity and unit
-      quantity = food.last_quantity
-      unit = food.last_unit
+      initialQuantity = food.last_quantity
+      // If last_unit is a household serving unit, use 'serving' field, otherwise 'grams'
+      initialField = (food.last_unit === food.household_serving_unit) ? 'serving' : 'grams'
     } else if (food.household_serving_size && food.household_serving_unit) {
       // Use household serving (e.g., "1" slice, "1" medium)
       // Parse quantity from household_serving_size (e.g., "1" -> 1, "0.5" -> 0.5)
       const parsed = parseFloat(food.household_serving_size)
-      quantity = isNaN(parsed) ? 1 : parsed
-      unit = food.household_serving_unit
+      initialQuantity = isNaN(parsed) ? 1 : parsed
+      initialField = 'serving'
     } else {
       // Fall back to database serving size (typically 100g)
-      quantity = food.serving_size || 1
-      unit = food.serving_unit || 'g'
+      initialQuantity = food.serving_size || 100
+      initialField = 'grams'
     }
 
-    const mealFood = foodToMealFood(food, quantity, unit)
+    const mealFood = foodToMealFood(food, initialQuantity, initialField)
     setFoods([...foods, mealFood])
   }
 
@@ -172,8 +183,10 @@ function LogMealForm() {
         notes: notes || undefined,
         foods: foods.map((f) => ({
           food_id: f.food_id,
-          quantity: f.quantity,
-          unit: f.unit
+          serving_quantity: f.serving_quantity,
+          serving_unit: f.serving_unit,
+          gram_quantity: f.gram_quantity,
+          last_edited_field: f.last_edited_field
         }))
       }
 
