@@ -4,18 +4,22 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { getMeals, type Meal } from '@/lib/api/meals';
-import { Plus, Apple, Trash2, Edit2, Copy, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
+import { createTemplate } from '@/lib/api/templates';
+import { Plus, Apple, Trash2, Edit2, Copy, Clock, ChevronLeft, ChevronRight, Bookmark, RotateCw } from 'lucide-react';
 import Link from 'next/link';
 import BottomNavigation from '@/app/components/BottomNavigation';
+import { useToast } from '@/hooks/use-toast';
 
 export function NutritionDashboard() {
   const router = useRouter();
+  const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [todaysMeals, setTodaysMeals] = useState<Meal[]>([]);
   const [yesterdaysMeals, setYesterdaysMeals] = useState<Meal[]>([]);
   const [error, setError] = useState<string>('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [savingTemplateId, setSavingTemplateId] = useState<string | null>(null);
   const supabase = createClient();
 
   useEffect(() => {
@@ -239,11 +243,63 @@ export function NutritionDashboard() {
 
       console.log('Meal copied successfully:', responseData);
 
+      toast({
+        title: 'Meal copied!',
+        description: 'Meal logged successfully',
+      });
+
       // Refresh meals
       await fetchMeals();
     } catch (error) {
       console.error('Error copying meal:', error);
-      alert('Failed to copy meal');
+      toast({
+        title: 'Failed to copy meal',
+        description: error instanceof Error ? error.message : 'Unknown error',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const handleSaveAsTemplate = async (meal: Meal) => {
+    setSavingTemplateId(meal.id);
+    try {
+      // Get JWT token
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('Not authenticated');
+      }
+
+      // Convert meal foods to template format
+      const food_items = meal.foods.map((food, index) => ({
+        item_type: 'food',
+        food_id: food.food_id,
+        name: food.name,
+        quantity: food.gram_quantity || food.serving_quantity,
+        unit: food.serving_unit || 'g',
+        order_index: index
+      }));
+
+      // Create template
+      await createTemplate({
+        name: meal.name || `${meal.category} Template`,
+        category: meal.category,
+        description: meal.notes || undefined,
+        food_items
+      }, session.access_token);
+
+      toast({
+        title: 'Template saved!',
+        description: 'You can now quickly add this meal from the log page',
+      });
+    } catch (error) {
+      console.error('Error saving template:', error);
+      toast({
+        title: 'Failed to save template',
+        description: error instanceof Error ? error.message : 'Unknown error',
+        variant: 'destructive'
+      });
+    } finally {
+      setSavingTemplateId(null);
     }
   };
 
@@ -400,7 +456,7 @@ export function NutritionDashboard() {
           <div>
             <h2 className="font-heading text-lg sm:text-xl text-iron-white mb-2 sm:mb-3">QUICK ACTIONS</h2>
             <div className="border border-iron-gray/50 p-3 sm:p-4">
-              <p className="text-iron-gray text-xs sm:text-sm mb-2 sm:mb-3">Copy from previous day to {isToday() ? 'today' : formatSelectedDate().toLowerCase()}:</p>
+              <p className="text-iron-gray text-xs sm:text-sm mb-2 sm:mb-3">Log again from yesterday's meals:</p>
               <div className="flex flex-wrap gap-2">
                 {yesterdaysMeals.slice(0, 3).map((meal) => (
                   <button
@@ -408,7 +464,7 @@ export function NutritionDashboard() {
                     onClick={() => handleCopyMeal(meal)}
                     className="text-iron-white bg-iron-gray/20 hover:bg-iron-gray/40 px-2 sm:px-3 py-1 text-xs sm:text-sm transition-colors flex items-center gap-1 sm:gap-2 min-h-[36px]"
                   >
-                    <Copy className="w-3 h-3" />
+                    <RotateCw className="w-3 h-3" />
                     <span className="truncate max-w-[120px] sm:max-w-none">{meal.name || 'Meal'}</span>
                   </button>
                 ))}
@@ -465,10 +521,19 @@ export function NutritionDashboard() {
                                   <button
                                     onClick={() => handleCopyMeal(meal)}
                                     className="text-iron-gray hover:text-iron-orange transition-colors p-2 min-w-[36px] min-h-[36px] flex items-center justify-center"
-                                    title="Copy meal"
-                                    aria-label="Copy meal"
+                                    title="Log again"
+                                    aria-label="Log again"
                                   >
-                                    <Copy className="w-4 h-4" />
+                                    <RotateCw className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleSaveAsTemplate(meal)}
+                                    disabled={savingTemplateId === meal.id}
+                                    className="text-iron-gray hover:text-iron-orange transition-colors disabled:opacity-50 p-2 min-w-[36px] min-h-[36px] flex items-center justify-center"
+                                    title="Save as template"
+                                    aria-label="Save as template"
+                                  >
+                                    <Bookmark className="w-4 h-4" />
                                   </button>
                                   <button
                                     onClick={() => handleEditMeal(meal.id)}
@@ -525,10 +590,19 @@ export function NutritionDashboard() {
                               <button
                                 onClick={() => handleCopyMeal(meal)}
                                 className="text-iron-gray hover:text-iron-orange transition-colors p-2"
-                                title="Copy meal"
-                                aria-label="Copy meal"
+                                title="Log again"
+                                aria-label="Log again"
                               >
-                                <Copy className="w-4 h-4" />
+                                <RotateCw className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleSaveAsTemplate(meal)}
+                                disabled={savingTemplateId === meal.id}
+                                className="text-iron-gray hover:text-iron-orange transition-colors disabled:opacity-50 p-2"
+                                title="Save as template"
+                                aria-label="Save as template"
+                              >
+                                <Bookmark className="w-4 h-4" />
                               </button>
                               <button
                                 onClick={() => handleEditMeal(meal.id)}

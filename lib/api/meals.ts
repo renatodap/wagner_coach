@@ -203,3 +203,24 @@ export async function deleteMeal(
     throw new Error(error.detail || 'Failed to delete meal')
   }
 }
+
+/**
+ * Get recent meals for quick-add (last 7 days, limit 5)
+ */
+export async function getRecentMeals(
+  token: string
+): Promise<Meal[]> {
+  const now = new Date()
+  const sevenDaysAgo = new Date()
+  sevenDaysAgo.setDate(now.getDate() - 7)
+
+  const response = await getMeals({
+    startDate: sevenDaysAgo.toISOString(),
+    endDate: now.toISOString(),
+    limit: 5,
+    offset: 0,
+    token,
+  })
+
+  return response.meals
+}

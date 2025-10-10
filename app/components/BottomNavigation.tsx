@@ -7,7 +7,7 @@ import {
   MessageSquare,
   User,
   Camera,
-  Target,
+  UtensilsCrossed,
   HeartPulse
 } from 'lucide-react'
 
@@ -22,10 +22,10 @@ export default function BottomNavigation() {
       current: pathname === '/dashboard'
     },
     {
-      name: 'Events',
-      href: '/events',
-      icon: Target,
-      current: pathname === '/events' || pathname.startsWith('/events/')
+      name: 'Meals',
+      href: '/nutrition',
+      icon: UtensilsCrossed,
+      current: pathname === '/nutrition' || pathname.startsWith('/nutrition/')
     },
     {
       name: 'Recovery',

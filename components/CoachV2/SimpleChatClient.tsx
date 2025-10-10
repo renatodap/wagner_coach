@@ -503,9 +503,87 @@ export function SimpleChatClient() {
         aria-label="Chat messages"
       >
         {messages.length === 0 ? (
-          <div className="text-center text-iron-gray mt-20">
-            <p className="text-lg font-medium">No messages yet</p>
-            <p className="text-sm mt-2">Ask your coach anything about fitness & nutrition!</p>
+          <div className="max-w-2xl mx-auto mt-12">
+            <div className="text-center text-iron-gray mb-8">
+              <p className="text-lg font-medium text-iron-white">No messages yet</p>
+              <p className="text-sm mt-2">Ask your coach anything about fitness & nutrition!</p>
+            </div>
+
+            {/* Example Prompts */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-iron-gray uppercase tracking-wide px-2">Try these examples:</h3>
+
+              <div className="grid gap-3">
+                {/* Meal Logging Examples */}
+                <button
+                  onClick={() => setText("I had 6oz chicken breast, 1 cup brown rice, and steamed broccoli for lunch")}
+                  className="text-left bg-zinc-900 hover:bg-zinc-800 border border-iron-gray/30 hover:border-iron-orange/50 rounded-lg p-4 transition-all group"
+                >
+                  <div className="flex items-start gap-3">
+                    <span className="text-2xl flex-shrink-0">🍽️</span>
+                    <div>
+                      <p className="text-sm text-iron-white font-medium group-hover:text-iron-orange transition-colors">
+                        Log a meal
+                      </p>
+                      <p className="text-xs text-iron-gray mt-1">
+                        "I had 6oz chicken breast, 1 cup brown rice, and steamed broccoli for lunch"
+                      </p>
+                    </div>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => setText("Breakfast: 3 eggs, 2 slices whole wheat toast, and a banana")}
+                  className="text-left bg-zinc-900 hover:bg-zinc-800 border border-iron-gray/30 hover:border-iron-orange/50 rounded-lg p-4 transition-all group"
+                >
+                  <div className="flex items-start gap-3">
+                    <span className="text-2xl flex-shrink-0">🥗</span>
+                    <div>
+                      <p className="text-sm text-iron-white font-medium group-hover:text-iron-orange transition-colors">
+                        Quick breakfast log
+                      </p>
+                      <p className="text-xs text-iron-gray mt-1">
+                        "Breakfast: 3 eggs, 2 slices whole wheat toast, and a banana"
+                      </p>
+                    </div>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => setText("What should I eat post-workout to maximize muscle recovery?")}
+                  className="text-left bg-zinc-900 hover:bg-zinc-800 border border-iron-gray/30 hover:border-iron-orange/50 rounded-lg p-4 transition-all group"
+                >
+                  <div className="flex items-start gap-3">
+                    <span className="text-2xl flex-shrink-0">💪</span>
+                    <div>
+                      <p className="text-sm text-iron-white font-medium group-hover:text-iron-orange transition-colors">
+                        Nutrition advice
+                      </p>
+                      <p className="text-xs text-iron-gray mt-1">
+                        "What should I eat post-workout to maximize muscle recovery?"
+                      </p>
+                    </div>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => setText("Create a training program for me to build strength 3x per week")}
+                  className="text-left bg-zinc-900 hover:bg-zinc-800 border border-iron-gray/30 hover:border-iron-orange/50 rounded-lg p-4 transition-all group"
+                >
+                  <div className="flex items-start gap-3">
+                    <span className="text-2xl flex-shrink-0">🏋️</span>
+                    <div>
+                      <p className="text-sm text-iron-white font-medium group-hover:text-iron-orange transition-colors">
+                        Training program
+                      </p>
+                      <p className="text-xs text-iron-gray mt-1">
+                        "Create a training program for me to build strength 3x per week"
+                      </p>
+                    </div>
+                  </div>
+                </button>
+              </div>
+            </div>
           </div>
         ) : (
           <>
@@ -638,12 +716,84 @@ export function SimpleChatClient() {
                     </div>
                   </div>
 
-                  {/* Display log data */}
-                  <div className="bg-zinc-900 rounded-lg p-3">
-                    <pre className="text-xs text-iron-gray overflow-auto">
-                      {JSON.stringify(log.data, null, 2)}
-                    </pre>
-                  </div>
+                  {/* Display log data - Formatted Card */}
+                  {log.log_type === 'meal' ? (
+                    <div className="bg-zinc-900 rounded-lg p-4 space-y-3">
+                      {/* Meal Type & Time */}
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-semibold text-iron-white capitalize">
+                          {log.data.category || 'Meal'}
+                        </span>
+                        {log.data.logged_at && (
+                          <span className="text-xs text-iron-gray">
+                            {new Date(log.data.logged_at).toLocaleTimeString()}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Foods List */}
+                      {log.data.foods && log.data.foods.length > 0 && (
+                        <div className="space-y-2">
+                          <p className="text-xs text-iron-gray font-medium">Foods:</p>
+                          {log.data.foods.map((food: any, idx: number) => (
+                            <div key={idx} className="flex items-center justify-between text-sm">
+                              <span className="text-iron-white">
+                                {food.name || 'Unknown food'}
+                                {food.brand && <span className="text-iron-gray text-xs ml-1">({food.brand})</span>}
+                              </span>
+                              <span className="text-iron-gray text-xs">
+                                {food.serving_quantity || food.quantity || 1} {food.serving_unit || food.unit || 'serving'}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Nutrition Totals */}
+                      {(log.data.total_calories || log.data.total_protein_g || log.data.total_carbs_g || log.data.total_fat_g) && (
+                        <div className="grid grid-cols-4 gap-2 pt-2 border-t border-iron-gray/30">
+                          {log.data.total_calories && (
+                            <div className="text-center">
+                              <p className="text-xs text-iron-gray">Cal</p>
+                              <p className="text-sm font-semibold text-iron-white">{Math.round(log.data.total_calories)}</p>
+                            </div>
+                          )}
+                          {log.data.total_protein_g && (
+                            <div className="text-center">
+                              <p className="text-xs text-iron-gray">Protein</p>
+                              <p className="text-sm font-semibold text-iron-white">{Math.round(log.data.total_protein_g)}g</p>
+                            </div>
+                          )}
+                          {log.data.total_carbs_g && (
+                            <div className="text-center">
+                              <p className="text-xs text-iron-gray">Carbs</p>
+                              <p className="text-sm font-semibold text-iron-white">{Math.round(log.data.total_carbs_g)}g</p>
+                            </div>
+                          )}
+                          {log.data.total_fat_g && (
+                            <div className="text-center">
+                              <p className="text-xs text-iron-gray">Fat</p>
+                              <p className="text-sm font-semibold text-iron-white">{Math.round(log.data.total_fat_g)}g</p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Notes */}
+                      {log.data.notes && (
+                        <div className="pt-2 border-t border-iron-gray/30">
+                          <p className="text-xs text-iron-gray">Notes:</p>
+                          <p className="text-sm text-iron-white mt-1">{log.data.notes}</p>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="bg-zinc-900 rounded-lg p-3">
+                      <pre className="text-xs text-iron-gray overflow-auto">
+                        {JSON.stringify(log.data, null, 2)}
+                      </pre>
+                    </div>
+                  )}
 
                   {/* Actions */}
                   <div className="flex gap-3 mt-4">

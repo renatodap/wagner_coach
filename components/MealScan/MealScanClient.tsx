@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Camera, Upload, Loader2, CheckCircle, XCircle } from 'lucide-react'
+import { Camera, Upload, Loader2, CheckCircle, XCircle, Lightbulb, RotateCw } from 'lucide-react'
 import { validateFile } from '@/lib/utils/file-upload'
 import { analyzeImage, formatAnalysisAsText } from '@/lib/services/client-image-analysis'
 import { sendMessageStreaming } from '@/lib/api/unified-coach'
@@ -222,6 +222,34 @@ export function MealScanClient() {
       <main className="flex-1 p-4 max-w-2xl mx-auto w-full">
         {!selectedImage ? (
           <div className="space-y-4">
+            {/* Photo Tips */}
+            <div className="bg-zinc-900 border border-iron-orange/30 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <Lightbulb className="w-5 h-5 text-iron-orange mt-0.5 flex-shrink-0" />
+                <div>
+                  <h3 className="text-iron-white font-semibold text-sm mb-2">Tips for Best Results</h3>
+                  <ul className="text-iron-gray text-xs space-y-1.5">
+                    <li className="flex items-start gap-2">
+                      <span className="text-iron-orange mt-0.5">•</span>
+                      <span>Take photo from directly above the meal</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-iron-orange mt-0.5">•</span>
+                      <span>Ensure good lighting - avoid shadows</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-iron-orange mt-0.5">•</span>
+                      <span>Include the entire plate in frame</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-iron-orange mt-0.5">•</span>
+                      <span>Separate foods are easier to detect</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
             {/* Upload Area */}
             <div className="border-2 border-dashed border-iron-gray rounded-lg p-8 text-center">
               <Camera className="w-16 h-16 mx-auto mb-4 text-iron-gray" />
@@ -276,17 +304,12 @@ export function MealScanClient() {
             </div>
 
             {/* Action Buttons */}
-            <div className="flex gap-3">
-              <button
-                onClick={handleReset}
-                className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-iron-white font-medium py-3 px-6 rounded-lg transition-colors border-2 border-iron-gray"
-              >
-                Choose Different Photo
-              </button>
+            <div className="space-y-3">
+              {/* Primary Action - Analyze */}
               <button
                 onClick={handleAnalyze}
                 disabled={isAnalyzing}
-                className="flex-1 bg-iron-orange hover:bg-orange-600 disabled:opacity-50 text-white font-medium py-3 px-6 rounded-lg flex items-center justify-center gap-2 transition-colors"
+                className="w-full bg-iron-orange hover:bg-orange-600 disabled:opacity-50 text-white font-medium py-3 px-6 rounded-lg flex items-center justify-center gap-2 transition-colors"
               >
                 {isAnalyzing ? (
                   <>
@@ -294,8 +317,21 @@ export function MealScanClient() {
                     Analyzing...
                   </>
                 ) : (
-                  <>Analyze Meal</>
+                  <>
+                    <CheckCircle className="w-5 h-5" />
+                    Analyze Meal
+                  </>
                 )}
+              </button>
+
+              {/* Secondary Action - Retake */}
+              <button
+                onClick={handleReset}
+                disabled={isAnalyzing}
+                className="w-full bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 text-iron-white font-medium py-3 px-6 rounded-lg flex items-center justify-center gap-2 transition-colors border-2 border-iron-gray"
+              >
+                <RotateCw className="w-5 h-5" />
+                Retake Photo
               </button>
             </div>
           </div>

@@ -2,13 +2,14 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ArrowLeft, Save, CheckCircle, Loader2 } from 'lucide-react'
+import { ArrowLeft, Save, CheckCircle, Loader2, Clock, Plus, Bookmark } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { FoodSearchV2 } from '@/components/nutrition/FoodSearchV2'
 import { MealEditor, foodToMealFood, type MealFood } from '@/components/nutrition/MealEditor'
-import { createMeal } from '@/lib/api/meals'
+import { createMeal, getRecentMeals, type Meal } from '@/lib/api/meals'
+import { getTemplates, createMealFromTemplate, type MealTemplate } from '@/lib/api/templates'
 import { confirmLog, cancelLog } from '@/lib/api/unified-coach'
 import type { Food } from '@/lib/api/foods'
 import { createClient } from '@/lib/supabase/client'
@@ -34,6 +35,14 @@ function LogMealForm() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+
+  // Recent meals for quick-add
+  const [recentMeals, setRecentMeals] = useState<Meal[]>([])
+  const [loadingRecentMeals, setLoadingRecentMeals] = useState(false)
+
+  // Meal templates for quick-select
+  const [templates, setTemplates] = useState<MealTemplate[]>([])
+  const [loadingTemplates, setLoadingTemplates] = useState(false)
 
   // Fetch user's timezone from profile and initialize meal time
   useEffect(() => {
@@ -62,6 +71,55 @@ function LogMealForm() {
     }
 
     fetchUserTimezone()
+  }, [])
+
+  // Fetch recent meals for quick-add
+  useEffect(() => {
+    async function fetchRecentMeals() {
+      try {
+        setLoadingRecentMeals(true)
+        const supabase = createClient()
+        const { data: { session } } = await supabase.auth.getSession()
+
+        if (session?.access_token) {
+          const meals = await getRecentMeals(session.access_token)
+          setRecentMeals(meals)
+        }
+      } catch (err) {
+        console.error('Failed to fetch recent meals:', err)
+        // Don't show error - this is optional feature
+      } finally {
+        setLoadingRecentMeals(false)
+      }
+    }
+
+    fetchRecentMeals()
+  }, [])
+
+  // Fetch meal templates
+  useEffect(() => {
+    async function fetchTemplates() {
+      try {
+        setLoadingTemplates(true)
+        const supabase = createClient()
+        const { data: { session } } = await supabase.auth.getSession()
+
+        if (session?.access_token) {
+          const response = await getTemplates({
+            limit: 20,
+            token: session.access_token
+          })
+          setTemplates(response.templates)
+        }
+      } catch (err) {
+        console.error('Failed to fetch templates:', err)
+        // Don't show error - this is optional feature
+      } finally {
+        setLoadingTemplates(false)
+      }
+    }
+
+    fetchTemplates()
   }, [])
 
   // Pre-fill data from URL parameters (from coach meal preview)
@@ -139,6 +197,57 @@ function LogMealForm() {
 
     const mealFood = foodToMealFood(food, initialQuantity, initialField)
     setFoods([...foods, mealFood])
+  }
+
+  function handleQuickAddMeal(meal: Meal) {
+    // Add all foods from the selected recent meal
+    const mealFoods: MealFood[] = meal.foods.map(f => ({
+      food_id: f.food_id,
+      name: f.name,
+      brand: f.brand_name || null,
+      serving_quantity: f.serving_quantity,
+      serving_unit: f.serving_unit,
+      gram_quantity: f.gram_quantity,
+      last_edited_field: f.last_edited_field,
+      serving_size: f.serving_size,
+      food_serving_unit: f.serving_unit,
+      household_serving_size: undefined,
+      household_serving_unit: undefined,
+      calories: f.calories,
+      protein_g: f.protein_g,
+      carbs_g: f.carbs_g,
+      fat_g: f.fat_g,
+      fiber_g: f.fiber_g
+    }))
+
+    setFoods([...foods, ...mealFoods])
+    setMealType(meal.category as MealType)
+  }
+
+  function handleSelectTemplate(template: MealTemplate) {
+    // Add all foods from the selected template
+    const templateFoods: MealFood[] = template.items.map(item => ({
+      food_id: item.food_id || `temp-${Date.now()}-${Math.random()}`,
+      name: item.name,
+      brand: null,
+      serving_quantity: item.quantity,
+      serving_unit: item.unit,
+      gram_quantity: item.quantity, // Templates store in grams typically
+      last_edited_field: 'grams' as 'grams' | 'serving',
+      serving_size: item.quantity,
+      food_serving_unit: item.unit,
+      household_serving_size: undefined,
+      household_serving_unit: undefined,
+      // Nutrition will be calculated by MealEditor
+      calories: 0,
+      protein_g: 0,
+      carbs_g: 0,
+      fat_g: 0,
+      fiber_g: 0
+    }))
+
+    setFoods([...foods, ...templateFoods])
+    setMealType(template.category as MealType)
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -328,6 +437,117 @@ function LogMealForm() {
             />
           </div>
         </div>
+
+        {/* Meal Templates Quick-Select */}
+        {templates.length > 0 && (
+          <div className="bg-iron-black/50 backdrop-blur-sm border border-iron-gray/20 rounded-lg p-6">
+            <div className="flex items-center gap-2 mb-3">
+              <Bookmark className="w-5 h-5 text-iron-orange" />
+              <Label className="text-base font-semibold text-white">Saved Templates</Label>
+            </div>
+            <p className="text-sm text-iron-gray mb-4">Quick-select your saved meal templates</p>
+
+            {loadingTemplates ? (
+              <div className="flex items-center gap-2 text-iron-gray">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span className="text-sm">Loading templates...</span>
+              </div>
+            ) : (
+              <div className="grid gap-2">
+                {templates.map((template) => (
+                  <button
+                    key={template.id}
+                    type="button"
+                    onClick={() => handleSelectTemplate(template)}
+                    className="flex items-center justify-between p-3 bg-neutral-800 hover:bg-neutral-700 border border-iron-gray/30 hover:border-iron-orange/50 rounded-lg transition-all text-left group"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-sm font-medium text-white">
+                          {template.name}
+                        </span>
+                        <span className="text-xs text-iron-gray capitalize">
+                          {template.category}
+                        </span>
+                        {template.is_favorite && (
+                          <span className="text-xs text-iron-orange">★</span>
+                        )}
+                      </div>
+                      {template.description && (
+                        <div className="text-xs text-iron-gray mb-1 truncate">
+                          {template.description}
+                        </div>
+                      )}
+                      <div className="text-xs text-iron-gray truncate">
+                        {template.items.map(item => item.name).join(', ')}
+                      </div>
+                      <div className="flex items-center gap-3 mt-1 text-xs text-iron-gray">
+                        {template.total_calories && <span>{Math.round(template.total_calories)} cal</span>}
+                        {template.total_protein_g && <span>{Math.round(template.total_protein_g)}g protein</span>}
+                        {template.use_count > 0 && <span className="text-iron-orange">Used {template.use_count}x</span>}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 text-iron-orange group-hover:text-orange-400">
+                      <Plus className="w-5 h-5" />
+                      <span className="text-xs font-medium">Add</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Recent Meals Quick-Add */}
+        {recentMeals.length > 0 && (
+          <div className="bg-iron-black/50 backdrop-blur-sm border border-iron-gray/20 rounded-lg p-6">
+            <div className="flex items-center gap-2 mb-3">
+              <Clock className="w-5 h-5 text-iron-orange" />
+              <Label className="text-base font-semibold text-white">Recent Meals</Label>
+            </div>
+            <p className="text-sm text-iron-gray mb-4">Quick-add foods from your recent meals</p>
+
+            {loadingRecentMeals ? (
+              <div className="flex items-center gap-2 text-iron-gray">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span className="text-sm">Loading recent meals...</span>
+              </div>
+            ) : (
+              <div className="grid gap-2">
+                {recentMeals.map((meal) => (
+                  <button
+                    key={meal.id}
+                    type="button"
+                    onClick={() => handleQuickAddMeal(meal)}
+                    className="flex items-center justify-between p-3 bg-neutral-800 hover:bg-neutral-700 border border-iron-gray/30 hover:border-iron-orange/50 rounded-lg transition-all text-left group"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-sm font-medium text-white capitalize">
+                          {meal.name || meal.category}
+                        </span>
+                        <span className="text-xs text-iron-gray">
+                          {new Date(meal.logged_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <div className="text-xs text-iron-gray truncate">
+                        {meal.foods.map(f => f.name).join(', ')}
+                      </div>
+                      <div className="flex items-center gap-3 mt-1 text-xs text-iron-gray">
+                        {meal.total_calories && <span>{Math.round(meal.total_calories)} cal</span>}
+                        {meal.total_protein_g && <span>{Math.round(meal.total_protein_g)}g protein</span>}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 text-iron-orange group-hover:text-orange-400">
+                      <Plus className="w-5 h-5" />
+                      <span className="text-xs font-medium">Add</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Food Search */}
         <div className="bg-iron-black/50 backdrop-blur-sm border border-iron-gray/20 rounded-lg p-6 overflow-visible">
