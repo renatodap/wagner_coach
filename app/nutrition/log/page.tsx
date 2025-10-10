@@ -14,7 +14,7 @@ import type { Food } from '@/lib/api/foods'
 import { createClient } from '@/lib/supabase/client'
 import { formatInTimeZone, toZonedTime, fromZonedTime } from 'date-fns-tz'
 
-type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack'
+type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack' | 'other'
 
 function LogMealForm() {
   const router = useRouter()
@@ -288,8 +288,8 @@ function LogMealForm() {
         <div className="bg-iron-black/50 backdrop-blur-sm border border-iron-gray/20 rounded-lg p-6 space-y-4">
           <div>
             <Label htmlFor="mealType" className="text-base font-semibold text-white">Meal Type</Label>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2">
-              {(['breakfast', 'lunch', 'dinner', 'snack'] as MealType[]).map((type) => (
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mt-2">
+              {(['breakfast', 'lunch', 'dinner', 'snack', 'other'] as MealType[]).map((type) => (
                 <button
                   key={type}
                   type="button"
