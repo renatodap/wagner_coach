@@ -8,12 +8,16 @@
  * All calculations happen client-side for instant feedback.
  */
 
+/**
+ * Food interface for quantity conversion
+ * Matches V2 schema structure
+ */
 export interface FoodEnhanced {
   id: string
   name: string
   serving_size: number
   serving_unit: string
-  household_serving_size: string | null
+  household_serving_grams: number | null  // V2: renamed from household_serving_size
   household_serving_unit: string | null
   calories: number
   protein_g: number
@@ -56,7 +60,7 @@ export class FoodQuantityConverter {
    * @example
    * const bread = {
    *   serving_size: 28,
-   *   household_serving_size: "28",
+   *   household_serving_grams: 28,
    *   household_serving_unit: "slice"
    * }
    * 
@@ -69,9 +73,7 @@ export class FoodQuantityConverter {
     inputField: 'serving' | 'grams'
   ): FoodQuantity {
     // Get grams per serving (priority: household > standard)
-    const householdGrams = food.household_serving_size 
-      ? parseFloat(food.household_serving_size) 
-      : null
+    const householdGrams = food.household_serving_grams || null
     
     let gramsPerServing = householdGrams && householdGrams > 0 
       ? householdGrams 
