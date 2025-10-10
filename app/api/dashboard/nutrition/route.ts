@@ -64,15 +64,40 @@ export async function GET() {
 
     const userData = nutritionGoals
 
-    // Fetch today's meal logs and calculate totals
-    const { data: mealLogs, error: mealsError } = await supabase
+    // Fetch today's meal logs and calculate totals (try V2 schema first)
+    let { data: mealLogs, error: mealsError } = await supabase
       .from('meal_logs')
       .select('total_calories, total_protein_g, total_carbs_g, total_fat_g')
       .eq('user_id', user.id)
       .gte('logged_at', `${today}T00:00:00.000Z`)
       .lte('logged_at', `${today}T23:59:59.999Z`)
 
-    if (mealsError) {
+    // Fallback to old meals table if meal_logs doesn't exist
+    if (mealsError && mealsError.code === 'PGRST116') {
+      console.log('meal_logs table not found, falling back to meals table')
+      const { data: oldMeals, error: oldMealsError } = await supabase
+        .from('meals')
+        .select('calories, protein_g, carbs_g, fat_g')
+        .eq('user_id', user.id)
+        .gte('logged_at', `${today}T00:00:00.000Z`)
+        .lte('logged_at', `${today}T23:59:59.999Z`)
+
+      if (oldMealsError) {
+        console.error('Error fetching meals from old table:', oldMealsError)
+        return NextResponse.json(
+          { error: 'Failed to fetch meals' },
+          { status: 500 }
+        )
+      }
+
+      // Map old schema to new schema format
+      mealLogs = oldMeals?.map(meal => ({
+        total_calories: meal.calories,
+        total_protein_g: meal.protein_g,
+        total_carbs_g: meal.carbs_g,
+        total_fat_g: meal.fat_g
+      })) || []
+    } else if (mealsError) {
       console.error('Error fetching meal logs:', mealsError)
       return NextResponse.json(
         { error: 'Failed to fetch meal logs' },
