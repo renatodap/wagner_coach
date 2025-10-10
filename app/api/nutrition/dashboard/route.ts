@@ -25,9 +25,9 @@ export async function GET(request: NextRequest) {
     const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
     const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
-    // Fetch today's meals
+    // Fetch today's meals (V2: using meal_logs table)
     const { data: todaysMeals, error: mealsError } = await supabase
-      .from('meals')
+      .from('meal_logs')
       .select('*')
       .eq('user_id', user.id)
       .gte('logged_at', `${today}T00:00:00.000Z`)
@@ -42,12 +42,12 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Calculate today's nutrition totals
+    // Calculate today's nutrition totals (V2: using total_* fields from meal_logs)
     const todayTotals: NutritionTotals = {
-      calories: todaysMeals?.reduce((sum, meal) => sum + (meal.calories || 0), 0) || 0,
-      protein_g: todaysMeals?.reduce((sum, meal) => sum + (meal.protein_g || 0), 0) || 0,
-      carbs_g: todaysMeals?.reduce((sum, meal) => sum + (meal.carbs_g || 0), 0) || 0,
-      fat_g: todaysMeals?.reduce((sum, meal) => sum + (meal.fat_g || 0), 0) || 0,
+      calories: todaysMeals?.reduce((sum, meal) => sum + (meal.total_calories || 0), 0) || 0,
+      protein_g: todaysMeals?.reduce((sum, meal) => sum + (meal.total_protein_g || 0), 0) || 0,
+      carbs_g: todaysMeals?.reduce((sum, meal) => sum + (meal.total_carbs_g || 0), 0) || 0,
+      fat_g: todaysMeals?.reduce((sum, meal) => sum + (meal.total_fat_g || 0), 0) || 0,
     };
 
     // Fetch user's nutrition goals
@@ -86,10 +86,10 @@ export async function GET(request: NextRequest) {
       goalsData = newGoals;
     }
 
-    // Calculate weekly average calories
+    // Calculate weekly average calories (V2: using meal_logs table)
     const { data: weeklyMeals, error: weeklyError } = await supabase
-      .from('meals')
-      .select('calories, logged_at')
+      .from('meal_logs')
+      .select('total_calories, logged_at')
       .eq('user_id', user.id)
       .gte('logged_at', `${weekAgo}T00:00:00.000Z`)
       .lt('logged_at', `${today}T23:59:59.999Z`);
@@ -102,13 +102,13 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Group by date and calculate daily totals
+    // Group by date and calculate daily totals (V2: using total_calories)
     const dailyTotals = weeklyMeals?.reduce((acc, meal) => {
       const date = meal.logged_at.split('T')[0];
       if (!acc[date]) {
         acc[date] = 0;
       }
-      acc[date] += meal.calories || 0;
+      acc[date] += meal.total_calories || 0;
       return acc;
     }, {} as Record<string, number>) || {};
 

@@ -24,17 +24,17 @@ Return your response in this exact JSON format:
       "confidence": 0.95,
       "calories": 250,
       "protein_g": 30,
-      "carbs_g": 10,
-      "fat_g": 5,
-      "fiber_g": 2
+      "total_carbs_g": 10,
+      "total_fat_g": 5,
+      "dietary_fiber_g": 2
     }
   ],
   "totalNutrition": {
     "calories": 250,
     "protein_g": 30,
-    "carbs_g": 10,
-    "fat_g": 5,
-    "fiber_g": 2
+    "total_carbs_g": 10,
+    "total_fat_g": 5,
+    "dietary_fiber_g": 2
   },
   "suggestedMealName": "Descriptive meal name",
   "confidence": 0.92
@@ -68,9 +68,9 @@ async function analyzeWithMockData(imageData: string): Promise<AIAnalysisResult>
           confidence: 0.95,
           calories: 248,
           protein_g: 46.2,
-          carbs_g: 0,
-          fat_g: 5.4,
-          fiber_g: 0
+          total_carbs_g: 0,
+          total_fat_g: 5.4,
+          dietary_fiber_g: 0
         },
         {
           name: 'Steamed Broccoli',
@@ -78,9 +78,9 @@ async function analyzeWithMockData(imageData: string): Promise<AIAnalysisResult>
           confidence: 0.88,
           calories: 55,
           protein_g: 3.7,
-          carbs_g: 11.2,
-          fat_g: 0.6,
-          fiber_g: 5.1
+          total_carbs_g: 11.2,
+          total_fat_g: 0.6,
+          dietary_fiber_g: 5.1
         },
         {
           name: 'Brown Rice',
@@ -88,17 +88,17 @@ async function analyzeWithMockData(imageData: string): Promise<AIAnalysisResult>
           confidence: 0.92,
           calories: 109,
           protein_g: 2.3,
-          carbs_g: 22.9,
-          fat_g: 0.9,
-          fiber_g: 1.8
+          total_carbs_g: 22.9,
+          total_fat_g: 0.9,
+          dietary_fiber_g: 1.8
         }
       ],
       totalNutrition: {
         calories: 412,
         protein_g: 52.2,
-        carbs_g: 34.1,
-        fat_g: 6.9,
-        fiber_g: 6.9
+        total_carbs_g: 34.1,
+        total_fat_g: 6.9,
+        dietary_fiber_g: 6.9
       },
       suggestedMealName: 'Grilled Chicken with Vegetables and Rice',
       confidence: 0.92
@@ -111,9 +111,9 @@ async function analyzeWithMockData(imageData: string): Promise<AIAnalysisResult>
           confidence: 0.90,
           calories: 180,
           protein_g: 6,
-          carbs_g: 12,
-          fat_g: 14,
-          fiber_g: 4
+          total_carbs_g: 12,
+          total_fat_g: 14,
+          dietary_fiber_g: 4
         },
         {
           name: 'Grilled Salmon',
@@ -121,17 +121,17 @@ async function analyzeWithMockData(imageData: string): Promise<AIAnalysisResult>
           confidence: 0.93,
           calories: 280,
           protein_g: 39,
-          carbs_g: 0,
-          fat_g: 13,
-          fiber_g: 0
+          total_carbs_g: 0,
+          total_fat_g: 13,
+          dietary_fiber_g: 0
         }
       ],
       totalNutrition: {
         calories: 460,
         protein_g: 45,
-        carbs_g: 12,
-        fat_g: 27,
-        fiber_g: 4
+        total_carbs_g: 12,
+        total_fat_g: 27,
+        dietary_fiber_g: 4
       },
       suggestedMealName: 'Grilled Salmon with Greek Salad',
       confidence: 0.91
