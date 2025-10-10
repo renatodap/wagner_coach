@@ -99,6 +99,7 @@ function convertToGrams(quantity: number, unit: string, food: MealFood): number 
 
 export function MealEditor({ foods, onFoodsChange, showTotals = true }: MealEditorProps) {
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
+  const [focusField, setFocusField] = useState<'serving' | 'grams' | null>(null)
 
   // Calculate totals
   const totals = useMemo(() => {
@@ -119,12 +120,14 @@ export function MealEditor({ foods, onFoodsChange, showTotals = true }: MealEdit
     onFoodsChange(newFoods)
   }
 
-  function startEditing(index: number) {
+  function startEditing(index: number, field: 'serving' | 'grams') {
     setEditingIndex(index)
+    setFocusField(field)
   }
 
   function cancelEditing() {
     setEditingIndex(null)
+    setFocusField(null)
   }
 
   function handleFoodUpdate(index: number, quantity: FoodQuantity, nutrition: NutritionValues) {
@@ -188,8 +191,8 @@ export function MealEditor({ foods, onFoodsChange, showTotals = true }: MealEdit
                     household_serving_unit: food.household_serving_unit || null,
                     // Calculate per-serving nutrition (nutrition values stored are for current quantity)
                     // We need to normalize back to per-serving-size values
-                    calories: food.serving_size > 0 && food.gram_quantity > 0 
-                      ? (food.calories * food.serving_size) / food.gram_quantity 
+                    calories: food.serving_size > 0 && food.gram_quantity > 0
+                      ? (food.calories * food.serving_size) / food.gram_quantity
                       : food.calories,
                     protein_g: food.serving_size > 0 && food.gram_quantity > 0
                       ? (food.protein_g * food.serving_size) / food.gram_quantity
@@ -213,6 +216,7 @@ export function MealEditor({ foods, onFoodsChange, showTotals = true }: MealEdit
                     lastEditedField: food.last_edited_field
                   }}
                   onChange={(quantity, nutrition) => handleFoodUpdate(index, quantity, nutrition)}
+                  focusField={focusField}
                 />
                 <div className="flex gap-2 mt-4">
                   <Button
@@ -240,25 +244,41 @@ export function MealEditor({ foods, onFoodsChange, showTotals = true }: MealEdit
                     </div>
 
                     {/* Dual Quantity Display - Shows BOTH values prominently */}
-                    <div className="flex gap-3 mt-2 flex-wrap">
+                    <div className="flex gap-3 sm:gap-4 mt-2 flex-wrap">
                       {/* Serving quantity - only show if has household serving */}
                       {food.serving_unit && (
-                        <div className="flex items-center gap-1.5 bg-iron-gray/10 px-3 py-1.5 rounded-md hover:bg-iron-gray/20 transition-colors cursor-pointer group" onClick={() => startEditing(index)}>
-                          <span className="text-iron-gray text-xs uppercase font-medium">{food.serving_unit}:</span>
-                          <span className="text-iron-white font-semibold text-sm">
-                            {FoodQuantityConverter.formatServingDisplay(food.serving_quantity, food.serving_unit)}
-                          </span>
-                          <Edit2 size={12} className="text-iron-gray group-hover:text-iron-orange opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <div className="flex items-center gap-2 bg-iron-gray/10 px-4 py-3 sm:px-3 sm:py-2 rounded-lg group">
+                          <div className="flex items-center gap-1.5 flex-1">
+                            <span className="text-iron-gray text-xs uppercase font-medium">{food.serving_unit}:</span>
+                            <span className="text-iron-white font-semibold text-base sm:text-sm">
+                              {FoodQuantityConverter.formatServingDisplay(food.serving_quantity, food.serving_unit)}
+                            </span>
+                          </div>
+                          <button
+                            onClick={() => startEditing(index, 'serving')}
+                            className="p-2.5 sm:p-2 rounded-md hover:bg-iron-orange/20 active:scale-95 transition-all min-w-[44px] min-h-[44px] flex items-center justify-center"
+                            aria-label="Edit servings"
+                          >
+                            <Edit2 size={18} className="text-iron-gray group-hover:text-iron-orange transition-colors" />
+                          </button>
                         </div>
                       )}
 
                       {/* Gram quantity - always shown */}
-                      <div className="flex items-center gap-1.5 bg-iron-gray/10 px-3 py-1.5 rounded-md hover:bg-iron-gray/20 transition-colors cursor-pointer group" onClick={() => startEditing(index)}>
-                        <span className="text-iron-gray text-xs uppercase font-medium">Weight:</span>
-                        <span className="text-iron-white font-semibold text-sm">
-                          {food.gram_quantity.toFixed(0)}g
-                        </span>
-                        <Edit2 size={12} className="text-iron-gray group-hover:text-iron-orange opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <div className="flex items-center gap-2 bg-iron-gray/10 px-4 py-3 sm:px-3 sm:py-2 rounded-lg group">
+                        <div className="flex items-center gap-1.5 flex-1">
+                          <span className="text-iron-gray text-xs uppercase font-medium">Weight:</span>
+                          <span className="text-iron-white font-semibold text-base sm:text-sm">
+                            {food.gram_quantity.toFixed(0)}g
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => startEditing(index, 'grams')}
+                          className="p-2.5 sm:p-2 rounded-md hover:bg-iron-orange/20 active:scale-95 transition-all min-w-[44px] min-h-[44px] flex items-center justify-center"
+                          aria-label="Edit weight in grams"
+                        >
+                          <Edit2 size={18} className="text-iron-gray group-hover:text-iron-orange transition-colors" />
+                        </button>
                       </div>
                     </div>
 
@@ -269,19 +289,11 @@ export function MealEditor({ foods, onFoodsChange, showTotals = true }: MealEdit
                   </div>
                   <div className="flex gap-2 ml-2">
                     <button
-                      onClick={() => startEditing(index)}
-                      className="p-2 text-iron-gray hover:text-iron-orange hover:bg-iron-orange/10 rounded transition-colors"
-                      aria-label="Edit food quantities"
-                      title="Edit servings or weight"
-                    >
-                      <Edit2 size={16} />
-                    </button>
-                    <button
                       onClick={() => handleRemoveFood(index)}
-                      className="p-2 text-iron-gray hover:text-red-400 hover:bg-red-400/10 rounded transition-colors"
+                      className="p-2.5 sm:p-2 text-iron-gray hover:text-red-400 hover:bg-red-400/10 rounded transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
                       aria-label="Remove food"
                     >
-                      <Trash2 size={16} />
+                      <Trash2 size={18} className="sm:w-4 sm:h-4" />
                     </button>
                   </div>
                 </div>
