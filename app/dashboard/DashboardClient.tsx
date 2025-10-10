@@ -11,6 +11,8 @@ import { Button } from '@/components/ui/button'
 import { checkConsultationStatus } from '@/lib/api/consultation'
 import { getPrimaryEventCountdown } from '@/lib/api/events'
 import type { EventCountdown } from '@/types/event'
+import { createClient } from '@/lib/supabase/client'
+import { API_BASE_URL } from '@/lib/api-config'
 
 interface DashboardClientProps {
   profile?: Profile | null
@@ -57,18 +59,45 @@ export default function DashboardClient({
   useEffect(() => {
     async function fetchDashboardData() {
       try {
+        // Get auth token
+        const supabase = createClient()
+        const { data: { session } } = await supabase.auth.getSession()
+        
+        if (!session?.access_token) {
+          console.error('No access token available')
+          setLoading(false)
+          return
+        }
+
+        const headers = {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        }
+
         // Fetch nutrition data
-        const nutritionResponse = await fetch('/api/v1/nutrition/summary/today')
-        if (nutritionResponse.ok) {
-          const nutritionData = await nutritionResponse.json()
-          setNutritionData(nutritionData)
+        try {
+          const nutritionResponse = await fetch(`${API_BASE_URL}/api/v1/nutrition/summary/today`, { headers })
+          if (nutritionResponse.ok) {
+            const nutritionData = await nutritionResponse.json()
+            setNutritionData(nutritionData)
+          } else {
+            console.error('Failed to fetch nutrition data:', nutritionResponse.status)
+          }
+        } catch (err) {
+          console.error('Error fetching nutrition data:', err)
         }
 
         // Fetch activity data
-        const activityResponse = await fetch('/api/v1/activities/summary/today')
-        if (activityResponse.ok) {
-          const activityData = await activityResponse.json()
-          setActivityData(activityData)
+        try {
+          const activityResponse = await fetch(`${API_BASE_URL}/api/v1/activities/summary/today`, { headers })
+          if (activityResponse.ok) {
+            const activityData = await activityResponse.json()
+            setActivityData(activityData)
+          } else {
+            console.error('Failed to fetch activity data:', activityResponse.status)
+          }
+        } catch (err) {
+          console.error('Error fetching activity data:', err)
         }
 
         // Check if user has completed consultation
