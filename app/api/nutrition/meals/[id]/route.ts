@@ -121,7 +121,7 @@ export async function GET(
       .single();
 
     if (mealLog && !mealLogError) {
-      // Transform to match old format
+      // Transform to match old format (support both V1 and V2 field names)
       const transformed = {
         id: mealLog.id,
         meal_name: mealLog.name || 'Meal',
@@ -130,9 +130,13 @@ export async function GET(
         notes: mealLog.notes,
         calories: mealLog.total_calories,
         protein_g: mealLog.total_protein_g,
+        // V2: support both old and new field names
         carbs_g: mealLog.total_carbs_g,
+        total_carbs_g: mealLog.total_carbs_g,
         fat_g: mealLog.total_fat_g,
+        total_fat_g: mealLog.total_fat_g,
         fiber_g: mealLog.total_fiber_g,
+        dietary_fiber_g: mealLog.total_fiber_g,
         foods: mealLog.meal_log_foods
       };
       return NextResponse.json({ meal: transformed });

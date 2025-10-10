@@ -100,9 +100,9 @@ function LogMealForm() {
             // Calculated nutrition
             calories: food.calories || 0,
             protein_g: food.protein_g || 0,
-            carbs_g: food.carbs_g || 0,
-            fat_g: food.fat_g || 0,
-            fiber_g: food.fiber_g || 0
+            carbs_g: food.total_carbs_g || food.carbs_g || 0,  // V2: support both for transition
+            fat_g: food.total_fat_g || food.fat_g || 0,
+            fiber_g: food.dietary_fiber_g || food.fiber_g || 0
           }))
           setFoods(mealFoods)
         }
@@ -127,11 +127,9 @@ function LogMealForm() {
       initialQuantity = food.last_quantity
       // If last_unit is a household serving unit, use 'serving' field, otherwise 'grams'
       initialField = (food.last_unit === food.household_serving_unit) ? 'serving' : 'grams'
-    } else if (food.household_serving_size && food.household_serving_unit) {
-      // Use household serving (e.g., "1" slice, "1" medium)
-      // Parse quantity from household_serving_size (e.g., "1" -> 1, "0.5" -> 0.5)
-      const parsed = parseFloat(food.household_serving_size)
-      initialQuantity = isNaN(parsed) ? 1 : parsed
+    } else if (food.household_serving_grams && food.household_serving_unit) {
+      // V2: Use household serving grams
+      initialQuantity = food.household_serving_grams || 1
       initialField = 'serving'
     } else {
       // Fall back to database serving size (typically 100g)

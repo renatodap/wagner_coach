@@ -47,9 +47,9 @@ export default function EditMealPage() {
       setNotes(mealData.notes || '');
       setCalories(mealData.calories?.toString() || '');
       setProtein(mealData.protein_g?.toString() || '');
-      setCarbs(mealData.carbs_g?.toString() || '');
-      setFat(mealData.fat_g?.toString() || '');
-      setFiber(mealData.fiber_g?.toString() || '');
+      setCarbs((mealData.total_carbs_g || mealData.carbs_g)?.toString() || '');
+      setFat((mealData.total_fat_g || mealData.fat_g)?.toString() || '');
+      setFiber((mealData.dietary_fiber_g || mealData.fiber_g)?.toString() || '');
 
       // Set foods if available
       if (mealData.foods) {
@@ -81,9 +81,9 @@ export default function EditMealPage() {
         return {
           calories: acc.calories + (foodData.calories || 0) * multiplier,
           protein: acc.protein + (foodData.protein_g || 0) * multiplier,
-          carbs: acc.carbs + (foodData.carbs_g || 0) * multiplier,
-          fat: acc.fat + (foodData.fat_g || 0) * multiplier,
-          fiber: acc.fiber + (foodData.fiber_g || 0) * multiplier,
+          carbs: acc.carbs + ((foodData.total_carbs_g || foodData.carbs_g) || 0) * multiplier,
+          fat: acc.fat + ((foodData.total_fat_g || foodData.fat_g) || 0) * multiplier,
+          fiber: acc.fiber + ((foodData.dietary_fiber_g || foodData.fiber_g) || 0) * multiplier,
         };
       },
       { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 }
@@ -234,8 +234,8 @@ export default function EditMealPage() {
                     const multiplier = quantity / (foodData.serving_size || 100);
                     const cals = Math.round((foodData.calories || 0) * multiplier);
                     const protein = ((foodData.protein_g || 0) * multiplier).toFixed(1);
-                    const carbs = ((foodData.carbs_g || 0) * multiplier).toFixed(1);
-                    const fat = ((foodData.fat_g || 0) * multiplier).toFixed(1);
+                    const carbs = (((foodData.total_carbs_g || foodData.carbs_g) || 0) * multiplier).toFixed(1);
+                    const fat = (((foodData.total_fat_g || foodData.fat_g) || 0) * multiplier).toFixed(1);
 
                     return (
                       <div key={index} className="border border-iron-gray p-3 flex items-start justify-between">

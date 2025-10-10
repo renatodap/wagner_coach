@@ -22,23 +22,27 @@ export async function POST(request: Request) {
       );
     }
 
-    // Create the food
+    // Create the food (V2 schema)
     const { data, error } = await supabase
       .from('foods')
       .insert({
         name: body.name,
         brand: body.brand || null,
         barcode: body.barcode || null,
+        barcodes: body.barcodes || (body.barcode ? [body.barcode] : null),
         serving_size: body.serving_size,
         serving_unit: body.serving_unit,
         serving_description: body.serving_description || null,
+        household_serving_unit: body.household_serving_unit || null,
+        household_serving_grams: body.household_serving_grams || null,
         calories: body.calories || null,
         protein_g: body.protein_g || null,
-        carbs_g: body.carbs_g || null,
-        fat_g: body.fat_g || null,
-        fiber_g: body.fiber_g || null,
-        sugar_g: body.sugar_g || null,
+        total_carbs_g: body.total_carbs_g || body.carbs_g || null,
+        total_fat_g: body.total_fat_g || body.fat_g || null,
+        dietary_fiber_g: body.dietary_fiber_g || body.fiber_g || null,
+        sugars_g: body.sugars_g || body.sugar_g || null,
         sodium_mg: body.sodium_mg || null,
+        food_type: body.food_type || 'custom',
         is_public: body.is_public || false,
         is_verified: false,
         created_by: user.id

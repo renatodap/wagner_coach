@@ -87,7 +87,7 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      // Transform to match old format if needed
+      // Transform to match old format if needed (V2: support both old and new field names)
       const transformedMeals = meals?.map(meal => ({
         id: meal.id,
         meal_name: meal.name || 'Meal',
@@ -97,8 +97,11 @@ export async function GET(request: NextRequest) {
         calories: meal.total_calories,
         protein_g: meal.total_protein_g,
         carbs_g: meal.total_carbs_g,
+        total_carbs_g: meal.total_carbs_g,
         fat_g: meal.total_fat_g,
+        total_fat_g: meal.total_fat_g,
         fiber_g: meal.total_fiber_g,
+        dietary_fiber_g: meal.total_fiber_g,
         created_at: meal.created_at,
         foods: meal.foods
       }));
