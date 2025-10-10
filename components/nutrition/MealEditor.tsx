@@ -184,7 +184,7 @@ export function MealEditor({ foods, onFoodsChange, showTotals = true }: MealEdit
                     name: food.name,
                     serving_size: food.serving_size,
                     serving_unit: food.food_serving_unit,
-                    household_serving_size: food.household_serving_size || null,
+                    household_serving_grams: food.household_serving_size ? parseFloat(food.household_serving_size) : null,
                     household_serving_unit: food.household_serving_unit || null,
                     // Calculate per-serving nutrition (nutrition values stored are for current quantity)
                     // We need to normalize back to per-serving-size values
@@ -302,13 +302,13 @@ export function MealEditor({ foods, onFoodsChange, showTotals = true }: MealEdit
 
 // Helper function to convert a Food to a MealFood with initial quantity
 export function foodToMealFood(food: Food, initialQuantity: number = 1, initialField: 'serving' | 'grams' = 'serving'): MealFood {
-  // Convert to FoodEnhanced format
+  // Convert to FoodEnhanced format for converter
   const foodEnhanced: FoodEnhanced = {
     id: food.id,
     name: food.name,
     serving_size: food.serving_size,
     serving_unit: food.serving_unit,
-    household_serving_size: food.household_serving_size || null,
+    household_serving_grams: food.household_serving_grams || null,
     household_serving_unit: food.household_serving_unit || null,
     calories: food.calories || 0,
     protein_g: food.protein_g || 0,
@@ -347,7 +347,7 @@ export function foodToMealFood(food: Food, initialQuantity: number = 1, initialF
     // Food serving info
     serving_size: food.serving_size,
     food_serving_unit: food.serving_unit,
-    household_serving_size: food.household_serving_size,
+    household_serving_size: food.household_serving_grams?.toString(),
     household_serving_unit: food.household_serving_unit,
     
     // Calculated nutrition

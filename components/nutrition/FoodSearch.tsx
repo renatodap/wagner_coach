@@ -147,11 +147,26 @@ export function FoodSearch({ onSelectFood, placeholder = "Search foods..." }: Fo
 
   const formatNutrition = (food: Food) => {
     const parts = [];
-    if (food.calories) parts.push(`${food.calories} cal`);
-    if (food.protein_g) parts.push(`${food.protein_g}g protein`);
-    if (food.carbs_g) parts.push(`${food.carbs_g}g carbs`);
-    if (food.fat_g) parts.push(`${food.fat_g}g fat`);
+    if (food.calories) parts.push(`${Math.round(food.calories)} cal`);
+    if (food.protein_g) parts.push(`${food.protein_g.toFixed(1)}g protein`);
+    if (food.total_carbs_g) parts.push(`${food.total_carbs_g.toFixed(1)}g carbs`);
+    if (food.total_fat_g) parts.push(`${food.total_fat_g.toFixed(1)}g fat`);
     return parts.join(' • ');
+  };
+
+  const getFoodTypeBadge = (food: Food) => {
+    const typeColors = {
+      'ingredient': 'bg-green-500/20 text-green-400',
+      'dish': 'bg-blue-500/20 text-blue-400',
+      'branded': 'bg-purple-500/20 text-purple-400',
+      'restaurant': 'bg-orange-500/20 text-orange-400'
+    };
+    const color = typeColors[food.food_type] || 'bg-gray-500/20 text-gray-400';
+    return food.food_type ? (
+      <span className={`text-xs px-2 py-0.5 rounded ${color}`}>
+        {food.food_type}
+      </span>
+    ) : null;
   };
 
   const dropdownContent = showResults && mounted && (
@@ -182,20 +197,30 @@ export function FoodSearch({ onSelectFood, placeholder = "Search foods..." }: Fo
             >
               <div className="flex justify-between items-start">
                 <div className="flex-1">
-                  <div className="font-medium text-iron-white group-hover:text-iron-orange transition-colors">
-                    {food.name}
-                    {food.brand && (
-                      <span className="text-iron-gray text-sm ml-2">
-                        ({food.brand})
-                      </span>
-                    )}
+                  <div className="flex items-center gap-2">
+                    <div className="font-medium text-iron-white group-hover:text-iron-orange transition-colors">
+                      {food.name}
+                      {food.brand_name && (
+                        <span className="text-iron-gray text-sm ml-2">
+                          ({food.brand_name})
+                        </span>
+                      )}
+                    </div>
+                    {getFoodTypeBadge(food)}
                   </div>
                   <div className="text-xs text-iron-gray mt-1">
-                    {food.serving_description || `${food.serving_size} ${food.serving_unit}`}
+                    {food.household_serving_unit 
+                      ? `${food.household_serving_grams}g per ${food.household_serving_unit}`
+                      : `${food.serving_size}${food.serving_unit}`}
                   </div>
                   <div className="text-xs text-iron-gray mt-1">
                     {formatNutrition(food)}
                   </div>
+                  {food.allergens && food.allergens.length > 0 && (
+                    <div className="text-xs text-red-400 mt-1 flex items-center gap-1">
+                      ⚠️ {food.allergens.join(', ')}
+                    </div>
+                  )}
                 </div>
                 <Plus className="text-iron-gray group-hover:text-iron-orange transition-colors ml-2" size={20} />
               </div>
