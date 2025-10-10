@@ -14,8 +14,8 @@ export interface Food {
   food_group?: string
   serving_size: number
   serving_unit: string
-  household_serving_size?: string  // NEW: e.g., "1 cup", "2 slices"
-  household_serving_unit?: string  // NEW: e.g., "cup", "slice"
+  household_serving_size?: string  // e.g., "1 cup", "2 slices"
+  household_serving_unit?: string  // e.g., "cup", "slice"
   calories?: number
   protein_g?: number
   carbs_g?: number
@@ -31,6 +31,18 @@ export interface Food {
   last_unit?: string
   last_logged_at?: string
   log_count?: number
+
+  // Template-specific fields (for unified search results)
+  is_template?: boolean         // True if this is a meal template (not an atomic food)
+  is_user_template?: boolean    // True if this is user's private template
+  is_restaurant?: boolean       // True if this is a restaurant meal template
+  is_community?: boolean        // True if this is a community template
+  template_category?: string    // Meal type: breakfast, lunch, dinner, snack
+  description?: string          // Template description
+  tags?: string[]               // Template tags
+  is_favorite?: boolean         // True if user favorited this template
+  use_count?: number            // Number of times template was used
+  popularity_score?: number     // Template popularity score
 }
 
 export interface FoodSearchResponse {
@@ -63,13 +75,14 @@ export interface MatchFoodsResponse {
 }
 
 /**
- * Search foods by query
+ * Search foods AND meal templates by query
  */
 export async function searchFoods(
   query: string,
   options: {
     limit?: number
     includeRecent?: boolean
+    includeTemplates?: boolean
     token: string
   }
 ): Promise<FoodSearchResponse> {
@@ -77,10 +90,11 @@ export async function searchFoods(
     q: query,
     limit: (options.limit || 20).toString(),
     include_recent: (options.includeRecent !== false).toString(),
+    include_templates: (options.includeTemplates !== false).toString(),
   })
 
   const url = `${API_BASE_URL}/api/v1/foods/search?${params}`
-  console.log('🔍 [Foods API] Searching foods:', { url, hasToken: !!options.token, tokenLength: options.token?.length })
+  console.log('🔍 [Foods API] Searching foods + templates:', { url, hasToken: !!options.token, tokenLength: options.token?.length, includeTemplates: options.includeTemplates !== false })
 
   const response = await fetch(url, {
     method: 'GET',

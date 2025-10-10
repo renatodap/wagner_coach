@@ -185,17 +185,50 @@ export function FoodSearchV2({
                               {food.brand_name}
                             </span>
                           )}
+
+                          {/* Type badges */}
                           {food.is_recent && (
                             <span className="ml-2 px-2 py-0.5 bg-iron-orange/20 text-iron-orange text-xs rounded-full">
-                              Recent
+                              🕐 Recent
                             </span>
                           )}
+                          {food.is_user_template && (
+                            <span className="ml-2 px-2 py-0.5 bg-blue-500/20 text-blue-400 text-xs rounded-full">
+                              💾 My Meal
+                            </span>
+                          )}
+                          {food.is_restaurant && (
+                            <span className="ml-2 px-2 py-0.5 bg-purple-500/20 text-purple-400 text-xs rounded-full">
+                              🍽️ Restaurant
+                            </span>
+                          )}
+                          {food.is_community && (
+                            <span className="ml-2 px-2 py-0.5 bg-green-500/20 text-green-400 text-xs rounded-full">
+                              👥 Community
+                            </span>
+                          )}
+                          {food.is_favorite && (
+                            <span className="ml-2 text-yellow-500">⭐</span>
+                          )}
                         </div>
+
+                        {/* Description for templates */}
+                        {food.is_template && food.description && (
+                          <div className="text-xs text-iron-gray/80 mt-0.5 italic">
+                            {food.description}
+                          </div>
+                        )}
+
                         <div className="text-sm text-iron-gray mt-1">
                           {food.serving_size} {food.serving_unit}
                           {food.last_quantity && food.last_unit && (
                             <span className="ml-2 text-iron-orange">
                               (last: {food.last_quantity} {food.last_unit})
+                            </span>
+                          )}
+                          {food.is_template && food.use_count && food.use_count > 0 && (
+                            <span className="ml-2 text-iron-gray/70">
+                              • Used {food.use_count} time{food.use_count !== 1 ? 's' : ''}
                             </span>
                           )}
                         </div>
