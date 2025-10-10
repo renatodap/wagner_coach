@@ -266,9 +266,9 @@ export function foodToMealFood(food: Food, quantity: number = 1, unit?: string):
     serving_unit: food.serving_unit,
     calories: (food.calories || 0) * quantityMultiplier,
     protein_g: (food.protein_g || 0) * quantityMultiplier,
-    carbs_g: (food.carbs_g || 0) * quantityMultiplier,
-    fat_g: (food.fat_g || 0) * quantityMultiplier,
-    fiber_g: (food.fiber_g || 0) * quantityMultiplier
+    carbs_g: (food.total_carbs_g || 0) * quantityMultiplier,  // Use total_carbs_g from backend
+    fat_g: (food.total_fat_g || 0) * quantityMultiplier,      // Use total_fat_g from backend
+    fiber_g: (food.dietary_fiber_g || 0) * quantityMultiplier  // Use dietary_fiber_g from backend
   }
 }
 

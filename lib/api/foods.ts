@@ -18,10 +18,10 @@ export interface Food {
   household_serving_unit?: string  // e.g., "cup", "slice"
   calories?: number
   protein_g?: number
-  carbs_g?: number
-  fat_g?: number
-  fiber_g?: number
-  sugar_g?: number
+  total_carbs_g?: number  // Backend returns total_carbs_g, not carbs_g
+  total_fat_g?: number    // Backend returns total_fat_g, not fat_g
+  dietary_fiber_g?: number  // Backend returns dietary_fiber_g, not fiber_g
+  total_sugars_g?: number  // Backend returns total_sugars_g, not sugar_g
   sodium_mg?: number
   is_recent?: boolean
   is_generic?: boolean
