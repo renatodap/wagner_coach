@@ -12,6 +12,7 @@ import { createMeal } from '@/lib/api/meals'
 import { confirmLog, cancelLog } from '@/lib/api/unified-coach'
 import type { Food } from '@/lib/api/foods'
 import { createClient } from '@/lib/supabase/client'
+import { formatInTimeZone, toZonedTime, fromZonedTime } from 'date-fns-tz'
 
 type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack'
 
@@ -26,15 +27,42 @@ function LogMealForm() {
   const previewDataStr = searchParams.get('previewData')
 
   const [mealType, setMealType] = useState<MealType>('breakfast')
-  const [mealTime, setMealTime] = useState(() => {
-    const now = new Date()
-    return now.toISOString().slice(0, 16) // Format for datetime-local input
-  })
+  const [mealTime, setMealTime] = useState('')
+  const [userTimezone, setUserTimezone] = useState<string>('UTC')
   const [notes, setNotes] = useState('')
   const [foods, setFoods] = useState<MealFood[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+
+  // Fetch user's timezone from profile and initialize meal time
+  useEffect(() => {
+    async function fetchUserTimezone() {
+      try {
+        const supabase = createClient()
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('timezone')
+          .single()
+
+        const timezone = profile?.timezone || 'UTC'
+        setUserTimezone(timezone)
+
+        // Initialize meal time in user's timezone
+        const now = new Date()
+        const formattedTime = formatInTimeZone(now, timezone, "yyyy-MM-dd'T'HH:mm")
+        setMealTime(formattedTime)
+      } catch (err) {
+        console.error('Failed to fetch user timezone:', err)
+        // Fallback to UTC
+        setUserTimezone('UTC')
+        const now = new Date()
+        setMealTime(formatInTimeZone(now, 'UTC', "yyyy-MM-dd'T'HH:mm"))
+      }
+    }
+
+    fetchUserTimezone()
+  }, [])
 
   // Pre-fill data from URL parameters (from coach meal preview)
   useEffect(() => {
@@ -75,9 +103,30 @@ function LogMealForm() {
   }, [previewDataStr])
 
   function handleSelectFood(food: Food) {
-    // Use last logged quantity/unit if available, otherwise use serving
-    const quantity = food.last_quantity || 1
-    const unit = food.last_unit || food.serving_unit || 'serving'
+    // CRITICAL: Default portion logic (priority order)
+    // 1. last_quantity (user's previous log of this food)
+    // 2. household_serving_size (most common portion like "1 cup", "1 slice")
+    // 3. serving_size (database default, usually 100g)
+    // 4. Fallback to 1
+
+    let quantity: number
+    let unit: string
+
+    if (food.last_quantity) {
+      // User logged this food before - use their last quantity
+      quantity = food.last_quantity
+      unit = food.last_unit || food.serving_unit || 'serving'
+    } else if (food.household_serving_size) {
+      // Use household serving (e.g., "1 cup", "2 slices")
+      // Try to parse quantity from household_serving_size (e.g., "1 cup" -> 1, "2.5 oz" -> 2.5)
+      const match = food.household_serving_size.match(/^([\d.]+)/)
+      quantity = match ? parseFloat(match[1]) : 1
+      unit = food.household_serving_unit || food.serving_unit || 'serving'
+    } else {
+      // Use database serving size (typically 100g for most foods)
+      quantity = food.serving_size || 1
+      unit = food.serving_unit || 'serving'
+    }
 
     const mealFood = foodToMealFood(food, quantity, unit)
     setFoods([...foods, mealFood])
@@ -110,10 +159,16 @@ function LogMealForm() {
 
       console.log('✅ [Meal Log] Session obtained, token length:', session.access_token.length)
 
-      // Prepare meal data
+      // Prepare meal data - convert datetime-local to UTC using user's timezone
+      // CRITICAL: datetime-local input gives us "2025-10-09T14:30"
+      // We interpret this as 2:30 PM in the USER'S timezone (not browser timezone)
+      // Then convert to UTC for storage
+      const localDateTime = new Date(mealTime) // Parse as if in user's timezone
+      const utcDateTime = fromZonedTime(localDateTime, userTimezone) // Convert to UTC
+
       const mealData = {
         category: mealType,
-        logged_at: new Date(mealTime).toISOString(),
+        logged_at: utcDateTime.toISOString(), // Store as UTC in database
         notes: notes || undefined,
         foods: foods.map((f) => ({
           food_id: f.food_id,

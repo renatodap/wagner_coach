@@ -14,6 +14,8 @@ export interface Food {
   food_group?: string
   serving_size: number
   serving_unit: string
+  household_serving_size?: string  // NEW: e.g., "1 cup", "2 slices"
+  household_serving_unit?: string  // NEW: e.g., "cup", "slice"
   calories?: number
   protein_g?: number
   carbs_g?: number
