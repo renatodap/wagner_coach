@@ -213,9 +213,10 @@ export async function POST(request: NextRequest) {
             notes: body.notes,
             total_calories: body.calories || 0,
             total_protein_g: body.protein_g || 0,
-            total_carbs_g: body.carbs_g || 0,
-            total_fat_g: body.fat_g || 0,
-            total_fiber_g: body.fiber_g || 0
+            // V2: support both old and new field names in request body
+            total_carbs_g: body.total_carbs_g || body.carbs_g || 0,
+            total_fat_g: body.total_fat_g || body.fat_g || 0,
+            total_fiber_g: body.dietary_fiber_g || body.fiber_g || 0
           })
           .select()
           .single();
@@ -430,9 +431,10 @@ export async function POST(request: NextRequest) {
         notes: body.notes?.trim(),
         calories: body.calories ? Number(body.calories) : null,
         protein_g: body.protein_g ? Number(body.protein_g) : null,
-        carbs_g: body.carbs_g ? Number(body.carbs_g) : null,
-        fat_g: body.fat_g ? Number(body.fat_g) : null,
-        fiber_g: body.fiber_g ? Number(body.fiber_g) : null,
+        // V2: support both old and new field names
+        carbs_g: body.total_carbs_g ? Number(body.total_carbs_g) : (body.carbs_g ? Number(body.carbs_g) : null),
+        fat_g: body.total_fat_g ? Number(body.total_fat_g) : (body.fat_g ? Number(body.fat_g) : null),
+        fiber_g: body.dietary_fiber_g ? Number(body.dietary_fiber_g) : (body.fiber_g ? Number(body.fiber_g) : null),
       };
 
       // Insert into database

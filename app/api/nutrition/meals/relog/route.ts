@@ -63,8 +63,9 @@ export async function POST(request: NextRequest) {
       notes: relogData.notes || originalMeal.notes,
       calories: originalMeal.calories,
       protein_g: originalMeal.protein_g,
-      carbs_g: originalMeal.carbs_g,
-      fat_g: originalMeal.fat_g,
+      // V2: support both old and new field names
+      carbs_g: originalMeal.total_carbs_g || originalMeal.carbs_g,
+      fat_g: originalMeal.total_fat_g || originalMeal.fat_g,
     };
 
     // Insert new meal

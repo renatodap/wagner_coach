@@ -75,9 +75,10 @@ async function parseSimpleMeal(
       nutrition: {
         calories: Math.round((food.calories || 0) * multiplier),
         protein_g: (food.protein_g || 0) * multiplier,
-        carbs_g: (food.carbs_g || 0) * multiplier,
-        fat_g: (food.fat_g || 0) * multiplier,
-        fiber_g: (food.fiber_g || 0) * multiplier
+        // V2: support both old and new field names
+        carbs_g: ((food.total_carbs_g || food.carbs_g) || 0) * multiplier,
+        fat_g: ((food.total_fat_g || food.fat_g) || 0) * multiplier,
+        fiber_g: ((food.dietary_fiber_g || food.fiber_g) || 0) * multiplier
       },
       confidence: 'medium',
       source: 'database',

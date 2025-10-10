@@ -30,9 +30,9 @@ For MEALS:
     "meal_type": "breakfast|lunch|dinner|snack",
     "calories": number or null,
     "protein_g": number or null,
-    "carbs_g": number or null,
-    "fat_g": number or null,
-    "fiber_g": number or null
+    "total_carbs_g": number or null,
+    "total_fat_g": number or null,
+    "dietary_fiber_g": number or null
   },
   "confidence": 0.0-1.0,
   "suggestions": ["array of helpful suggestions"]
@@ -148,9 +148,10 @@ function parseMealData(text: string) {
     meal_type: mealType,
     calories: calorieMatch ? parseInt(calorieMatch[1]) : null,
     protein_g: proteinMatch ? parseFloat(proteinMatch[1]) : null,
-    carbs_g: carbsMatch ? parseFloat(carbsMatch[1]) : null,
-    fat_g: fatMatch ? parseFloat(fatMatch[1]) : null,
-    fiber_g: fiberMatch ? parseFloat(fiberMatch[1]) : null,
+    // V2: use new field names
+    total_carbs_g: carbsMatch ? parseFloat(carbsMatch[1]) : null,
+    total_fat_g: fatMatch ? parseFloat(fatMatch[1]) : null,
+    dietary_fiber_g: fiberMatch ? parseFloat(fiberMatch[1]) : null,
   };
 }
 
