@@ -34,7 +34,7 @@
       "name": "Log Meal",
       "short_name": "Meal",
       "description": "Log a new meal",
-      "url": "/nutrition/add",
+      "url": "/nutrition/log",
       "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     },
     {

@@ -326,13 +326,13 @@ export function NutritionDashboard() {
                 <Clock className="w-5 h-5 sm:w-6 sm:h-6" />
               </Link>
               <Link
-                href="/nutrition/add"
+                href="/nutrition/log"
                 className="bg-iron-orange text-iron-black px-2 sm:px-4 py-2 font-heading text-xs sm:text-sm uppercase tracking-wider hover:bg-orange-600 transition-colors flex items-center gap-1 sm:gap-2"
-                aria-label="Add meal"
+                aria-label="Log meal"
               >
                 <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
-                <span className="hidden sm:inline">Add Meal</span>
-                <span className="sm:hidden">Add</span>
+                <span className="hidden sm:inline">Log Meal</span>
+                <span className="sm:hidden">Log</span>
               </Link>
             </div>
           </div>
@@ -439,7 +439,7 @@ export function NutritionDashboard() {
               </p>
               {isToday() && (
                 <Link
-                  href="/nutrition/add"
+                  href="/nutrition/log"
                   className="inline-block bg-iron-orange text-iron-black px-4 sm:px-6 py-2 font-heading text-sm sm:text-base uppercase tracking-wider hover:bg-orange-600 transition-colors"
                 >
                   Log Your First Meal

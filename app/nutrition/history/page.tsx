@@ -219,7 +219,7 @@ export default function NutritionHistoryPage() {
             <Calendar className="w-12 h-12 text-iron-gray mx-auto mb-4" />
             <p className="text-iron-gray mb-4">No meals found in the selected period</p>
             <Link
-              href="/nutrition/add"
+              href="/nutrition/log"
               className="inline-block bg-iron-orange text-iron-black px-6 py-2 font-heading uppercase tracking-wider hover:bg-orange-600 transition-colors"
             >
               Log Your First Meal
