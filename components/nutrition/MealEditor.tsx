@@ -8,7 +8,10 @@ import { Label } from '@/components/ui/label'
 import type { Food } from '@/lib/api/foods'
 
 // Common units for food measurement
-const COMMON_UNITS = ['g', 'oz', 'cup', 'tbsp', 'tsp', 'serving', 'piece', 'slice']
+// Only include units with universal conversions to prevent incorrect calculations
+// cup, tbsp, tsp removed - require food-specific density data
+// piece, slice removed - should use serving instead
+const COMMON_UNITS = ['g', 'oz', 'serving']
 
 export interface MealFood {
   food_id: string
@@ -272,7 +275,8 @@ export function foodToMealFood(food: Food, quantity: number = 1, unit?: string):
   }
 }
 
-// Unit conversion function (mirrors backend convert_to_base_unit)
+// Unit conversion function - only handles safe units with universal conversion factors
+// Supports: g (grams), oz (ounces), serving (food-specific, no conversion)
 function convertToBaseUnit(quantity: number, fromUnit: string, toUnit: string): number {
   if (fromUnit === toUnit) {
     return quantity
@@ -281,21 +285,15 @@ function convertToBaseUnit(quantity: number, fromUnit: string, toUnit: string): 
   // Convert to grams first
   let grams: number
   switch (fromUnit) {
-    case 'g': grams = quantity; break
-    case 'kg': grams = quantity * 1000; break
-    case 'mg': grams = quantity / 1000; break
-    case 'oz': grams = quantity * 28.3495; break
-    case 'lb': grams = quantity * 453.592; break
-    case 'ml': grams = quantity; break
-    case 'l': grams = quantity * 1000; break
-    case 'fl oz': grams = quantity * 29.5735; break
-    case 'cup': grams = quantity * 240; break
-    case 'tbsp': grams = quantity * 15; break
-    case 'tsp': grams = quantity * 5; break
+    case 'g':
+      grams = quantity
+      break
+    case 'oz':
+      grams = quantity * 28.3495  // 1 oz = 28.3495g
+      break
     case 'serving':
-    case 'piece':
-    case 'slice':
-    case 'item':
+      // Serving stays as-is (no conversion to grams)
+      // The food's serving_size defines what 1 serving equals in grams
       grams = quantity
       break
     default:
@@ -304,21 +302,12 @@ function convertToBaseUnit(quantity: number, fromUnit: string, toUnit: string): 
 
   // Convert from grams to target unit
   switch (toUnit) {
-    case 'g': return grams
-    case 'kg': return grams / 1000
-    case 'mg': return grams * 1000
-    case 'oz': return grams / 28.3495
-    case 'lb': return grams / 453.592
-    case 'ml': return grams
-    case 'l': return grams / 1000
-    case 'fl oz': return grams / 29.5735
-    case 'cup': return grams / 240
-    case 'tbsp': return grams / 15
-    case 'tsp': return grams / 5
+    case 'g':
+      return grams
+    case 'oz':
+      return grams / 28.3495  // grams to oz
     case 'serving':
-    case 'piece':
-    case 'slice':
-    case 'item':
+      // Serving stays as-is
       return grams
     default:
       return grams
