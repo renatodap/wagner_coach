@@ -7,11 +7,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import type { Food } from '@/lib/api/foods'
 
-// Common units for food measurement
-// Only include units with universal conversions to prevent incorrect calculations
-// Removed: cup, tbsp, tsp (require food-specific density data)
-// Removed: serving, piece, slice (ambiguous, use grams or ounces)
-const COMMON_UNITS = ['g', 'oz']
+// Base weight units available for all foods
+const BASE_WEIGHT_UNITS = ['g', 'oz']
 
 export interface MealFood {
   food_id: string
@@ -21,6 +18,9 @@ export interface MealFood {
   unit: string
   serving_size: number
   serving_unit: string
+  // Household serving fields (e.g., "1 slice", "1 medium")
+  household_serving_size?: string
+  household_serving_unit?: string
   calories: number
   protein_g: number
   carbs_g: number
@@ -32,6 +32,66 @@ interface MealEditorProps {
   foods: MealFood[]
   onFoodsChange: (foods: MealFood[]) => void
   showTotals?: boolean
+}
+
+// Helper: Get available units for a food (household unit + weight units)
+function getAvailableUnits(food: MealFood): string[] {
+  const units: string[] = []
+
+  // Add household unit first if available (e.g., "slice", "medium")
+  if (food.household_serving_unit) {
+    units.push(food.household_serving_unit)
+  }
+
+  // Always add base weight units
+  units.push(...BASE_WEIGHT_UNITS)
+
+  return units
+}
+
+// Helper: Format display text for quantity + unit (e.g., "2 slices (214g)")
+function formatQuantityDisplay(food: MealFood): string {
+  const { quantity, unit, household_serving_unit } = food
+
+  // If using household unit, show both serving and grams
+  if (unit === household_serving_unit && household_serving_unit) {
+    // Calculate equivalent grams
+    const grams = convertToGrams(quantity, unit, food)
+    const roundedGrams = Math.round(grams)
+
+    // Pluralize unit if quantity > 1
+    const pluralUnit = quantity > 1 ? pluralizeUnit(unit) : unit
+
+    return `${quantity} ${pluralUnit} (${roundedGrams}g)`
+  }
+
+  // Otherwise just show the unit
+  return `${quantity} ${unit}`
+}
+
+// Helper: Pluralize common household units
+function pluralizeUnit(unit: string): string {
+  const pluralMap: Record<string, string> = {
+    'slice': 'slices',
+    'piece': 'pieces',
+    'medium': 'medium',  // No plural for size adjectives
+    'large': 'large',
+    'small': 'small',
+    'cup': 'cups',
+    'tbsp': 'tbsp',
+    'tsp': 'tsp',
+    'oz': 'oz',
+    'g': 'g'
+  }
+
+  return pluralMap[unit] || `${unit}s`  // Default: add 's'
+}
+
+// Helper: Convert quantity to grams for display
+function convertToGrams(quantity: number, unit: string, food: MealFood): number {
+  const convertedQuantity = convertToBaseUnit(quantity, unit, food)
+  const quantityMultiplier = food.serving_size > 0 ? convertedQuantity / food.serving_size : 1
+  return food.serving_size * quantityMultiplier
 }
 
 export function MealEditor({ foods, onFoodsChange, showTotals = true }: MealEditorProps) {
@@ -79,12 +139,12 @@ export function MealEditor({ foods, onFoodsChange, showTotals = true }: MealEdit
     const food = foods[index]
     const newFoods = [...foods]
 
-    // Recalculate nutrition based on new quantity/unit (same logic as foodToMealFood)
-    const convertedQuantity = convertToBaseUnit(quantity, editUnit, food.serving_unit)
+    // Recalculate nutrition based on new quantity/unit
+    const convertedQuantity = convertToBaseUnit(quantity, editUnit, food)
     const quantityMultiplier = food.serving_size > 0 ? convertedQuantity / food.serving_size : 1
 
     // Get base nutrition values from food record (divide current values by old multiplier)
-    const oldConvertedQuantity = convertToBaseUnit(food.quantity, food.unit, food.serving_unit)
+    const oldConvertedQuantity = convertToBaseUnit(food.quantity, food.unit, food)
     const oldMultiplier = food.serving_size > 0 ? oldConvertedQuantity / food.serving_size : 1
 
     const baseCalories = oldMultiplier !== 0 ? food.calories / oldMultiplier : food.calories
@@ -148,7 +208,7 @@ export function MealEditor({ foods, onFoodsChange, showTotals = true }: MealEdit
                       onChange={(e) => setEditUnit(e.target.value)}
                       className="w-full bg-iron-black border border-iron-gray/30 text-white rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-iron-orange"
                     >
-                      {COMMON_UNITS.map((unit) => (
+                      {getAvailableUnits(food).map((unit) => (
                         <option key={unit} value={unit}>
                           {unit}
                         </option>
@@ -190,7 +250,7 @@ export function MealEditor({ foods, onFoodsChange, showTotals = true }: MealEdit
                       )}
                     </div>
                     <div className="text-sm text-iron-gray mt-1">
-                      {food.quantity} {food.unit}
+                      {formatQuantityDisplay(food)}
                     </div>
                     <div className="text-sm text-iron-gray mt-1">
                       {Math.round(food.calories)} cal • {food.protein_g.toFixed(1)}g P • {food.carbs_g.toFixed(1)}g C • {food.fat_g.toFixed(1)}g F
@@ -255,11 +315,8 @@ export function MealEditor({ foods, onFoodsChange, showTotals = true }: MealEdit
 export function foodToMealFood(food: Food, quantity: number = 1, unit?: string): MealFood {
   const selectedUnit = unit || food.serving_unit || 'serving'
 
-  // Calculate nutrition scaling (same logic as backend trigger)
-  const convertedQuantity = convertToBaseUnit(quantity, selectedUnit, food.serving_unit)
-  const quantityMultiplier = food.serving_size > 0 ? convertedQuantity / food.serving_size : 1
-
-  return {
+  // Calculate nutrition scaling
+  const mealFood: MealFood = {
     food_id: food.id,
     name: food.name,
     brand: food.brand_name,
@@ -267,17 +324,60 @@ export function foodToMealFood(food: Food, quantity: number = 1, unit?: string):
     unit: selectedUnit,
     serving_size: food.serving_size,
     serving_unit: food.serving_unit,
-    calories: (food.calories || 0) * quantityMultiplier,
-    protein_g: (food.protein_g || 0) * quantityMultiplier,
-    carbs_g: (food.total_carbs_g || 0) * quantityMultiplier,  // Use total_carbs_g from backend
-    fat_g: (food.total_fat_g || 0) * quantityMultiplier,      // Use total_fat_g from backend
-    fiber_g: (food.dietary_fiber_g || 0) * quantityMultiplier  // Use dietary_fiber_g from backend
+    household_serving_size: food.household_serving_size,
+    household_serving_unit: food.household_serving_unit,
+    calories: 0,
+    protein_g: 0,
+    carbs_g: 0,
+    fat_g: 0,
+    fiber_g: 0
   }
+
+  const convertedQuantity = convertToBaseUnit(quantity, selectedUnit, mealFood)
+  const quantityMultiplier = food.serving_size > 0 ? convertedQuantity / food.serving_size : 1
+
+  // Apply multiplier to nutrition
+  mealFood.calories = (food.calories || 0) * quantityMultiplier
+  mealFood.protein_g = (food.protein_g || 0) * quantityMultiplier
+  mealFood.carbs_g = (food.total_carbs_g || 0) * quantityMultiplier
+  mealFood.fat_g = (food.total_fat_g || 0) * quantityMultiplier
+  mealFood.fiber_g = (food.dietary_fiber_g || 0) * quantityMultiplier
+
+  return mealFood
 }
 
-// Unit conversion function - only handles safe units with universal conversion factors
-// Supports: g (grams), oz (ounces)
-function convertToBaseUnit(quantity: number, fromUnit: string, toUnit: string): number {
+/**
+ * Unit conversion function
+ * Handles household units (slice, medium, cup) and weight units (g, oz)
+ *
+ * For household units:
+ * - If fromUnit matches household_serving_unit, multiply quantity by serving_size
+ * - Example: 2 slices × 107g/slice = 214g
+ *
+ * For weight units:
+ * - Standard conversions (g ↔ oz)
+ */
+function convertToBaseUnit(quantity: number, fromUnit: string, food: MealFood): number {
+  const { serving_size, serving_unit, household_serving_unit } = food
+
+  // If converting FROM household unit (e.g., "slice" → grams)
+  if (fromUnit === household_serving_unit && household_serving_unit) {
+    // Each household serving equals serving_size grams
+    // Example: 2 slices × 107g/slice = 214g
+    const grams = quantity * serving_size
+
+    // Convert to target unit if needed
+    return convertWeightUnit(grams, 'g', serving_unit)
+  }
+
+  // Otherwise, standard weight unit conversion
+  return convertWeightUnit(quantity, fromUnit, serving_unit)
+}
+
+/**
+ * Convert between weight units (g, oz)
+ */
+function convertWeightUnit(quantity: number, fromUnit: string, toUnit: string): number {
   if (fromUnit === toUnit) {
     return quantity
   }
@@ -292,7 +392,7 @@ function convertToBaseUnit(quantity: number, fromUnit: string, toUnit: string): 
       grams = quantity * 28.3495  // 1 oz = 28.3495g
       break
     default:
-      grams = quantity
+      grams = quantity  // Assume grams if unknown
   }
 
   // Convert from grams to target unit
@@ -302,6 +402,6 @@ function convertToBaseUnit(quantity: number, fromUnit: string, toUnit: string): 
     case 'oz':
       return grams / 28.3495  // grams to oz
     default:
-      return grams
+      return grams  // Return grams if unknown target
   }
 }

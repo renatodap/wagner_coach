@@ -104,28 +104,28 @@ function LogMealForm() {
 
   function handleSelectFood(food: Food) {
     // CRITICAL: Default portion logic (priority order)
-    // 1. last_quantity (user's previous log of this food)
-    // 2. household_serving_size (most common portion like "1 cup", "1 slice")
-    // 3. serving_size (database default, usually 100g)
-    // 4. Fallback to 1
+    // 1. last_quantity + last_unit (user's previous log of this food)
+    // 2. household_serving_size + household_serving_unit (e.g., "1 slice", "1 medium")
+    // 3. serving_size + serving_unit (database default, usually 100g)
+    // 4. Fallback to 1 serving
 
     let quantity: number
     let unit: string
 
-    if (food.last_quantity) {
-      // User logged this food before - use their last quantity
+    if (food.last_quantity && food.last_unit) {
+      // User logged this food before - use their last quantity and unit
       quantity = food.last_quantity
-      unit = food.last_unit || food.serving_unit || 'serving'
-    } else if (food.household_serving_size) {
-      // Use household serving (e.g., "1 cup", "2 slices")
-      // Try to parse quantity from household_serving_size (e.g., "1 cup" -> 1, "2.5 oz" -> 2.5)
-      const match = food.household_serving_size.match(/^([\d.]+)/)
-      quantity = match ? parseFloat(match[1]) : 1
-      unit = food.household_serving_unit || food.serving_unit || 'serving'
+      unit = food.last_unit
+    } else if (food.household_serving_size && food.household_serving_unit) {
+      // Use household serving (e.g., "1" slice, "1" medium)
+      // Parse quantity from household_serving_size (e.g., "1" -> 1, "0.5" -> 0.5)
+      const parsed = parseFloat(food.household_serving_size)
+      quantity = isNaN(parsed) ? 1 : parsed
+      unit = food.household_serving_unit
     } else {
-      // Use database serving size (typically 100g for most foods)
+      // Fall back to database serving size (typically 100g)
       quantity = food.serving_size || 1
-      unit = food.serving_unit || 'serving'
+      unit = food.serving_unit || 'g'
     }
 
     const mealFood = foodToMealFood(food, quantity, unit)
