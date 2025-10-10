@@ -9,9 +9,9 @@ import type { Food } from '@/lib/api/foods'
 
 // Common units for food measurement
 // Only include units with universal conversions to prevent incorrect calculations
-// cup, tbsp, tsp removed - require food-specific density data
-// piece, slice removed - should use serving instead
-const COMMON_UNITS = ['g', 'oz', 'serving']
+// Removed: cup, tbsp, tsp (require food-specific density data)
+// Removed: serving, piece, slice (ambiguous, use grams or ounces)
+const COMMON_UNITS = ['g', 'oz']
 
 export interface MealFood {
   food_id: string
@@ -276,7 +276,7 @@ export function foodToMealFood(food: Food, quantity: number = 1, unit?: string):
 }
 
 // Unit conversion function - only handles safe units with universal conversion factors
-// Supports: g (grams), oz (ounces), serving (food-specific, no conversion)
+// Supports: g (grams), oz (ounces)
 function convertToBaseUnit(quantity: number, fromUnit: string, toUnit: string): number {
   if (fromUnit === toUnit) {
     return quantity
@@ -291,11 +291,6 @@ function convertToBaseUnit(quantity: number, fromUnit: string, toUnit: string): 
     case 'oz':
       grams = quantity * 28.3495  // 1 oz = 28.3495g
       break
-    case 'serving':
-      // Serving stays as-is (no conversion to grams)
-      // The food's serving_size defines what 1 serving equals in grams
-      grams = quantity
-      break
     default:
       grams = quantity
   }
@@ -306,9 +301,6 @@ function convertToBaseUnit(quantity: number, fromUnit: string, toUnit: string): 
       return grams
     case 'oz':
       return grams / 28.3495  // grams to oz
-    case 'serving':
-      // Serving stays as-is
-      return grams
     default:
       return grams
   }
