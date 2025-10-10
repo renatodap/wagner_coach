@@ -178,24 +178,15 @@ export function NutritionDashboard() {
 
     setDeletingId(mealId);
     try {
-      const response = await fetch(`/api/nutrition/meals/${mealId}`, {
-        method: 'DELETE',
-      });
-
-      let data;
-      const contentType = response.headers.get('content-type');
-      if (contentType && contentType.includes('application/json')) {
-        data = await response.json();
-      } else {
-        const text = await response.text();
-        console.error('Non-JSON response:', text);
-        data = { error: `Server returned ${response.status}: ${text || response.statusText}` };
+      // Get JWT token
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('Not authenticated');
       }
 
-      if (!response.ok) {
-        console.error('Delete failed:', data);
-        throw new Error(data.error || 'Failed to delete meal');
-      }
+      // Use Python backend API through deleteMeal helper
+      const { deleteMeal } = await import('@/lib/api/meals');
+      await deleteMeal(mealId, session.access_token);
 
       // Remove from local state
       setTodaysMeals(todaysMeals.filter(meal => meal.id !== mealId));
