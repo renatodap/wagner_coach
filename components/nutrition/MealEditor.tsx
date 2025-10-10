@@ -162,7 +162,7 @@ export function MealEditor({ foods, onFoodsChange, showTotals = true }: MealEdit
       {/* Food Items */}
       <div className="space-y-3">
         {foods.map((food, index) => (
-          <div key={index} className="border border-iron-gray/30 rounded-lg p-4 bg-neutral-800 hover:bg-neutral-700/50 transition-all">
+          <div key={`${food.food_id}-${index}`} className="border border-iron-gray/30 rounded-lg p-4 bg-neutral-800 hover:bg-neutral-700/50 transition-all">
             {editingIndex === index ? (
               // Edit mode with DualQuantityEditor
               <div className="space-y-3">
