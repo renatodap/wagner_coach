@@ -27,6 +27,7 @@ export function FoodSearchV2({
   const [mounted, setMounted] = useState(false)
   const searchRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const dropdownRef = useRef<HTMLDivElement>(null)
 
   // Track mounted state for portal
   useEffect(() => {
@@ -63,7 +64,12 @@ export function FoodSearchV2({
   // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+      const target = event.target as Node
+      const clickedOutsideSearch = searchRef.current && !searchRef.current.contains(target)
+      const clickedOutsideDropdown = dropdownRef.current && !dropdownRef.current.contains(target)
+
+      // Only close if clicked outside BOTH the search input AND the portal dropdown
+      if (clickedOutsideSearch && clickedOutsideDropdown) {
         setShowResults(false)
       }
     }
@@ -192,6 +198,7 @@ export function FoodSearchV2({
       {/* Results Dropdown - Rendered via Portal */}
       {showResults && mounted && createPortal(
         <div
+          ref={dropdownRef}
           style={{
             position: 'fixed',
             top: `${dropdownPosition.top}px`,
