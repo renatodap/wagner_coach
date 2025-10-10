@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { Search, Plus, Clock } from 'lucide-react'
 import { searchFoods, getRecentFoods, type Food } from '@/lib/api/foods'
 import { createClient } from '@/lib/supabase/client'
@@ -22,7 +23,42 @@ export function FoodSearchV2({
   const [loading, setLoading] = useState(false)
   const [showResults, setShowResults] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 })
+  const [mounted, setMounted] = useState(false)
   const searchRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  // Track mounted state for portal
+  useEffect(() => {
+    setMounted(true)
+    return () => setMounted(false)
+  }, [])
+
+  // Update dropdown position when input moves or window resizes
+  function updateDropdownPosition() {
+    if (inputRef.current) {
+      const rect = inputRef.current.getBoundingClientRect()
+      setDropdownPosition({
+        top: rect.bottom + window.scrollY + 8, // 8px gap
+        left: rect.left + window.scrollX,
+        width: rect.width
+      })
+    }
+  }
+
+  // Update position on scroll and resize
+  useEffect(() => {
+    if (showResults) {
+      updateDropdownPosition()
+      window.addEventListener('scroll', updateDropdownPosition, true)
+      window.addEventListener('resize', updateDropdownPosition)
+
+      return () => {
+        window.removeEventListener('scroll', updateDropdownPosition, true)
+        window.removeEventListener('resize', updateDropdownPosition)
+      }
+    }
+  }, [showResults])
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -139,19 +175,32 @@ export function FoodSearchV2({
       <div className="relative">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-iron-gray" size={20} />
         <input
+          ref={inputRef}
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          onFocus={() => setShowResults(true)}
+          onFocus={() => {
+            updateDropdownPosition()
+            setShowResults(true)
+          }}
           placeholder={placeholder}
           className="w-full bg-neutral-800 border border-iron-gray/30 text-white placeholder:text-iron-gray pl-10 pr-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-iron-orange focus:border-transparent transition-all"
           autoComplete="off"
         />
       </div>
 
-      {/* Results Dropdown */}
-      {showResults && (
-        <div className="absolute z-[999] w-full mt-2 bg-neutral-800 border border-iron-gray/30 rounded-lg shadow-xl max-h-96 overflow-y-auto">
+      {/* Results Dropdown - Rendered via Portal */}
+      {showResults && mounted && createPortal(
+        <div
+          style={{
+            position: 'fixed',
+            top: `${dropdownPosition.top}px`,
+            left: `${dropdownPosition.left}px`,
+            width: `${dropdownPosition.width}px`,
+            zIndex: 9999
+          }}
+          className="bg-neutral-800 border border-iron-gray/30 rounded-lg shadow-xl max-h-96 overflow-y-auto"
+        >
           {loading ? (
             <div className="p-4 text-center text-iron-gray">
               <div className="animate-spin inline-block w-6 h-6 border-2 border-iron-gray border-t-iron-orange rounded-full mb-2" />
@@ -254,7 +303,8 @@ export function FoodSearchV2({
               )}
             </div>
           )}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )
