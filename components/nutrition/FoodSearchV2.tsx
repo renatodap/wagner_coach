@@ -89,15 +89,28 @@ export function FoodSearchV2({
         throw new Error('Not authenticated')
       }
 
+      console.log('🔍 [FoodSearch] Searching for:', searchQuery)
+      console.log('🔑 [FoodSearch] Token present:', !!session.access_token, 'Length:', session.access_token.length)
+
       const response = await searchFoods(searchQuery, {
         limit: 20,
         includeRecent: true,
         token: session.access_token
       })
 
+      console.log('✅ [FoodSearch] Search results:', {
+        query: searchQuery,
+        totalFound: response.foods.length,
+        foodNames: response.foods.map(f => f.name).slice(0, 5)
+      })
+
       setFoods(response.foods)
     } catch (err) {
-      console.error('Error searching foods:', err)
+      console.error('❌ [FoodSearch] Search error:', err)
+      console.error('❌ [FoodSearch] Error details:', {
+        message: err instanceof Error ? err.message : 'Unknown error',
+        query: searchQuery
+      })
       setError(err instanceof Error ? err.message : 'Failed to search foods')
       setFoods([])
     } finally {
@@ -138,7 +151,7 @@ export function FoodSearchV2({
 
       {/* Results Dropdown */}
       {showResults && (
-        <div className="absolute z-50 w-full mt-2 bg-neutral-800 border border-iron-gray/30 rounded-lg shadow-lg max-h-96 overflow-y-auto">
+        <div className="absolute z-[999] w-full mt-2 bg-neutral-800 border border-iron-gray/30 rounded-lg shadow-xl max-h-96 overflow-y-auto">
           {loading ? (
             <div className="p-4 text-center text-iron-gray">
               <div className="animate-spin inline-block w-6 h-6 border-2 border-iron-gray border-t-iron-orange rounded-full mb-2" />

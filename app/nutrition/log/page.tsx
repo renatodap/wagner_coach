@@ -319,7 +319,7 @@ function LogMealForm() {
         </div>
 
         {/* Food Search */}
-        <div className="bg-iron-black/50 backdrop-blur-sm border border-iron-gray/20 rounded-lg p-6">
+        <div className="bg-iron-black/50 backdrop-blur-sm border border-iron-gray/20 rounded-lg p-6 overflow-visible">
           <Label className="text-base font-semibold text-white mb-3 block">Search & Add Foods</Label>
           <FoodSearchV2
             onSelectFood={handleSelectFood}
