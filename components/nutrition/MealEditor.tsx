@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import type { Food } from '@/lib/api/foods'
+import { FoodQuantityEditor } from './FoodQuantityEditor'
 
 // Base weight units available for all foods
 const BASE_WEIGHT_UNITS = ['g', 'oz']
@@ -96,8 +97,6 @@ function convertToGrams(quantity: number, unit: string, food: MealFood): number 
 
 export function MealEditor({ foods, onFoodsChange, showTotals = true }: MealEditorProps) {
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
-  const [editQuantity, setEditQuantity] = useState('')
-  const [editUnit, setEditUnit] = useState('')
 
   // Calculate totals
   const totals = useMemo(() => {
@@ -120,52 +119,16 @@ export function MealEditor({ foods, onFoodsChange, showTotals = true }: MealEdit
 
   function startEditing(index: number) {
     setEditingIndex(index)
-    setEditQuantity(foods[index].quantity.toString())
-    setEditUnit(foods[index].unit)
   }
 
   function cancelEditing() {
     setEditingIndex(null)
-    setEditQuantity('')
-    setEditUnit('')
   }
 
-  function saveEditing(index: number) {
-    const quantity = parseFloat(editQuantity)
-    if (isNaN(quantity) || quantity <= 0) {
-      return
-    }
-
-    const food = foods[index]
+  function handleFoodUpdate(index: number, updatedFood: MealFood) {
     const newFoods = [...foods]
-
-    // Recalculate nutrition based on new quantity/unit
-    const convertedQuantity = convertToBaseUnit(quantity, editUnit, food)
-    const quantityMultiplier = food.serving_size > 0 ? convertedQuantity / food.serving_size : 1
-
-    // Get base nutrition values from food record (divide current values by old multiplier)
-    const oldConvertedQuantity = convertToBaseUnit(food.quantity, food.unit, food)
-    const oldMultiplier = food.serving_size > 0 ? oldConvertedQuantity / food.serving_size : 1
-
-    const baseCalories = oldMultiplier !== 0 ? food.calories / oldMultiplier : food.calories
-    const baseProtein = oldMultiplier !== 0 ? food.protein_g / oldMultiplier : food.protein_g
-    const baseCarbs = oldMultiplier !== 0 ? food.carbs_g / oldMultiplier : food.carbs_g
-    const baseFat = oldMultiplier !== 0 ? food.fat_g / oldMultiplier : food.fat_g
-    const baseFiber = oldMultiplier !== 0 ? food.fiber_g / oldMultiplier : food.fiber_g
-
-    newFoods[index] = {
-      ...food,
-      quantity,
-      unit: editUnit,
-      calories: baseCalories * quantityMultiplier,
-      protein_g: baseProtein * quantityMultiplier,
-      carbs_g: baseCarbs * quantityMultiplier,
-      fat_g: baseFat * quantityMultiplier,
-      fiber_g: baseFiber * quantityMultiplier
-    }
-
+    newFoods[index] = updatedFood
     onFoodsChange(newFoods)
-    cancelEditing()
   }
 
   if (foods.length === 0) {
@@ -183,56 +146,23 @@ export function MealEditor({ foods, onFoodsChange, showTotals = true }: MealEdit
         {foods.map((food, index) => (
           <div key={index} className="border border-iron-gray/30 rounded-lg p-4 bg-neutral-800 hover:bg-neutral-700/50 transition-all">
             {editingIndex === index ? (
-              // Edit mode
+              // Edit mode with new FoodQuantityEditor
               <div className="space-y-3">
-                <div className="font-medium text-white">{food.name}</div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <Label htmlFor={`quantity-${index}`} className="text-xs text-iron-gray">Quantity</Label>
-                    <Input
-                      id={`quantity-${index}`}
-                      type="number"
-                      min="0"
-                      step="0.1"
-                      value={editQuantity}
-                      onChange={(e) => setEditQuantity(e.target.value)}
-                      className="text-sm bg-iron-black border-iron-gray/30 text-white focus:ring-iron-orange"
-                      autoFocus
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor={`unit-${index}`} className="text-xs text-iron-gray">Unit</Label>
-                    <select
-                      id={`unit-${index}`}
-                      value={editUnit}
-                      onChange={(e) => setEditUnit(e.target.value)}
-                      className="w-full bg-iron-black border border-iron-gray/30 text-white rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-iron-orange"
-                    >
-                      {getAvailableUnits(food).map((unit) => (
-                        <option key={unit} value={unit}>
-                          {unit}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                <div className="flex gap-2">
+                <div className="font-medium text-white mb-3">{food.name}</div>
+                <FoodQuantityEditor
+                  food={food}
+                  onChange={(updatedFood) => handleFoodUpdate(index, updatedFood)}
+                  showModeToggle={true}
+                  initialMode="servings"
+                />
+                <div className="flex gap-2 mt-4">
                   <Button
                     size="sm"
-                    onClick={() => saveEditing(index)}
+                    onClick={cancelEditing}
                     className="flex-1 bg-iron-orange hover:bg-iron-orange/90"
                   >
                     <Check size={16} className="mr-1" />
-                    Save
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={cancelEditing}
-                    className="flex-1 border-iron-gray/30 text-iron-gray hover:bg-iron-gray/20"
-                  >
-                    <X size={16} className="mr-1" />
-                    Cancel
+                    Done
                   </Button>
                 </div>
               </div>
