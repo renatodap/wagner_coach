@@ -82,9 +82,10 @@ export default function NutritionHistoryPage() {
         logged_at: new Date().toISOString(),
         calories: meal.calories,
         protein_g: meal.protein_g,
-        carbs_g: meal.carbs_g,
-        fat_g: meal.fat_g,
-        fiber_g: meal.fiber_g,
+        // V2: support both old and new field names
+        carbs_g: meal.total_carbs_g || meal.carbs_g,
+        fat_g: meal.total_fat_g || meal.fat_g,
+        fiber_g: meal.dietary_fiber_g || meal.fiber_g,
         notes: meal.notes ? `Copy from ${new Date(meal.logged_at).toLocaleDateString()}: ${meal.notes}` : `Copied from ${new Date(meal.logged_at).toLocaleDateString()}`
       };
 
@@ -119,9 +120,10 @@ export default function NutritionHistoryPage() {
     return meals.reduce((acc, meal) => ({
       calories: acc.calories + (meal.calories || 0),
       protein: acc.protein + (meal.protein_g || 0),
-      carbs: acc.carbs + (meal.carbs_g || 0),
-      fat: acc.fat + (meal.fat_g || 0),
-      fiber: acc.fiber + (meal.fiber_g || 0)
+      // V2: support both old and new field names
+      carbs: acc.carbs + ((meal.total_carbs_g || meal.carbs_g) || 0),
+      fat: acc.fat + ((meal.total_fat_g || meal.fat_g) || 0),
+      fiber: acc.fiber + ((meal.dietary_fiber_g || meal.fiber_g) || 0)
     }), { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 });
   };
 
@@ -302,7 +304,7 @@ export default function NutritionHistoryPage() {
                                 })}
                               </p>
 
-                              {(meal.calories || meal.protein_g || meal.carbs_g || meal.fat_g) && (
+                              {(meal.calories || meal.protein_g || meal.total_carbs_g || meal.carbs_g || meal.total_fat_g || meal.fat_g) && (
                                 <div className="flex gap-4 text-sm mt-2">
                                   {meal.calories && (
                                     <span className="text-iron-gray">
@@ -314,14 +316,14 @@ export default function NutritionHistoryPage() {
                                       <span className="text-iron-white">{meal.protein_g}g</span> protein
                                     </span>
                                   )}
-                                  {meal.carbs_g && (
+                                  {(meal.total_carbs_g || meal.carbs_g) && (
                                     <span className="text-iron-gray">
-                                      <span className="text-iron-white">{meal.carbs_g}g</span> carbs
+                                      <span className="text-iron-white">{meal.total_carbs_g || meal.carbs_g}g</span> carbs
                                     </span>
                                   )}
-                                  {meal.fat_g && (
+                                  {(meal.total_fat_g || meal.fat_g) && (
                                     <span className="text-iron-gray">
-                                      <span className="text-iron-white">{meal.fat_g}g</span> fat
+                                      <span className="text-iron-white">{meal.total_fat_g || meal.fat_g}g</span> fat
                                     </span>
                                   )}
                                 </div>
