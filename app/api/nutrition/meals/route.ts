@@ -266,7 +266,7 @@ export async function POST(request: NextRequest) {
           if (food.food_id) {
             const { data: foodData } = await supabase
               .from('foods')
-              .select('calories, protein_g, carbs_g, fat_g, fiber_g, serving_size, serving_unit')
+              .select('calories, protein_g, total_carbs_g, total_fat_g, dietary_fiber_g, serving_size, serving_unit, household_serving_grams, household_serving_unit')
               .eq('id', food.food_id)
               .single();
 
@@ -279,24 +279,19 @@ export async function POST(request: NextRequest) {
                 servingUnit: foodData.serving_unit
               });
 
-              // Calculate multiplier based on serving size
-              const quantity = food.quantity || 1;
-              const servingSize = foodData.serving_size || 1;
-
-              // If units match, calculate direct multiplier
-              // Otherwise, assume quantity is already adjusted
-              let multiplier = quantity / servingSize;
-
-              // If unit is different from serving unit, assume quantity is in servings
-              if (food.unit !== foodData.serving_unit && food.unit === 'serving') {
-                multiplier = quantity;
-              }
+              // V2: Use gram_quantity directly for nutrition calculation
+              // If dual quantity tracking is in place, gram_quantity is the source of truth
+              const gramQuantity = food.gram_quantity || food.quantity || 1;
+              const servingSize = foodData.serving_size || 100;
+              
+              // Calculate nutrition multiplier based on grams
+              const multiplier = gramQuantity / servingSize;
 
               totalCalories += (foodData.calories || 0) * multiplier;
               totalProtein += (foodData.protein_g || 0) * multiplier;
-              totalCarbs += (foodData.carbs_g || 0) * multiplier;
-              totalFat += (foodData.fat_g || 0) * multiplier;
-              totalFiber += (foodData.fiber_g || 0) * multiplier;
+              totalCarbs += (foodData.total_carbs_g || 0) * multiplier;
+              totalFat += (foodData.total_fat_g || 0) * multiplier;
+              totalFiber += (foodData.dietary_fiber_g || 0) * multiplier;
             }
           }
         }
@@ -332,15 +327,18 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        // Add all foods to the meal
+        // Add all foods to the meal with dual quantity tracking
         const foodInserts = body.foods.map((food: any, index: number) => ({
           meal_log_id: meal.id,
           item_type: food.item_type || 'food',  // Support both foods and templates
           food_id: food.item_type === 'template' ? null : food.food_id,
           template_id: food.item_type === 'template' ? food.template_id : null,
           order_index: index,  // Maintain order
-          quantity: food.quantity || 1,
-          unit: food.unit || 'serving'
+          // V2: Dual quantity tracking
+          serving_quantity: food.serving_quantity || food.quantity || 1,
+          serving_unit: food.serving_unit,
+          gram_quantity: food.gram_quantity || (food.quantity || 1) * 100,
+          last_edited_field: food.last_edited_field || 'grams'
         }));
 
         const { error: foodError } = await supabase
