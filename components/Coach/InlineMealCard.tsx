@@ -3,7 +3,8 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Check, UtensilsCrossed, Sparkles, ChevronDown, ChevronUp } from 'lucide-react'
+import { Check, UtensilsCrossed, Sparkles, ChevronDown, ChevronUp, Edit } from 'lucide-react'
+import { MealEditSheet } from './MealEditSheet'
 import type { FoodDetected } from '@/lib/types'
 
 interface InlineMealCardProps {
@@ -26,12 +27,21 @@ export function InlineMealCard({
   isLogged = false
 }: InlineMealCardProps) {
   const [isExpanded, setIsExpanded] = useState(false)
+  const [isEditOpen, setIsEditOpen] = useState(false)
+  const [currentData, setCurrentData] = useState(foodDetected)
 
-  const { nutrition, food_items, meal_type, confidence, description } = foodDetected
+  const { nutrition, food_items, meal_type, confidence, description } = currentData
 
   const handleLogMeal = () => {
     if (onLogMeal && !isLogged) {
-      onLogMeal(foodDetected)
+      onLogMeal(currentData)
+    }
+  }
+
+  const handleEditSave = async (editedData: FoodDetected) => {
+    setCurrentData(editedData)
+    if (onLogMeal && !isLogged) {
+      await onLogMeal(editedData)
     }
   }
 
@@ -150,12 +160,24 @@ export function InlineMealCard({
         </div>
       )}
 
-      {/* Action Button */}
-      <div className="pt-2 border-t border-iron-gray/20">
+      {/* Action Buttons */}
+      <div className="pt-2 border-t border-iron-gray/20 flex gap-2">
+        {!isLogged && (
+          <Button
+            onClick={() => setIsEditOpen(true)}
+            disabled={isLoading}
+            variant="outline"
+            className="border-iron-gray text-iron-white hover:bg-iron-gray/20"
+          >
+            <Edit className="mr-2 h-4 w-4" />
+            Edit
+          </Button>
+        )}
+
         <Button
           onClick={handleLogMeal}
           disabled={isLoading || isLogged}
-          className={`w-full transition-all duration-200 ${
+          className={`flex-1 transition-all duration-200 ${
             isLogged
               ? 'bg-green-600 hover:bg-green-600 cursor-default'
               : 'bg-iron-orange hover:bg-iron-orange/90'
@@ -180,11 +202,19 @@ export function InlineMealCard({
         </Button>
 
         {isLogged && (
-          <p className="text-xs text-green-400 text-center mt-2">
+          <p className="text-xs text-green-400 text-center mt-2 w-full">
             This meal has been saved to your nutrition history
           </p>
         )}
       </div>
+
+      {/* Edit Sheet */}
+      <MealEditSheet
+        isOpen={isEditOpen}
+        onClose={() => setIsEditOpen(false)}
+        foodData={currentData}
+        onSave={handleEditSave}
+      />
     </Card>
   )
 }
