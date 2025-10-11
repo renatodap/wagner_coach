@@ -34,9 +34,19 @@ export function MealScanClient() {
       const result = await analyzeImage(fileToAnalyze, '')
       console.log('[MealScanClient] Image analysis result:', result)
 
-      // Step 2: Format analysis as text
-      const analysisText = formatAnalysisAsText(result)
-      console.log('[MealScanClient] Formatted analysis text:', analysisText)
+      // Step 2: Format as natural language for classifier
+      const foodList = result.food_items?.map(item =>
+        `${item.name} (${item.quantity} ${item.unit})`
+      ).join(', ') || 'some food'
+
+      const mealType = result.meal_type || 'my meal'
+      const calories = result.nutrition?.calories || 'unknown'
+      const protein = result.nutrition?.protein_g || 'unknown'
+
+      // Natural language message that classifier will recognize as food log
+      const message = `I just ate ${foodList} for ${mealType}. Estimated ${calories} calories, ${protein}g protein.`
+
+      console.log('[MealScanClient] Natural language message:', message)
 
       // Step 3: Send to unified coach backend
       toast({
@@ -45,9 +55,9 @@ export function MealScanClient() {
       })
 
       const stream = sendMessageStreaming({
-        message: analysisText,
+        message: message,
         conversation_id: null, // Creates new conversation
-        has_image: true, // Force food detection mode
+        has_image: true, // Signal this is image-based
       })
 
       // Step 4: Listen for food_detected chunk
