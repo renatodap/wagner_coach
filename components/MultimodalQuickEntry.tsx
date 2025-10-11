@@ -167,7 +167,7 @@ export default function MultimodalQuickEntry() {
       }
 
       // Send to backend
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/quick-entry/multimodal`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/quick-entry/multimodal`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
