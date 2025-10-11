@@ -64,7 +64,7 @@ export default function EditMealPage() {
         const convertedFoods: MealFood[] = meal.foods.map((mealFood) => ({
           food_id: mealFood.food_id,
           name: mealFood.name,
-          brand_name: mealFood.brand_name,
+          brand: mealFood.brand_name,
 
           // Dual quantity tracking (V2)
           serving_quantity: mealFood.serving_quantity,
@@ -73,15 +73,15 @@ export default function EditMealPage() {
           last_edited_field: mealFood.last_edited_field,
 
           // Reference data
-          food_serving_size: mealFood.serving_size,
+          serving_size: mealFood.serving_size,
           food_serving_unit: mealFood.serving_unit || 'g',
 
-          // Nutrition (V2 field names)
+          // Nutrition (MealEditor interface expects these names)
           calories: mealFood.calories,
           protein_g: mealFood.protein_g,
-          total_carbs_g: mealFood.carbs_g,
-          total_fat_g: mealFood.fat_g,
-          dietary_fiber_g: mealFood.fiber_g || 0
+          carbs_g: mealFood.carbs_g,
+          fat_g: mealFood.fat_g,
+          fiber_g: mealFood.fiber_g || 0
         }))
         setFoods(convertedFoods)
       }
@@ -155,13 +155,13 @@ export default function EditMealPage() {
           last_edited_field: f.last_edited_field,
           calories: f.calories,
           protein_g: f.protein_g,
-          carbs_g: f.total_carbs_g,
-          fat_g: f.total_fat_g,
-          fiber_g: f.dietary_fiber_g,
+          carbs_g: f.carbs_g,  // MealFood uses carbs_g
+          fat_g: f.fat_g,      // MealFood uses fat_g
+          fiber_g: f.fiber_g,  // MealFood uses fiber_g
           added_at: new Date().toISOString(),
           name: f.name,
-          brand_name: f.brand_name,
-          serving_size: f.food_serving_size,
+          brand_name: f.brand,
+          serving_size: f.serving_size,
           serving_unit: f.food_serving_unit
         }))
       }

@@ -137,7 +137,7 @@ export function MealScanClient() {
                 return {
                   food_id: food.id,
                   name: food.name,
-                  brand_name: food.brand_name,
+                  brand: food.brand_name,
 
                   // Dual quantity tracking (V2)
                   serving_quantity: detectedQty,
@@ -146,17 +146,17 @@ export function MealScanClient() {
                   last_edited_field: 'serving' as const,
 
                   // Reference data for display
-                  food_serving_size: food.serving_size,
+                  serving_size: food.serving_size,
                   food_serving_unit: food.serving_unit,
-                  household_serving_size: food.household_serving_grams,
+                  household_serving_size: food.household_serving_grams?.toString(),
                   household_serving_unit: food.household_serving_unit,
 
-                  // Calculated nutrition (V2 field names)
+                  // Calculated nutrition (MealEditor interface expects these names)
                   calories: food.calories * detectedQty,
                   protein_g: food.protein_g * detectedQty,
-                  total_carbs_g: food.total_carbs_g * detectedQty,
-                  total_fat_g: food.total_fat_g * detectedQty,
-                  dietary_fiber_g: (food.dietary_fiber_g || 0) * detectedQty
+                  carbs_g: food.total_carbs_g * detectedQty,
+                  fat_g: food.total_fat_g * detectedQty,
+                  fiber_g: (food.dietary_fiber_g || 0) * detectedQty
                 }
               })
             }

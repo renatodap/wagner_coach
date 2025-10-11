@@ -69,7 +69,7 @@ export function MealLogPreview({ initialData, onSave, onCancel }: MealLogPreview
         return {
           food_id: food.food_id || `temp-${Date.now()}-${Math.random()}`,
           name: food.name,
-          brand_name: null,
+          brand: null,
 
           // Dual quantity tracking (V2)
           serving_quantity: servingQty,
@@ -78,15 +78,15 @@ export function MealLogPreview({ initialData, onSave, onCancel }: MealLogPreview
           last_edited_field: 'serving' as const,
 
           // Reference data
-          food_serving_size: servingSize,
+          serving_size: servingSize,
           food_serving_unit: food.serving_unit || 'g',
 
-          // Nutrition (V2 field names - support both old and new)
+          // Nutrition (MealEditor interface expects these names)
           calories: food.calories || 0,
           protein_g: food.protein_g || 0,
-          total_carbs_g: (food as any).total_carbs_g || food.carbs_g || 0,
-          total_fat_g: (food as any).total_fat_g || food.fat_g || 0,
-          dietary_fiber_g: (food as any).dietary_fiber_g || food.fiber_g || 0
+          carbs_g: (food as any).total_carbs_g || food.carbs_g || 0,
+          fat_g: (food as any).total_fat_g || food.fat_g || 0,
+          fiber_g: (food as any).dietary_fiber_g || food.fiber_g || 0
         }
       })
       setFoods(convertedFoods)
@@ -137,13 +137,13 @@ export function MealLogPreview({ initialData, onSave, onCancel }: MealLogPreview
           last_edited_field: f.last_edited_field,
           calories: f.calories,
           protein_g: f.protein_g,
-          carbs_g: f.total_carbs_g,
-          fat_g: f.total_fat_g,
-          fiber_g: f.dietary_fiber_g,
+          carbs_g: f.carbs_g,  // MealFood uses carbs_g
+          fat_g: f.fat_g,      // MealFood uses fat_g
+          fiber_g: f.fiber_g,  // MealFood uses fiber_g
           added_at: new Date().toISOString(),
           name: f.name,
-          brand_name: f.brand_name,
-          serving_size: f.food_serving_size,
+          brand_name: f.brand,
+          serving_size: f.serving_size,
           serving_unit: f.food_serving_unit
         }))
       }
