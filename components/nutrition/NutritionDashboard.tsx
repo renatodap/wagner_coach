@@ -7,7 +7,7 @@ import { getMeals, type Meal } from '@/lib/api/meals';
 import { createTemplate } from '@/lib/api/templates';
 import { Plus, Apple, Trash2, Edit2, Copy, Clock, ChevronLeft, ChevronRight, Bookmark, RotateCw } from 'lucide-react';
 import Link from 'next/link';
-import BottomNavigation from '@/components/BottomNavigation';
+import BottomNavigation from '@/app/components/BottomNavigation';
 import { useToast } from '@/hooks/use-toast';
 import { calculateDailyTotals, calculateMealTotals, isMealMissingTotals } from '@/lib/utils/nutrition-calculations';
 

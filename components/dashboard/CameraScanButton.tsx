@@ -31,8 +31,8 @@ export function CameraScanButton() {
       sessionStorage.setItem('pendingImageUpload', reader.result as string)
       sessionStorage.setItem('pendingImageName', file.name)
 
-      // Navigate to dedicated photo meal logging page
-      router.push('/en/nutrition/photo-log')
+      // Navigate to coach page
+      router.push('/coach-v2')
     }
     reader.readAsDataURL(file)
 
