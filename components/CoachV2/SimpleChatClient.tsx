@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast'
 import { InlineMealCard } from '@/components/Coach/InlineMealCard'
 import { ActionButtons } from '@/components/Coach/ActionButtons'
 import { FloatingQuickActions } from '@/components/Coach/FloatingQuickActions'
+import { generateSmartSuggestions, getTimeBasedGreeting } from '@/lib/utils/smartSuggestions'
 import type { FoodDetected as FoodDetectedType, SuggestedAction as SuggestedActionType } from '@/lib/types'
 
 interface Message {
@@ -665,13 +666,22 @@ export function SimpleChatClient() {
         {messages.length === 0 ? (
           <div className="max-w-2xl mx-auto mt-12">
             <div className="text-center text-iron-gray mb-8">
-              <p className="text-lg font-medium text-iron-white">No messages yet</p>
-              <p className="text-sm mt-2">Ask your coach anything about fitness & nutrition!</p>
+              <p className="text-lg font-medium text-iron-white">{getTimeBasedGreeting()}!</p>
+              <p className="text-sm mt-2">What would you like to do today?</p>
+            </div>
+
+            {/* Smart Suggestions */}
+            <div className="mb-8">
+              <h3 className="text-sm font-semibold text-iron-gray uppercase tracking-wide px-2 mb-3">Quick Actions</h3>
+              <ActionButtons
+                actions={generateSmartSuggestions()}
+                onAction={handleAction}
+              />
             </div>
 
             {/* Example Prompts */}
             <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-iron-gray uppercase tracking-wide px-2">Try these examples:</h3>
+              <h3 className="text-sm font-semibold text-iron-gray uppercase tracking-wide px-2">Or try these examples:</h3>
 
               <div className="grid gap-3">
                 {/* Meal Logging Examples */}
