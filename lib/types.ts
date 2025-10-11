@@ -213,3 +213,72 @@ export interface WorkoutExerciseTemplate {
   // Relations
   exercises?: Exercise;
 }
+
+// ============================================================================
+// COACH TYPES - Unified Coach AI Interface
+// ============================================================================
+
+/**
+ * FoodItem - Individual food detected in a meal
+ */
+export interface FoodItem {
+  name: string;
+  quantity?: string | number;
+  portion?: string;
+  calories?: number;
+  protein_g?: number;
+  carbs_g?: number;
+  fats_g?: number;
+}
+
+/**
+ * NutritionData - Nutritional breakdown of a meal
+ */
+export interface NutritionData {
+  calories: number;
+  protein_g: number;
+  carbs_g: number;
+  fats_g: number;
+  fiber_g?: number;
+  sugar_g?: number;
+  sodium_mg?: number;
+}
+
+/**
+ * FoodDetected - Food detection data from AI coach
+ */
+export interface FoodDetected {
+  is_food: boolean;
+  nutrition: NutritionData;
+  food_items: FoodItem[];
+  meal_type: 'breakfast' | 'lunch' | 'dinner' | 'snack' | null;
+  confidence: number;
+  description: string;
+}
+
+/**
+ * SuggestedAction - Contextual action suggested by AI
+ */
+export interface SuggestedAction {
+  id: string;
+  icon: string;
+  label: string;
+  action: 'log_meal' | 'log_workout' | 'scan_photo' | 'set_reminder' | 'view_progress';
+  params?: Record<string, any>;
+}
+
+/**
+ * CoachMessage - Single message in coach chat
+ */
+export interface CoachMessage {
+  id: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  created_at: string;
+
+  // Optional metadata
+  food_detected?: FoodDetected;
+  suggested_actions?: SuggestedAction[];
+  food_logged?: boolean;
+  isStreaming?: boolean;
+}
