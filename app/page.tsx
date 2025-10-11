@@ -224,11 +224,11 @@ export default function LandingPage() {
               <thead>
                 <tr className="border-b border-iron-gray">
                   <th className="p-4 text-left font-heading text-iron-white uppercase">Feature</th>
-                  <th className="p-4 text-center font-heading text-iron-orange uppercase bg-iron-orange/10">Wagner</th>
+                  <th className="p-4 text-center font-heading text-iron-orange uppercase bg-iron-orange/10">Us</th>
                   <th className="p-4 text-center font-heading text-iron-gray uppercase">MyFitnessPal</th>
-                  <th className="p-4 text-center font-heading text-iron-gray uppercase">Noom</th>
+                  <th className="p-4 text-center font-heading text-iron-gray uppercase">MacroFactor</th>
                   <th className="p-4 text-center font-heading text-iron-gray uppercase">Future</th>
-                  <th className="p-4 text-center font-heading text-iron-gray uppercase">Fitbit</th>
+                  <th className="p-4 text-center font-heading text-iron-gray uppercase">Carbon</th>
                 </tr>
               </thead>
               <tbody>
@@ -241,12 +241,12 @@ export default function LandingPage() {
                   <td className="p-4 text-center text-iron-gray">Manual</td>
                 </tr>
                 <tr className="border-b border-iron-gray">
-                  <td className="p-4 text-iron-white">AI Coach</td>
+                  <td className="p-4 text-iron-white">Conversational AI Coach</td>
                   <td className="p-4 text-center bg-iron-orange/10"><Check className="w-6 h-6 text-iron-orange mx-auto" /></td>
                   <td className="p-4 text-center"><X className="w-6 h-6 text-iron-gray mx-auto" /></td>
+                  <td className="p-4 text-center"><X className="w-6 h-6 text-iron-gray mx-auto" /></td>
                   <td className="p-4 text-center text-iron-gray">Human</td>
-                  <td className="p-4 text-center text-iron-gray">Human</td>
-                  <td className="p-4 text-center text-iron-gray">Basic</td>
+                  <td className="p-4 text-center text-iron-gray">Algorithm</td>
                 </tr>
                 <tr className="border-b border-iron-gray">
                   <td className="p-4 text-iron-white">Voice Logging</td>
@@ -265,26 +265,26 @@ export default function LandingPage() {
                   <td className="p-4 text-center"><X className="w-6 h-6 text-iron-gray mx-auto" /></td>
                 </tr>
                 <tr className="border-b border-iron-gray">
-                  <td className="p-4 text-iron-white">Adaptive Plans</td>
+                  <td className="p-4 text-iron-white">Real-Time Adaptive Plans</td>
                   <td className="p-4 text-center bg-iron-orange/10"><Check className="w-6 h-6 text-iron-orange mx-auto" /></td>
                   <td className="p-4 text-center"><X className="w-6 h-6 text-iron-gray mx-auto" /></td>
-                  <td className="p-4 text-center"><X className="w-6 h-6 text-iron-gray mx-auto" /></td>
-                  <td className="p-4 text-center"><X className="w-6 h-6 text-iron-gray mx-auto" /></td>
-                  <td className="p-4 text-center"><X className="w-6 h-6 text-iron-gray mx-auto" /></td>
+                  <td className="p-4 text-center text-iron-gray">TDEE</td>
+                  <td className="p-4 text-center"><Check className="w-6 h-6 text-iron-gray mx-auto" /></td>
+                  <td className="p-4 text-center text-iron-gray">Macro</td>
                 </tr>
                 <tr className="border-b border-iron-gray">
-                  <td className="p-4 text-iron-white">Total Memory (RAG)</td>
+                  <td className="p-4 text-iron-white">Nutrition + Training Unified</td>
                   <td className="p-4 text-center bg-iron-orange/10"><Check className="w-6 h-6 text-iron-orange mx-auto" /></td>
-                  <td className="p-4 text-center"><X className="w-6 h-6 text-iron-gray mx-auto" /></td>
-                  <td className="p-4 text-center"><X className="w-6 h-6 text-iron-gray mx-auto" /></td>
-                  <td className="p-4 text-center"><X className="w-6 h-6 text-iron-gray mx-auto" /></td>
-                  <td className="p-4 text-center"><X className="w-6 h-6 text-iron-gray mx-auto" /></td>
+                  <td className="p-4 text-center text-iron-gray">Nutrition</td>
+                  <td className="p-4 text-center text-iron-gray">Nutrition</td>
+                  <td className="p-4 text-center"><Check className="w-6 h-6 text-iron-gray mx-auto" /></td>
+                  <td className="p-4 text-center text-iron-gray">Nutrition</td>
                 </tr>
                 <tr>
                   <td className="p-4 text-iron-white font-bold">Cost/Month</td>
                   <td className="p-4 text-center text-iron-orange bg-iron-orange/10 font-heading text-2xl">FREE</td>
                   <td className="p-4 text-center text-iron-gray">$10</td>
-                  <td className="p-4 text-center text-iron-gray">$70</td>
+                  <td className="p-4 text-center text-iron-gray">$15</td>
                   <td className="p-4 text-center text-iron-gray">$150</td>
                   <td className="p-4 text-center text-iron-gray">$10</td>
                 </tr>
@@ -295,24 +295,25 @@ export default function LandingPage() {
           {/* Mobile Cards */}
           <div className="md:hidden space-y-6">
             <div className="border-2 border-iron-orange p-6 bg-iron-orange/10">
-              <h3 className="font-heading text-2xl text-iron-orange uppercase mb-4">Wagner Coach</h3>
+              <h3 className="font-heading text-2xl text-iron-orange uppercase mb-4">Us</h3>
               <ul className="space-y-2 text-iron-white">
                 <li>✓ 5-second logging</li>
-                <li>✓ AI Coach with total memory</li>
+                <li>✓ Conversational AI Coach</li>
                 <li>✓ Voice + Photo logging</li>
-                <li>✓ Adaptive plans</li>
+                <li>✓ Real-time adaptive plans</li>
+                <li>✓ Nutrition + Training unified</li>
                 <li className="font-heading text-xl text-iron-orange">FREE</li>
               </ul>
             </div>
 
             <div className="border border-iron-gray p-6">
-              <h3 className="font-heading text-xl text-iron-white uppercase mb-4">Others</h3>
+              <h3 className="font-heading text-xl text-iron-white uppercase mb-4">MyFitnessPal, MacroFactor, Carbon</h3>
               <ul className="space-y-2 text-iron-gray">
                 <li>✗ 2-5 minute logging</li>
-                <li>✗ No AI or basic features</li>
+                <li>✗ No conversational AI coach</li>
                 <li>✗ Manual entry only</li>
-                <li>✗ Cookie-cutter plans</li>
-                <li className="text-iron-white">$10-$150/month</li>
+                <li>✗ Nutrition OR training (not both)</li>
+                <li className="text-iron-white">$10-$15/month</li>
               </ul>
             </div>
           </div>
@@ -356,7 +357,7 @@ export default function LandingPage() {
       <footer className="border-t border-iron-gray py-8">
         <div className="max-w-6xl mx-auto px-4 text-center">
           <p className="text-iron-gray text-sm">
-            © 2024 Wagner Coach. AI-powered fitness for everyone.
+            © 2024 AI Coach. Built for athletes, by athletes.
           </p>
         </div>
       </footer>
