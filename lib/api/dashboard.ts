@@ -167,3 +167,41 @@ export async function updateDashboardPreference(
     throw new Error(`Failed to update dashboard preference: ${response.statusText}`)
   }
 }
+
+/**
+ * Daily adherence data point
+ */
+export interface DailyAdherence {
+  day: string
+  percent: number
+}
+
+/**
+ * Weekly analytics response
+ */
+export interface WeeklyAnalytics {
+  adherencePercent: number
+  averageCalories: number
+  targetCalories: number
+  mealsLogged: number
+  workoutsCompleted: number
+  dailyAdherence: DailyAdherence[]
+}
+
+/**
+ * Get weekly analytics data
+ */
+export async function fetchWeeklyAnalytics(): Promise<WeeklyAnalytics> {
+  const headers = await getAuthHeaders()
+
+  const response = await fetch(`${API_BASE_URL}/api/v1/dashboard/analytics/weekly`, {
+    method: 'GET',
+    headers,
+  })
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch weekly analytics: ${response.statusText}`)
+  }
+
+  return response.json()
+}

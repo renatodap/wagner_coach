@@ -183,3 +183,34 @@ export async function deleteActivity(activityId: string): Promise<void> {
     throw new Error(`Failed to delete activity: ${response.statusText}`);
   }
 }
+
+/**
+ * Activity summary for today
+ */
+export interface ActivitySummary {
+  count: number
+  duration: number // seconds
+  calories: number
+  distance: number // meters
+}
+
+/**
+ * Get today's activity summary
+ */
+export async function getTodaysActivitySummary(): Promise<ActivitySummary> {
+  const token = await getAuthToken();
+
+  const response = await fetch(`${API_BASE_URL}/api/v1/activities/summary/today`, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch activity summary: ${response.statusText}`);
+  }
+
+  return response.json();
+}
