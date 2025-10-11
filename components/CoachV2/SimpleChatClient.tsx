@@ -309,18 +309,18 @@ export function SimpleChatClient() {
       const mealLogData = {
         meal_type: foodData.meal_type || 'snack',  // Backend expects meal_type, not category
         logged_at: new Date().toISOString(),
-        total_calories: foodData.nutrition.calories || 0,
-        total_protein_g: foodData.nutrition.protein_g || 0,
-        total_carbs_g: foodData.nutrition.carbs_g || 0,
-        total_fat_g: foodData.nutrition.fats_g || 0,
+        total_calories: foodData.nutrition.calories ?? 0,  // Use ?? for proper null/undefined handling
+        total_protein_g: foodData.nutrition.protein_g ?? 0,
+        total_carbs_g: foodData.nutrition.carbs_g ?? 0,
+        total_fat_g: foodData.nutrition.fats_g ?? 0,  // Now matches backend field name
         foods: foodData.food_items.map((item) => ({
           name: item.name,
-          quantity: item.quantity || 1,
+          quantity: item.quantity ?? 1,
           unit: item.portion || 'serving',
-          calories: item.calories || 0,
-          protein_g: item.protein_g || 0,
-          carbs_g: item.carbs_g || 0,
-          fats_g: item.fats_g || 0
+          calories: item.calories ?? 0,
+          protein_g: item.protein_g ?? 0,
+          carbs_g: item.carbs_g ?? 0,
+          fats_g: item.fats_g ?? 0
         })),
         notes: foodData.description || ''
       }
@@ -343,7 +343,7 @@ export function SimpleChatClient() {
 
       toast({
         title: 'Meal logged successfully!',
-        description: `${Math.round(foodData.nutrition.calories)} calories, ${Math.round(foodData.nutrition.protein_g)}g protein`,
+        description: `${Math.round(foodData.nutrition.calories ?? 0)} calories, ${Math.round(foodData.nutrition.protein_g ?? 0)}g protein`,
         action: (
           <button
             onClick={() => {

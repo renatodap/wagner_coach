@@ -114,28 +114,28 @@ export function InlineMealCard({
         <div className="grid grid-cols-4 gap-3">
           <div className="text-center">
             <p className="text-2xl font-bold text-white">
-              {Math.round(nutrition.calories)}
+              {Math.round(nutrition.calories ?? 0)}
             </p>
             <p className="text-xs text-iron-gray mt-1">Calories</p>
           </div>
 
           <div className="text-center border-l border-iron-gray/20 pl-2">
             <p className="text-2xl font-bold text-green-400">
-              {Math.round(nutrition.protein_g)}g
+              {Math.round(nutrition.protein_g ?? 0)}g
             </p>
             <p className="text-xs text-iron-gray mt-1">Protein</p>
           </div>
 
           <div className="text-center border-l border-iron-gray/20 pl-2">
             <p className="text-2xl font-bold text-blue-400">
-              {Math.round(nutrition.carbs_g)}g
+              {Math.round(nutrition.carbs_g ?? 0)}g
             </p>
             <p className="text-xs text-iron-gray mt-1">Carbs</p>
           </div>
 
           <div className="text-center border-l border-iron-gray/20 pl-2">
             <p className="text-2xl font-bold text-amber-400">
-              {Math.round(nutrition.fats_g)}g
+              {Math.round(nutrition.fats_g ?? 0)}g
             </p>
             <p className="text-xs text-iron-gray mt-1">Fats</p>
           </div>
