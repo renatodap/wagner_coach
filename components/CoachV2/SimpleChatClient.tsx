@@ -25,6 +25,7 @@ interface Message {
   food_logged?: boolean
   suggested_actions?: SuggestedActionType[]
   image_url?: string
+  originatingUserMessageId?: string  // User message ID that triggered this assistant message
 }
 
 interface PendingLog {
@@ -386,7 +387,8 @@ export function SimpleChatClient() {
       role: 'assistant',
       content: '',
       timestamp: new Date(),
-      isStreaming: true
+      isStreaming: true,
+      originatingUserMessageId: userMessage.id  // Track which user message triggered this response
     }
     setMessages(prev => [...prev, aiMessage])
 
