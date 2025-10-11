@@ -152,6 +152,16 @@ export function ConsultationChat({
   const handleSendMessage = async () => {
     if (!input.trim() || isLoading) return;
 
+    // Guard: Don't try to send if session_id is not available
+    if (!session.session_id) {
+      toast({
+        title: 'Session not ready',
+        description: 'Please wait for the consultation to initialize.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
     const userMessage: Message = {
       role: 'user',
       content: input,
