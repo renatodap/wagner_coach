@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { createPortal } from 'react-dom'
 import { Search, Plus, Clock } from 'lucide-react'
 import { searchFoods, getRecentFoods, type Food } from '@/lib/api/foods'
 import { createClient } from '@/lib/supabase/client'
@@ -23,53 +22,14 @@ export function FoodSearchV2({
   const [loading, setLoading] = useState(false)
   const [showResults, setShowResults] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 })
-  const [mounted, setMounted] = useState(false)
   const searchRef = useRef<HTMLDivElement>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
-
-  // Track mounted state for portal
-  useEffect(() => {
-    setMounted(true)
-    return () => setMounted(false)
-  }, [])
-
-  // Update dropdown position when input moves or window resizes
-  function updateDropdownPosition() {
-    if (inputRef.current) {
-      const rect = inputRef.current.getBoundingClientRect()
-      setDropdownPosition({
-        top: rect.bottom + window.scrollY + 8, // 8px gap
-        left: rect.left + window.scrollX,
-        width: rect.width
-      })
-    }
-  }
-
-  // Update position on scroll and resize
-  useEffect(() => {
-    if (showResults) {
-      updateDropdownPosition()
-      window.addEventListener('scroll', updateDropdownPosition, true)
-      window.addEventListener('resize', updateDropdownPosition)
-
-      return () => {
-        window.removeEventListener('scroll', updateDropdownPosition, true)
-        window.removeEventListener('resize', updateDropdownPosition)
-      }
-    }
-  }, [showResults])
 
   // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       const target = event.target as Node
-      const clickedOutsideSearch = searchRef.current && !searchRef.current.contains(target)
-      const clickedOutsideDropdown = dropdownRef.current && !dropdownRef.current.contains(target)
-
-      // Only close if clicked outside BOTH the search input AND the portal dropdown
-      if (clickedOutsideSearch && clickedOutsideDropdown) {
+      if (searchRef.current && !searchRef.current.contains(target)) {
         setShowResults(false)
       }
     }
@@ -181,32 +141,21 @@ export function FoodSearchV2({
       <div className="relative">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-iron-gray" size={20} />
         <input
-          ref={inputRef}
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          onFocus={() => {
-            updateDropdownPosition()
-            setShowResults(true)
-          }}
+          onFocus={() => setShowResults(true)}
           placeholder={placeholder}
           className="w-full bg-neutral-800 border border-iron-gray/30 text-white placeholder:text-iron-gray pl-10 pr-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-iron-orange focus:border-transparent transition-all"
           autoComplete="off"
         />
       </div>
 
-      {/* Results Dropdown - Rendered via Portal */}
-      {showResults && mounted && createPortal(
+      {/* Results Dropdown - Absolute Positioning */}
+      {showResults && (
         <div
           ref={dropdownRef}
-          style={{
-            position: 'fixed',
-            top: `${dropdownPosition.top}px`,
-            left: `${dropdownPosition.left}px`,
-            width: `${dropdownPosition.width}px`,
-            zIndex: 9999
-          }}
-          className="bg-neutral-800 border border-iron-gray/30 rounded-lg shadow-xl max-h-96 overflow-y-auto"
+          className="absolute top-full left-0 right-0 mt-2 z-50 bg-neutral-800 border border-iron-gray/30 rounded-lg shadow-xl max-h-96 overflow-y-auto"
         >
           {loading ? (
             <div className="p-4 text-center text-iron-gray">
@@ -310,8 +259,7 @@ export function FoodSearchV2({
               )}
             </div>
           )}
-        </div>,
-        document.body
+        </div>
       )}
     </div>
   )
