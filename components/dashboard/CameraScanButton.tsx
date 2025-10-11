@@ -11,7 +11,8 @@ import { useState, useRef } from 'react'
 import { Camera, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { InlineMealCard } from '@/components/Coach/InlineMealCard'
-import { analyzeImage, convertToFoodDetected, matchFoodsToDatabase } from '@/lib/services/client-image-analysis'
+import { analyzeImage, formatAnalysisAsText } from '@/lib/services/client-image-analysis'
+import { sendMessageStreaming, confirmLog } from '@/lib/api/unified-coach'
 import { useToast } from '@/hooks/use-toast'
 import { createClient } from '@/lib/supabase/client'
 import type { FoodDetected } from '@/lib/types'
@@ -20,6 +21,8 @@ export function CameraScanButton() {
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [foodDetected, setFoodDetected] = useState<FoodDetected | null>(null)
   const [isLogged, setIsLogged] = useState(false)
+  const [conversationId, setConversationId] = useState<string | null>(null)
+  const [userMessageId, setUserMessageId] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { toast } = useToast()
   const supabase = createClient()
@@ -36,29 +39,70 @@ export function CameraScanButton() {
     setIsAnalyzing(true)
     setFoodDetected(null)
     setIsLogged(false)
+    setConversationId(null)
+    setUserMessageId(null)
 
     try {
-      // Analyze image with OpenAI Vision
-      const analysisResult = await analyzeImage(file, '')
+      // Step 1: Analyze image with OpenAI Vision (client-side)
+      toast({
+        title: '🔍 Analyzing meal...',
+        description: 'Detecting food items',
+      })
 
+      const analysisResult = await analyzeImage(file, '')
       console.log('[CameraScanButton] Analysis result:', analysisResult)
 
-      // Convert to FoodDetected format
-      const foodData = convertToFoodDetected(analysisResult)
-
-      if (foodData) {
-        console.log('[CameraScanButton] Food detected:', foodData)
-        setFoodDetected(foodData)
-        toast({
-          title: 'Food detected!',
-          description: `Found ${foodData.food_items.length} food item(s) with ~${Math.round(foodData.nutrition.calories)} calories`,
-          variant: 'default',
-        })
-      } else {
-        console.log('[CameraScanButton] Not food:', analysisResult.description)
+      if (!analysisResult.success || !analysisResult.is_food) {
         toast({
           title: 'No food detected',
           description: analysisResult.description || 'Please try again with a food image',
+          variant: 'destructive',
+        })
+        return
+      }
+
+      // Step 2: Format analysis as [SYSTEM_CONTEXT] text
+      const analysisText = formatAnalysisAsText(analysisResult)
+      console.log('[CameraScanButton] Formatted analysis text:', analysisText)
+
+      // Step 3: Send to unified coach backend
+      toast({
+        title: '🤖 Processing with coach...',
+        description: 'Getting nutrition data',
+      })
+
+      const stream = sendMessageStreaming({
+        message: analysisText,
+        conversation_id: null, // Creates new conversation
+      })
+
+      // Step 4: Listen for food_detected chunk
+      for await (const chunk of stream) {
+        console.log('[CameraScanButton] Received chunk:', chunk)
+
+        if (chunk.food_detected && chunk.food_detected.is_food) {
+          // Save conversation context for later logging
+          setConversationId(chunk.conversation_id || null)
+          setUserMessageId(chunk.message_id || null)
+
+          // Show meal card with food data from unified coach
+          setFoodDetected(chunk.food_detected)
+
+          console.log('[CameraScanButton] Food detected from coach:', chunk.food_detected)
+          toast({
+            title: '✅ Food detected!',
+            description: `Found ${chunk.food_detected.food_items.length} food item(s) with ~${Math.round(chunk.food_detected.nutrition.calories)} calories`,
+            variant: 'default',
+          })
+          break
+        }
+      }
+
+      // If no food detected in stream
+      if (!conversationId) {
+        toast({
+          title: 'No food detected',
+          description: 'Please try again with a food image',
           variant: 'destructive',
         })
       }
@@ -79,68 +123,48 @@ export function CameraScanButton() {
   }
 
   const handleLogMeal = async (foodData: FoodDetected) => {
+    if (!conversationId || !userMessageId) {
+      toast({
+        title: 'Error',
+        description: 'Missing conversation context. Please try scanning again.',
+        variant: 'destructive',
+      })
+      return
+    }
+
     try {
-      console.log('[CameraScanButton] Logging meal:', foodData)
+      console.log('[CameraScanButton] Logging meal via unified coach:', foodData)
 
-      // Get user session
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.access_token) {
-        throw new Error('Not authenticated')
-      }
-
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
-
-      // Match foods to database to get food_ids
-      console.log('[CameraScanButton] Matching foods to database...')
-      const detectedFoods = foodData.food_items.map(item => ({
-        name: item.name,
-        quantity: String(item.quantity || '1'),
-        unit: item.portion || 'serving'
-      }))
-
-      const matchResult = await matchFoodsToDatabase(detectedFoods, session.access_token)
-      console.log('[CameraScanButton] Food matching result:', matchResult)
-
-      if (matchResult.matched_foods.length === 0) {
-        throw new Error('Could not match any foods to database. Please try manual entry.')
-      }
-
-      // Build meal log request with food_ids
-      const mealLogRequest = {
-        category: foodData.meal_type || 'snack',  // Required field
-        logged_at: new Date().toISOString(),
-        notes: `Camera scan: ${foodData.description}`,
-        foods: matchResult.matched_foods.map(food => ({
-          food_id: food.id,
-          quantity: food.detected_quantity,
-          unit: food.detected_unit
-        }))
-      }
-
-      console.log('[CameraScanButton] Meal log request:', mealLogRequest)
-
-      // Log meal to backend using direct meals endpoint
-      const response = await fetch(`${API_BASE_URL}/api/v1/meals`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify(mealLogRequest)
+      // Use unified coach confirmLog endpoint
+      await confirmLog({
+        conversation_id: conversationId,
+        user_message_id: userMessageId,
+        log_type: 'meal',
+        log_data: {
+          category: foodData.meal_type || 'snack',
+          logged_at: new Date().toISOString(),
+          total_calories: foodData.nutrition.calories,
+          total_protein_g: foodData.nutrition.protein_g,
+          total_carbs_g: foodData.nutrition.carbs_g,
+          total_fat_g: foodData.nutrition.fats_g,
+          foods: foodData.food_items.map(item => ({
+            name: item.name,
+            quantity: item.quantity || 1,
+            unit: item.portion || 'serving',
+            calories: item.calories,
+            protein_g: item.protein_g,
+            carbs_g: item.carbs_g,
+            fats_g: item.fats_g
+          })),
+          notes: foodData.description || 'Camera scan from dashboard'
+        }
       })
 
-      if (!response.ok) {
-        const errorText = await response.text()
-        console.error('[CameraScanButton] Failed to log meal:', response.status, errorText)
-        throw new Error(`Failed to log meal: ${response.statusText}`)
-      }
-
-      const result = await response.json()
-      console.log('[CameraScanButton] Meal logged successfully:', result)
+      console.log('[CameraScanButton] Meal logged successfully via unified coach')
 
       setIsLogged(true)
       toast({
-        title: 'Meal logged!',
+        title: '✅ Meal logged!',
         description: `${Math.round(foodData.nutrition.calories)} calories logged successfully`,
         variant: 'default',
       })
