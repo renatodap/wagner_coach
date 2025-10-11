@@ -7,6 +7,7 @@ import { Profile, UserGoal } from '@/types/profile';
 import BottomNavigation from '@/app/components/BottomNavigation';
 import IntegrationsSection from '@/components/IntegrationsSection';
 import UnitSystemToggle from '@/components/UnitSystemToggle';
+import { DashboardSettingsCard } from '@/components/profile/DashboardSettingsCard';
 import {
   Loader2,
   User,
@@ -234,6 +235,9 @@ export default function ProfilePage() {
             </div>
           </div>
         )}
+
+        {/* Dashboard Settings */}
+        <DashboardSettingsCard />
 
         {/* Program Preferences */}
         <div className="border border-iron-gray p-6">
