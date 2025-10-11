@@ -112,24 +112,53 @@ export function MealScanClient() {
 
             const matchResult = await matchDetectedFoods(detectedFoods, session.access_token)
 
-            // Build meal data with matched foods
+            // Build meal data with matched foods (V2 format with dual quantity tracking)
             const mealData = {
               meal_type: foodData.meal_type || 'dinner',
               notes: `Detected from image: ${foodData.description}`,
-              foods: matchResult.matched_foods.map(food => ({
-                food_id: food.id,
-                name: food.name,
-                brand: food.brand_name,
-                quantity: food.detected_quantity,
-                unit: food.detected_unit,
-                serving_size: food.serving_size,
-                serving_unit: food.serving_unit,
-                calories: food.calories,
-                protein_g: food.protein_g,
-                carbs_g: food.total_carbs_g,      // Backend field name
-                fat_g: food.total_fat_g,          // Backend field name
-                fiber_g: food.dietary_fiber_g     // Backend field name
-              }))
+              foods: matchResult.matched_foods.map(food => {
+                // Parse detected quantity (e.g., "1 serving" → 1)
+                const detectedQty = parseFloat(food.detected_quantity) || 1
+                const detectedUnit = food.detected_unit || 'serving'
+
+                // Calculate gram quantity based on detected unit
+                let gramQuantity = food.serving_size // Default to food's serving_size
+                if (detectedUnit === 'g' || detectedUnit === 'grams') {
+                  gramQuantity = detectedQty
+                } else if (detectedUnit === 'serving') {
+                  gramQuantity = detectedQty * food.serving_size
+                } else if (food.household_serving_grams) {
+                  gramQuantity = detectedQty * food.household_serving_grams
+                } else {
+                  // Fallback: assume detected quantity is in servings
+                  gramQuantity = detectedQty * food.serving_size
+                }
+
+                return {
+                  food_id: food.id,
+                  name: food.name,
+                  brand_name: food.brand_name,
+
+                  // Dual quantity tracking (V2)
+                  serving_quantity: detectedQty,
+                  serving_unit: food.serving_unit,
+                  gram_quantity: gramQuantity,
+                  last_edited_field: 'serving' as const,
+
+                  // Reference data for display
+                  food_serving_size: food.serving_size,
+                  food_serving_unit: food.serving_unit,
+                  household_serving_size: food.household_serving_grams,
+                  household_serving_unit: food.household_serving_unit,
+
+                  // Calculated nutrition (V2 field names)
+                  calories: food.calories * detectedQty,
+                  protein_g: food.protein_g * detectedQty,
+                  total_carbs_g: food.total_carbs_g * detectedQty,
+                  total_fat_g: food.total_fat_g * detectedQty,
+                  dietary_fiber_g: (food.dietary_fiber_g || 0) * detectedQty
+                }
+              })
             }
 
             // Add unmatched foods to notes

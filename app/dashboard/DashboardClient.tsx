@@ -13,6 +13,8 @@ import { getPrimaryEventCountdown } from '@/lib/api/events'
 import type { EventCountdown } from '@/types/event'
 import { createClient } from '@/lib/supabase/client'
 import { API_BASE_URL } from '@/lib/api-config'
+import { getMeals } from '@/lib/api/meals'
+import { calculateDailyTotals } from '@/lib/utils/nutrition-calculations'
 
 interface DashboardClientProps {
   profile?: Profile | null
@@ -74,11 +76,47 @@ export default function DashboardClient({
           'Content-Type': 'application/json'
         }
 
-        // Fetch nutrition data
+        // Fetch nutrition data with client-side fallback
         try {
           const nutritionResponse = await fetch(`${API_BASE_URL}/api/v1/nutrition/summary/today`, { headers })
           if (nutritionResponse.ok) {
             const nutritionData = await nutritionResponse.json()
+
+            // Check if backend returned zeros (backend calculation bug)
+            const hasBackendData = nutritionData.current.calories > 0 || nutritionData.current.protein > 0
+
+            if (!hasBackendData) {
+              console.warn('⚠️ [Dashboard] Backend nutrition totals are 0, calculating from meals...')
+
+              // Fallback: fetch meals and calculate client-side
+              try {
+                const today = new Date()
+                const startOfDay = new Date(today.setHours(0, 0, 0, 0)).toISOString()
+                const endOfDay = new Date(today.setHours(23, 59, 59, 999)).toISOString()
+
+                const mealsResponse = await getMeals({
+                  startDate: startOfDay,
+                  endDate: endOfDay,
+                  token: session.access_token
+                })
+
+                const totals = calculateDailyTotals(mealsResponse.meals)
+                console.log('✅ [Dashboard] Calculated daily totals client-side:', totals)
+
+                // Update current values with calculated totals
+                nutritionData.current = {
+                  calories: totals.calories,
+                  protein: totals.protein_g,
+                  carbs: totals.carbs_g,
+                  fat: totals.fat_g
+                }
+              } catch (calcError) {
+                console.error('❌ [Dashboard] Failed to calculate nutrition client-side:', calcError)
+              }
+            } else {
+              console.log('✅ [Dashboard] Using backend nutrition totals')
+            }
+
             setNutritionData(nutritionData)
           } else {
             console.error('Failed to fetch nutrition data:', nutritionResponse.status)

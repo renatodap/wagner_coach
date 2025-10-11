@@ -8,6 +8,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { FoodSearchV2 } from '@/components/nutrition/FoodSearchV2'
 import { MealEditor, foodToMealFood, type MealFood } from '@/components/nutrition/MealEditor'
 import type { Food } from '@/lib/api/foods'
+import { calculateMealTotals, type MealNutritionTotals } from '@/lib/utils/nutrition-calculations'
+import type { Meal } from '@/lib/api/meals'
 
 type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack'
 
@@ -56,24 +58,37 @@ export function MealLogPreview({ initialData, onSave, onCancel }: MealLogPreview
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Convert AI-detected foods to MealFood format
+  // Convert AI-detected foods to MealFood format (V2 dual quantity)
   useEffect(() => {
     if (primary.foods && primary.foods.length > 0) {
-      const convertedFoods: MealFood[] = primary.foods.map((food) => ({
-        food_id: food.food_id || `temp-${Date.now()}-${Math.random()}`,
-        name: food.name,
-        brand: null,
-        quantity: food.quantity || 1,
-        unit: food.unit || food.serving_unit || 'serving',
-        serving_size: food.serving_size || 100,
-        serving_unit: food.serving_unit || 'g',
-        calories: food.calories || 0,
-        protein_g: food.protein_g || 0,
-        // V2: support both old and new field names
-        carbs_g: (food as any).total_carbs_g || food.carbs_g || 0,
-        fat_g: (food as any).total_fat_g || food.fat_g || 0,
-        fiber_g: (food as any).dietary_fiber_g || food.fiber_g || 0
-      }))
+      const convertedFoods: MealFood[] = primary.foods.map((food) => {
+        const servingQty = food.quantity || 1
+        const servingSize = food.serving_size || 100
+        const gramQty = servingQty * servingSize
+
+        return {
+          food_id: food.food_id || `temp-${Date.now()}-${Math.random()}`,
+          name: food.name,
+          brand_name: null,
+
+          // Dual quantity tracking (V2)
+          serving_quantity: servingQty,
+          serving_unit: food.serving_unit || 'serving',
+          gram_quantity: gramQty,
+          last_edited_field: 'serving' as const,
+
+          // Reference data
+          food_serving_size: servingSize,
+          food_serving_unit: food.serving_unit || 'g',
+
+          // Nutrition (V2 field names - support both old and new)
+          calories: food.calories || 0,
+          protein_g: food.protein_g || 0,
+          total_carbs_g: (food as any).total_carbs_g || food.carbs_g || 0,
+          total_fat_g: (food as any).total_fat_g || food.fat_g || 0,
+          dietary_fiber_g: (food as any).dietary_fiber_g || food.fiber_g || 0
+        }
+      })
       setFoods(convertedFoods)
     }
   }, [primary.foods])
@@ -96,22 +111,61 @@ export function MealLogPreview({ initialData, onSave, onCancel }: MealLogPreview
     setError(null)
 
     try {
-      // Format data for saving
+      // Build temporary meal object for nutrition calculation
+      const tempMeal: Meal = {
+        id: 'temp',
+        user_id: 'temp',
+        category: mealType,
+        logged_at: new Date(mealTime).toISOString(),
+        notes: notes || undefined,
+        total_calories: 0,
+        total_protein_g: 0,
+        total_carbs_g: 0,
+        total_fat_g: 0,
+        total_fiber_g: 0,
+        total_sugar_g: 0,
+        total_sodium_mg: 0,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        foods: foods.map((f) => ({
+          id: f.food_id,
+          meal_id: 'temp',
+          food_id: f.food_id,
+          serving_quantity: f.serving_quantity,
+          serving_unit: f.serving_unit,
+          gram_quantity: f.gram_quantity,
+          last_edited_field: f.last_edited_field,
+          calories: f.calories,
+          protein_g: f.protein_g,
+          carbs_g: f.total_carbs_g,
+          fat_g: f.total_fat_g,
+          fiber_g: f.dietary_fiber_g,
+          added_at: new Date().toISOString(),
+          name: f.name,
+          brand_name: f.brand_name,
+          serving_size: f.food_serving_size,
+          serving_unit: f.food_serving_unit
+        }))
+      }
+
+      // Calculate totals using utility (client-side fallback)
+      const totals = calculateMealTotals(tempMeal)
+      console.log('📊 [MealLogPreview] Calculated meal totals:', totals)
+
+      // Format data for saving (V2 API format)
       const dataToSave = {
         meal_type: mealType,
         logged_at: new Date(mealTime).toISOString(),
         notes: notes || undefined,
         foods: foods.map((f) => ({
           food_id: f.food_id,
-          quantity: f.quantity,
-          unit: f.unit
+          serving_quantity: f.serving_quantity,
+          serving_unit: f.serving_unit,
+          gram_quantity: f.gram_quantity,
+          last_edited_field: f.last_edited_field
         })),
-        // Include totals for convenience
-        calories: Math.round(foods.reduce((sum, f) => sum + f.calories, 0)),
-        protein_g: foods.reduce((sum, f) => sum + f.protein_g, 0),
-        carbs_g: foods.reduce((sum, f) => sum + f.carbs_g, 0),
-        fat_g: foods.reduce((sum, f) => sum + f.fat_g, 0),
-        fiber_g: foods.reduce((sum, f) => sum + f.fiber_g, 0)
+        // Include calculated totals
+        ...totals
       }
 
       await onSave(dataToSave)

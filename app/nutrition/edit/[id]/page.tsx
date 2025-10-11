@@ -1,175 +1,278 @@
-'use client';
+'use client'
 
-import { useState, useEffect } from 'react';
-import { useRouter, useParams } from 'next/navigation';
-import Link from 'next/link';
-import { ArrowLeft, X, Plus } from 'lucide-react';
-import BottomNavigation from '@/app/components/BottomNavigation';
+import { useState, useEffect } from 'react'
+import { useRouter, useParams } from 'next/navigation'
+import Link from 'next/link'
+import { ArrowLeft, Save, Loader2, Trash2 } from 'lucide-react'
+import BottomNavigation from '@/app/components/BottomNavigation'
+import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { FoodSearchV2 } from '@/components/nutrition/FoodSearchV2'
+import { MealEditor, foodToMealFood, type MealFood } from '@/components/nutrition/MealEditor'
+import { getMeal, updateMeal, deleteMeal, type Meal } from '@/lib/api/meals'
+import type { Food } from '@/lib/api/foods'
+import { createClient } from '@/lib/supabase/client'
+import { useToast } from '@/hooks/use-toast'
+import { calculateMealTotals } from '@/lib/utils/nutrition-calculations'
+
+type MealCategory = 'breakfast' | 'lunch' | 'dinner' | 'snack' | 'other'
 
 export default function EditMealPage() {
-  const router = useRouter();
-  const params = useParams();
-  const mealId = params.id as string;
+  const router = useRouter()
+  const params = useParams()
+  const mealId = params.id as string
+  const { toast } = useToast()
 
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [meal, setMeal] = useState<any>(null);
-  const [foods, setFoods] = useState<any[]>([]);
-  const [error, setError] = useState<string>('');
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [error, setError] = useState<string>('')
 
   // Form fields
-  const [mealName, setMealName] = useState('');
-  const [category, setCategory] = useState('other');
-  const [notes, setNotes] = useState('');
-  const [calories, setCalories] = useState('');
-  const [protein, setProtein] = useState('');
-  const [carbs, setCarbs] = useState('');
-  const [fat, setFat] = useState('');
-  const [fiber, setFiber] = useState('');
+  const [category, setCategory] = useState<MealCategory>('other')
+  const [mealTime, setMealTime] = useState('')
+  const [notes, setNotes] = useState('')
+  const [foods, setFoods] = useState<MealFood[]>([])
 
   useEffect(() => {
-    fetchMeal();
-  }, [mealId]);
+    fetchMeal()
+  }, [mealId])
 
   const fetchMeal = async () => {
     try {
-      const response = await fetch(`/api/nutrition/meals/${mealId}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch meal');
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
+
+      if (!session?.access_token) {
+        setError('Not authenticated')
+        setLoading(false)
+        return
       }
 
-      const data = await response.json();
-      const mealData = data.meal;
+      const meal = await getMeal(mealId, session.access_token)
+
+      console.log('📥 [Edit] Loaded meal:', meal)
 
       // Populate form fields
-      setMealName(mealData.meal_name || '');
-      setCategory(mealData.meal_category || 'other');
-      setNotes(mealData.notes || '');
-      setCalories(mealData.calories?.toString() || '');
-      setProtein(mealData.protein_g?.toString() || '');
-      setCarbs((mealData.total_carbs_g || mealData.carbs_g)?.toString() || '');
-      setFat((mealData.total_fat_g || mealData.fat_g)?.toString() || '');
-      setFiber((mealData.dietary_fiber_g || mealData.fiber_g)?.toString() || '');
+      setCategory(meal.category)
+      setMealTime(new Date(meal.logged_at).toISOString().slice(0, 16))
+      setNotes(meal.notes || '')
 
-      // Set foods if available
-      if (mealData.foods) {
-        setFoods(mealData.foods);
+      // Convert meal foods to MealFood format
+      if (meal.foods && meal.foods.length > 0) {
+        const convertedFoods: MealFood[] = meal.foods.map((mealFood) => ({
+          food_id: mealFood.food_id,
+          name: mealFood.name,
+          brand_name: mealFood.brand_name,
+
+          // Dual quantity tracking (V2)
+          serving_quantity: mealFood.serving_quantity,
+          serving_unit: mealFood.serving_unit || 'serving',
+          gram_quantity: mealFood.gram_quantity,
+          last_edited_field: mealFood.last_edited_field,
+
+          // Reference data
+          food_serving_size: mealFood.serving_size,
+          food_serving_unit: mealFood.serving_unit || 'g',
+
+          // Nutrition (V2 field names)
+          calories: mealFood.calories,
+          protein_g: mealFood.protein_g,
+          total_carbs_g: mealFood.carbs_g,
+          total_fat_g: mealFood.fat_g,
+          dietary_fiber_g: mealFood.fiber_g || 0
+        }))
+        setFoods(convertedFoods)
       }
-
-      setMeal(mealData);
     } catch (err) {
-      console.error('Error fetching meal:', err);
-      setError('Failed to load meal');
+      console.error('❌ [Edit] Error fetching meal:', err)
+      setError(err instanceof Error ? err.message : 'Failed to load meal')
+      toast({
+        title: 'Error',
+        description: 'Failed to load meal',
+        variant: 'destructive'
+      })
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
-  const handleRemoveFood = (indexToRemove: number) => {
-    const updatedFoods = foods.filter((_, index) => index !== indexToRemove);
-    setFoods(updatedFoods);
-    recalculateTotals(updatedFoods);
-  };
+  function handleSelectFood(food: Food) {
+    const mealFood = foodToMealFood(food, 1, food.serving_unit || 'serving')
+    setFoods([...foods, mealFood])
+    toast({
+      title: 'Food added',
+      description: `${food.name} added to meal`
+    })
+  }
 
-  const recalculateTotals = (foodList: any[]) => {
-    const totals = foodList.reduce(
-      (acc, food) => {
-        const foodData = food.food || food;
-        const quantity = food.quantity || 1;
-        const multiplier = quantity / (foodData.serving_size || 100);
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
 
-        return {
-          calories: acc.calories + (foodData.calories || 0) * multiplier,
-          protein: acc.protein + (foodData.protein_g || 0) * multiplier,
-          carbs: acc.carbs + ((foodData.total_carbs_g || foodData.carbs_g) || 0) * multiplier,
-          fat: acc.fat + ((foodData.total_fat_g || foodData.fat_g) || 0) * multiplier,
-          fiber: acc.fiber + ((foodData.dietary_fiber_g || foodData.fiber_g) || 0) * multiplier,
-        };
-      },
-      { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 }
-    );
+    if (foods.length === 0) {
+      toast({
+        title: 'No foods',
+        description: 'Please add at least one food item',
+        variant: 'destructive'
+      })
+      return
+    }
 
-    setCalories(Math.round(totals.calories).toString());
-    setProtein(totals.protein.toFixed(1));
-    setCarbs(totals.carbs.toFixed(1));
-    setFat(totals.fat.toFixed(1));
-    setFiber(totals.fiber.toFixed(1));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
+    setSaving(true)
 
     try {
-      const updateData = {
-        meal_name: mealName,
-        meal_category: category,
-        notes: notes || null,
-        calories: calories ? parseFloat(calories) : null,
-        protein_g: protein ? parseFloat(protein) : null,
-        carbs_g: carbs ? parseFloat(carbs) : null,
-        fat_g: fat ? parseFloat(fat) : null,
-        fiber_g: fiber ? parseFloat(fiber) : null,
-        foods: foods,
-      };
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
 
-      const response = await fetch(`/api/nutrition/meals/${mealId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(updateData),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to update meal');
+      if (!session?.access_token) {
+        throw new Error('Not authenticated')
       }
 
-      router.push('/nutrition');
-    } catch (error) {
-      console.error('Error updating meal:', error);
-      alert('Failed to update meal');
-      setSaving(false);
+      // Build temporary meal for nutrition calculation
+      const tempMeal: Meal = {
+        id: mealId,
+        user_id: 'temp',
+        category,
+        logged_at: new Date(mealTime).toISOString(),
+        notes: notes || undefined,
+        total_calories: 0,
+        total_protein_g: 0,
+        total_carbs_g: 0,
+        total_fat_g: 0,
+        total_fiber_g: 0,
+        total_sugar_g: 0,
+        total_sodium_mg: 0,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        foods: foods.map((f) => ({
+          id: f.food_id,
+          meal_id: mealId,
+          food_id: f.food_id,
+          serving_quantity: f.serving_quantity,
+          serving_unit: f.serving_unit,
+          gram_quantity: f.gram_quantity,
+          last_edited_field: f.last_edited_field,
+          calories: f.calories,
+          protein_g: f.protein_g,
+          carbs_g: f.total_carbs_g,
+          fat_g: f.total_fat_g,
+          fiber_g: f.dietary_fiber_g,
+          added_at: new Date().toISOString(),
+          name: f.name,
+          brand_name: f.brand_name,
+          serving_size: f.food_serving_size,
+          serving_unit: f.food_serving_unit
+        }))
+      }
+
+      // Calculate totals using utility
+      const totals = calculateMealTotals(tempMeal)
+      console.log('📊 [Edit] Calculated meal totals:', totals)
+
+      // Prepare update request (V2 API format)
+      const updateData = {
+        category,
+        logged_at: new Date(mealTime).toISOString(),
+        notes: notes || undefined,
+        foods: foods.map((f) => ({
+          food_id: f.food_id,
+          serving_quantity: f.serving_quantity,
+          serving_unit: f.serving_unit,
+          gram_quantity: f.gram_quantity,
+          last_edited_field: f.last_edited_field
+        }))
+      }
+
+      await updateMeal(mealId, updateData, session.access_token)
+
+      toast({
+        title: 'Meal updated!',
+        description: `${totals.calories} cal, ${totals.protein_g.toFixed(1)}g protein`
+      })
+
+      router.push('/nutrition')
+    } catch (err) {
+      console.error('❌ [Edit] Error updating meal:', err)
+      toast({
+        title: 'Error',
+        description: err instanceof Error ? err.message : 'Failed to update meal',
+        variant: 'destructive'
+      })
+    } finally {
+      setSaving(false)
     }
-  };
+  }
+
+  async function handleDelete() {
+    if (!confirm('Are you sure you want to delete this meal? This cannot be undone.')) {
+      return
+    }
+
+    setDeleting(true)
+
+    try {
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
+
+      if (!session?.access_token) {
+        throw new Error('Not authenticated')
+      }
+
+      await deleteMeal(mealId, session.access_token)
+
+      toast({
+        title: 'Meal deleted',
+        description: 'The meal has been removed from your log'
+      })
+
+      router.push('/nutrition')
+    } catch (err) {
+      console.error('❌ [Edit] Error deleting meal:', err)
+      toast({
+        title: 'Error',
+        description: err instanceof Error ? err.message : 'Failed to delete meal',
+        variant: 'destructive'
+      })
+      setDeleting(false)
+    }
+  }
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-iron-black text-iron-white">
+      <div className="min-h-screen bg-gradient-to-br from-iron-black to-neutral-900 pb-20">
         <div className="max-w-4xl mx-auto px-4 py-6">
-          <div className="animate-pulse space-y-6">
-            <div className="h-8 bg-iron-gray rounded w-1/3"></div>
-            <div className="h-96 bg-iron-gray rounded"></div>
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="w-12 h-12 text-iron-orange animate-spin" />
           </div>
         </div>
         <BottomNavigation />
       </div>
-    );
+    )
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-iron-black text-iron-white">
+      <div className="min-h-screen bg-gradient-to-br from-iron-black to-neutral-900 pb-20">
         <div className="max-w-4xl mx-auto px-4 py-6">
-          <div className="border border-iron-gray p-6 text-center">
-            <p className="text-red-500 mb-4">{error}</p>
-            <Link
-              href="/nutrition"
-              className="bg-iron-orange text-iron-black px-4 py-2 font-heading uppercase tracking-wider hover:bg-orange-600 transition-colors"
-            >
-              Back to Nutrition
+          <div className="bg-red-900/20 border border-red-500/50 text-red-400 p-6 rounded-lg text-center">
+            <p className="font-medium mb-4">{error}</p>
+            <Link href="/nutrition">
+              <Button className="bg-iron-orange hover:bg-iron-orange/90">
+                Back to Nutrition
+              </Button>
             </Link>
           </div>
         </div>
         <BottomNavigation />
       </div>
-    );
+    )
   }
 
   return (
-    <div className="min-h-screen bg-iron-black text-iron-white">
+    <div className="min-h-screen bg-gradient-to-br from-iron-black to-neutral-900 pb-20">
       {/* Header */}
-      <header className="border-b border-iron-gray">
+      <header className="bg-iron-black/50 backdrop-blur-sm border-b border-iron-gray/20">
         <div className="max-w-4xl mx-auto px-4 py-6">
           <div className="flex items-center gap-4">
             <Link
@@ -178,233 +281,131 @@ export default function EditMealPage() {
             >
               <ArrowLeft className="w-6 h-6" />
             </Link>
-            <h1 className="font-heading text-4xl text-iron-orange">EDIT MEAL</h1>
+            <h1 className="text-2xl font-bold text-iron-orange">Edit Meal</h1>
           </div>
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 py-8 pb-24">
+      <main className="max-w-4xl mx-auto px-4 py-8">
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="border border-iron-gray p-6 space-y-6">
-            {/* Meal Name */}
+          {/* Meal Type & Time */}
+          <div className="bg-iron-black/50 backdrop-blur-sm border border-iron-gray/20 rounded-lg p-4 space-y-4">
             <div>
-              <label className="block text-iron-gray text-xs uppercase mb-2">
-                Meal Name
-              </label>
+              <Label htmlFor="category" className="text-base font-semibold text-white">
+                Meal Type
+              </Label>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mt-2">
+                {(['breakfast', 'lunch', 'dinner', 'snack', 'other'] as MealCategory[]).map((type) => (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => setCategory(type)}
+                    className={`px-4 py-3 rounded-lg font-medium transition-all capitalize ${
+                      category === type
+                        ? 'bg-iron-orange text-white shadow-md'
+                        : 'bg-iron-gray/20 text-iron-gray hover:bg-iron-gray/30'
+                    }`}
+                  >
+                    {type}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="mealTime" className="text-base font-semibold text-white">
+                Time
+              </Label>
               <input
-                type="text"
-                value={mealName}
-                onChange={(e) => setMealName(e.target.value)}
-                className="w-full bg-iron-black border border-iron-gray px-4 py-3 text-iron-white focus:outline-none focus:border-iron-orange transition-colors"
-                placeholder="e.g., Breakfast, Post-workout meal"
-                required
+                type="datetime-local"
+                id="mealTime"
+                value={mealTime}
+                onChange={(e) => setMealTime(e.target.value)}
+                className="w-full bg-neutral-800 border border-iron-gray/30 text-white rounded-lg px-4 py-2 mt-2 focus:outline-none focus:ring-2 focus:ring-iron-orange"
               />
             </div>
+          </div>
 
-            {/* Category */}
-            <div>
-              <label className="block text-iron-gray text-xs uppercase mb-2">
-                Category
-              </label>
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="w-full bg-iron-black border border-iron-gray px-4 py-3 text-iron-white focus:outline-none focus:border-iron-orange transition-colors"
-              >
-                <option value="breakfast">Breakfast</option>
-                <option value="lunch">Lunch</option>
-                <option value="dinner">Dinner</option>
-                <option value="snack">Snack</option>
-                <option value="pre_workout">Pre-Workout</option>
-                <option value="post_workout">Post-Workout</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
+          {/* Food Search */}
+          <div className="bg-iron-black/50 backdrop-blur-sm border border-iron-gray/20 rounded-lg p-4">
+            <Label className="text-base font-semibold text-white mb-3 block">
+              Search & Add Foods
+            </Label>
+            <FoodSearchV2
+              onSelectFood={handleSelectFood}
+              placeholder="Search for foods to add..."
+              showRecentFoods={true}
+            />
+          </div>
 
-            {/* Foods in Meal */}
-            <div>
-              <label className="block text-iron-gray text-xs uppercase mb-2">
-                Foods in Meal
-              </label>
-              {foods.length > 0 ? (
-                <div className="space-y-2">
-                  {foods.map((food, index) => {
-                    const foodData = food.food || food;
-                    const quantity = food.quantity || foodData.serving_size || 100;
-                    const multiplier = quantity / (foodData.serving_size || 100);
-                    const cals = Math.round((foodData.calories || 0) * multiplier);
-                    const protein = ((foodData.protein_g || 0) * multiplier).toFixed(1);
-                    const carbs = (((foodData.total_carbs_g || foodData.carbs_g) || 0) * multiplier).toFixed(1);
-                    const fat = (((foodData.total_fat_g || foodData.fat_g) || 0) * multiplier).toFixed(1);
+          {/* Meal Editor */}
+          <div className="bg-iron-black/50 backdrop-blur-sm border border-iron-gray/20 rounded-lg p-4">
+            <Label className="text-base font-semibold text-white mb-3 block">
+              Foods in This Meal
+            </Label>
+            <MealEditor foods={foods} onFoodsChange={setFoods} showTotals={true} />
+          </div>
 
-                    return (
-                      <div key={index} className="border border-iron-gray p-3 flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="font-medium">{foodData.name}</div>
-                          <div className="text-sm text-iron-gray mt-1">
-                            {quantity}g
-                          </div>
-                          <div className="text-xs text-iron-gray mt-1">
-                            {cals} cal • {protein}g protein • {carbs}g carbs • {fat}g fat
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveFood(index)}
-                          className="text-red-500 hover:text-red-400 transition-colors ml-2 p-1"
-                          title="Remove food"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="border border-iron-gray border-dashed p-4 text-center text-iron-gray">
-                  No foods in this meal
-                </div>
-              )}
-              <Link
-                href={`/nutrition/add-food/${mealId}`}
-                className="mt-3 flex items-center justify-center gap-2 border border-iron-orange text-iron-orange px-4 py-2 hover:bg-iron-orange hover:text-iron-black transition-colors"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Add Food to Meal</span>
-              </Link>
-            </div>
-
-            {/* Nutrition Values */}
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-iron-gray text-xs uppercase mb-2">
-                  Calories
-                </label>
-                <input
-                  type="number"
-                  value={calories}
-                  onChange={(e) => setCalories(e.target.value)}
-                  className="w-full bg-iron-black border border-iron-gray px-4 py-3 text-iron-white focus:outline-none focus:border-iron-orange transition-colors"
-                  placeholder="0"
-                  step="0.1"
-                  min="0"
-                  readOnly={foods.length > 0}
-                  title={foods.length > 0 ? "Calculated from foods" : ""}
-                />
-              </div>
-
-              <div>
-                <label className="block text-iron-gray text-xs uppercase mb-2">
-                  Protein (g)
-                </label>
-                <input
-                  type="number"
-                  value={protein}
-                  onChange={(e) => setProtein(e.target.value)}
-                  className="w-full bg-iron-black border border-iron-gray px-4 py-3 text-iron-white focus:outline-none focus:border-iron-orange transition-colors"
-                  placeholder="0"
-                  step="0.1"
-                  min="0"
-                  readOnly={foods.length > 0}
-                  title={foods.length > 0 ? "Calculated from foods" : ""}
-                />
-              </div>
-
-              <div>
-                <label className="block text-iron-gray text-xs uppercase mb-2">
-                  Carbs (g)
-                </label>
-                <input
-                  type="number"
-                  value={carbs}
-                  onChange={(e) => setCarbs(e.target.value)}
-                  className="w-full bg-iron-black border border-iron-gray px-4 py-3 text-iron-white focus:outline-none focus:border-iron-orange transition-colors"
-                  placeholder="0"
-                  step="0.1"
-                  min="0"
-                  readOnly={foods.length > 0}
-                  title={foods.length > 0 ? "Calculated from foods" : ""}
-                />
-              </div>
-
-              <div>
-                <label className="block text-iron-gray text-xs uppercase mb-2">
-                  Fat (g)
-                </label>
-                <input
-                  type="number"
-                  value={fat}
-                  onChange={(e) => setFat(e.target.value)}
-                  className="w-full bg-iron-black border border-iron-gray px-4 py-3 text-iron-white focus:outline-none focus:border-iron-orange transition-colors"
-                  placeholder="0"
-                  step="0.1"
-                  min="0"
-                  readOnly={foods.length > 0}
-                  title={foods.length > 0 ? "Calculated from foods" : ""}
-                />
-              </div>
-
-              <div>
-                <label className="block text-iron-gray text-xs uppercase mb-2">
-                  Fiber (g)
-                </label>
-                <input
-                  type="number"
-                  value={fiber}
-                  onChange={(e) => setFiber(e.target.value)}
-                  className="w-full bg-iron-black border border-iron-gray px-4 py-3 text-iron-white focus:outline-none focus:border-iron-orange transition-colors"
-                  placeholder="0"
-                  step="0.1"
-                  min="0"
-                  readOnly={foods.length > 0}
-                  title={foods.length > 0 ? "Calculated from foods" : ""}
-                />
-              </div>
-            </div>
-
-            {/* Notes */}
-            <div>
-              <label className="block text-iron-gray text-xs uppercase mb-2">
-                Notes (Optional)
-              </label>
-              <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                rows={3}
-                className="w-full bg-iron-black border border-iron-gray px-4 py-3 text-iron-white focus:outline-none focus:border-iron-orange transition-colors"
-                placeholder="Any notes about this meal..."
-              />
-            </div>
-
-            {/* Original Logged Time */}
-            {meal && (
-              <div className="text-iron-gray text-sm">
-                Originally logged: {new Date(meal.logged_at).toLocaleString()}
-              </div>
-            )}
+          {/* Notes */}
+          <div className="bg-iron-black/50 backdrop-blur-sm border border-iron-gray/20 rounded-lg p-4">
+            <Label htmlFor="notes" className="text-base font-semibold text-white">
+              Notes (Optional)
+            </Label>
+            <Textarea
+              id="notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Any notes about this meal..."
+              className="mt-2 bg-neutral-800 border-iron-gray/30 text-white placeholder:text-iron-gray focus:ring-iron-orange"
+              rows={3}
+              maxLength={500}
+            />
+            <p className="text-xs text-iron-gray mt-1">{notes.length}/500 characters</p>
           </div>
 
           {/* Actions */}
           <div className="flex gap-4">
-            <button
+            <Button
               type="submit"
-              disabled={saving}
-              className="flex-1 bg-iron-orange text-iron-black font-heading py-3 uppercase tracking-wider hover:bg-orange-600 transition-colors disabled:opacity-50"
+              disabled={saving || foods.length === 0}
+              className="flex-1 bg-iron-orange hover:bg-iron-orange/90 disabled:bg-iron-gray/30 disabled:text-iron-gray h-12 text-lg font-semibold"
             >
-              {saving ? 'Saving...' : 'Save Changes'}
-            </button>
-            <Link
-              href="/nutrition"
-              className="flex-1 border border-iron-gray text-iron-white font-heading py-3 uppercase tracking-wider hover:bg-iron-gray/20 transition-colors text-center"
+              {saving ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save size={20} className="mr-2" />
+                  Save Changes
+                </>
+              )}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleDelete}
+              disabled={saving || deleting}
+              className="border-red-500/50 text-red-400 hover:bg-red-900/20 h-12"
             >
-              Cancel
-            </Link>
+              {deleting ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 size={20} className="mr-2" />
+                  Delete
+                </>
+              )}
+            </Button>
           </div>
         </form>
       </main>
 
-      {/* Bottom Navigation */}
       <BottomNavigation />
     </div>
-  );
+  )
 }
