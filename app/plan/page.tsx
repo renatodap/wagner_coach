@@ -14,10 +14,11 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Calendar, Clock, Dumbbell, UtensilsCrossed } from 'lucide-react'
+import BottomNavigation from '@/app/components/BottomNavigation'
 
 export default function PlanPage() {
   return (
-    <div className="min-h-screen bg-iron-black pb-20">
+    <div className="min-h-screen bg-iron-black pb-24">
       {/* Header */}
       <div className="bg-gradient-to-b from-iron-gray to-iron-black p-6">
         <h1 className="text-2xl font-bold text-white mb-2">Your Plan</h1>
@@ -124,6 +125,9 @@ export default function PlanPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Bottom Navigation */}
+      <BottomNavigation />
     </div>
   )
 }

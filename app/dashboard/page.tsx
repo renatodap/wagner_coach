@@ -16,6 +16,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { DashboardEngine } from '@/components/dashboard/DashboardEngine'
+import BottomNavigation from '@/app/components/BottomNavigation'
 import type { DashboardVariant } from '@/lib/types/dashboard'
 
 export default function DashboardPage() {
@@ -104,12 +105,15 @@ export default function DashboardPage() {
       </div>
 
       {/* Dashboard Content */}
-      <div className="max-w-4xl mx-auto p-6">
+      <div className="max-w-4xl mx-auto p-6 pb-24">
         <DashboardEngine
           userId={user.id}
           variant={variant}
         />
       </div>
+
+      {/* Bottom Navigation */}
+      <BottomNavigation />
     </div>
   )
 }
