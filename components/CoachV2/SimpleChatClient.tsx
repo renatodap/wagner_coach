@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Send, Loader2, MessageSquare, Plus, Zap } from 'lucide-react'
+import { Send, Loader2, MessageSquare, Plus, Zap, Camera, PlusCircle } from 'lucide-react'
 import { sendMessageStreaming, getConversations, getConversationMessages, confirmLog, cancelLog } from '@/lib/api/unified-coach'
 import type { SendMessageResponse, ConversationSummary, UnifiedMessage, LogType, FoodDetected, SuggestedAction } from '@/lib/api/unified-coach'
 import { getAutoLogPreference, updateAutoLogPreference } from '@/lib/api/profile'
@@ -12,6 +12,7 @@ import { InlineMealCard } from '@/components/Coach/InlineMealCard'
 import { ActionButtons } from '@/components/Coach/ActionButtons'
 import { FloatingQuickActions } from '@/components/Coach/FloatingQuickActions'
 import { MessageActions } from '@/components/Coach/MessageActions'
+import { VoiceRecorder } from '@/components/Coach/VoiceRecorder'
 import { generateSmartSuggestions, getTimeBasedGreeting } from '@/lib/utils/smartSuggestions'
 import type { FoodDetected as FoodDetectedType, SuggestedAction as SuggestedActionType } from '@/lib/types'
 
@@ -349,10 +350,20 @@ export function SimpleChatClient() {
     router.push('/meal-scan')
   }
 
-  function handleMicClick() {
+  function handleVoiceTranscript(transcript: string) {
+    // Auto-fill the text input with transcribed text
+    setText(transcript)
     toast({
-      title: 'Voice input',
-      description: 'Voice recording will be available soon!'
+      title: 'Voice transcribed',
+      description: 'Your message has been transcribed. Review and send!'
+    })
+  }
+
+  function handleVoiceError(error: string) {
+    toast({
+      title: 'Voice input failed',
+      description: error,
+      variant: 'destructive'
     })
   }
 
@@ -834,13 +845,33 @@ export function SimpleChatClient() {
       <div className="fixed bottom-16 left-0 right-0 bg-zinc-900 border-t-2 border-iron-orange p-4">
         <div className="max-w-4xl mx-auto">
           <div className="flex gap-2 items-end">
-            {/* Floating Quick Actions */}
-            <FloatingQuickActions
-              onCameraClick={handleCameraClick}
-              onMicClick={handleMicClick}
-              onQuickEntryClick={handleQuickEntryClick}
-              onProgressClick={handleProgressClick}
+            {/* Camera Button */}
+            <button
+              type="button"
+              onClick={handleCameraClick}
+              className="text-iron-gray hover:text-iron-orange hover:bg-iron-orange/10 p-2 rounded-lg transition-colors"
+              aria-label="Scan meal photo"
+              title="Scan meal photo"
+            >
+              <Camera className="h-5 w-5" />
+            </button>
+
+            {/* Voice Recorder */}
+            <VoiceRecorder
+              onTranscript={handleVoiceTranscript}
+              onError={handleVoiceError}
             />
+
+            {/* Quick Entry Button */}
+            <button
+              type="button"
+              onClick={handleQuickEntryClick}
+              className="text-iron-gray hover:text-iron-orange hover:bg-iron-orange/10 p-2 rounded-lg transition-colors"
+              aria-label="Quick entry"
+              title="Quick entry"
+            >
+              <PlusCircle className="h-5 w-5" />
+            </button>
 
             {/* Text Input */}
             <textarea
