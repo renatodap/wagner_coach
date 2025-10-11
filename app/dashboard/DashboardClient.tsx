@@ -243,12 +243,12 @@ export default function DashboardClient({
               </div>
             )}
 
-            {/* Quick Actions Section - Simplified to 2 Primary Actions */}
+            {/* Quick Actions Section - 3 Primary Actions */}
             <div className="bg-iron-black/50 backdrop-blur-sm border border-iron-gray/20 rounded-lg p-4">
               <h2 className="text-base font-semibold text-white mb-3">Quick Actions</h2>
 
-              {/* Primary Actions - 2 Most Important */}
-              <div className="grid grid-cols-2 gap-3">
+              {/* Primary Actions - Most Important */}
+              <div className="grid grid-cols-3 gap-3">
                 <Button
                   onClick={() => router.push('/nutrition/log')}
                   className="bg-iron-orange hover:bg-iron-orange/90 text-white font-semibold h-auto py-4 flex flex-col items-center gap-2 transition-all hover:scale-105"
@@ -256,6 +256,14 @@ export default function DashboardClient({
                 >
                   <UtensilsCrossed size={24} />
                   <span className="text-sm">Log Meal</span>
+                </Button>
+                <Button
+                  onClick={() => router.push('/meal-scan')}
+                  className="bg-iron-orange hover:bg-iron-orange/90 text-white font-semibold h-auto py-4 flex flex-col items-center gap-2 transition-all hover:scale-105"
+                  aria-label="Scan meal with camera"
+                >
+                  <Camera size={24} />
+                  <span className="text-sm">Scan Meal</span>
                 </Button>
                 <Button
                   onClick={() => router.push('/coach-v2')}
