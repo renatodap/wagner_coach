@@ -144,16 +144,17 @@ export default function PreferencesPage() {
       {/* Header */}
       <header className="border-b border-iron-gray">
         <div className="max-w-4xl mx-auto px-4 py-4">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 sm:gap-4">
             <button
               onClick={() => router.push('/profile')}
-              className="text-iron-gray hover:text-iron-orange transition-colors"
+              className="text-iron-gray hover:text-iron-orange transition-colors flex-shrink-0"
             >
-              <ArrowLeft className="w-6 h-6" />
+              <ArrowLeft className="w-5 h-5 sm:w-6 sm:h-6" />
             </button>
-            <h1 className="font-heading text-2xl text-iron-orange uppercase tracking-wider flex items-center gap-2">
-              <Settings className="w-6 h-6" />
-              Program Preferences
+            <h1 className="font-heading text-lg sm:text-xl md:text-2xl text-iron-orange uppercase tracking-wider flex items-center gap-2">
+              <Settings className="w-5 h-5 sm:w-6 sm:h-6" />
+              <span className="hidden sm:inline">Program Preferences</span>
+              <span className="sm:hidden">Preferences</span>
             </h1>
           </div>
         </div>
@@ -162,9 +163,9 @@ export default function PreferencesPage() {
       <main className="max-w-4xl mx-auto px-4 py-6 pb-24">
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Primary Goal */}
-          <div className="border border-iron-gray p-6">
-            <h2 className="font-heading text-xl text-iron-white mb-4 uppercase">Primary Goal</h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <div className="border border-iron-gray p-4 sm:p-6">
+            <h2 className="font-heading text-lg sm:text-xl text-iron-white mb-3 sm:mb-4 uppercase">Primary Goal</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3">
               {[
                 { id: 'build_muscle', label: 'Build Muscle' },
                 { id: 'lose_fat', label: 'Lose Fat' },
@@ -178,7 +179,7 @@ export default function PreferencesPage() {
                   key={option.id}
                   type="button"
                   onClick={() => updateField('primary_goal', option.id)}
-                  className={`p-3 border-2 transition-all text-sm ${
+                  className={`p-3 sm:p-4 border-2 transition-all text-sm ${
                     data.primary_goal === option.id
                       ? 'border-iron-orange bg-iron-orange/10'
                       : 'border-iron-gray hover:border-iron-orange/50'
@@ -191,9 +192,9 @@ export default function PreferencesPage() {
           </div>
 
           {/* User Persona */}
-          <div className="border border-iron-gray p-6">
-            <h2 className="font-heading text-xl text-iron-white mb-4 uppercase">Training Style</h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <div className="border border-iron-gray p-4 sm:p-6">
+            <h2 className="font-heading text-lg sm:text-xl text-iron-white mb-3 sm:mb-4 uppercase">Training Style</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3">
               {[
                 { id: 'strength_athlete', label: 'Strength Athlete' },
                 { id: 'bodybuilder', label: 'Bodybuilder' },
@@ -208,7 +209,7 @@ export default function PreferencesPage() {
                   key={option.id}
                   type="button"
                   onClick={() => updateField('user_persona', option.id)}
-                  className={`p-3 border-2 transition-all text-sm ${
+                  className={`p-3 sm:p-4 border-2 transition-all text-sm ${
                     data.user_persona === option.id
                       ? 'border-iron-orange bg-iron-orange/10'
                       : 'border-iron-gray hover:border-iron-orange/50'
@@ -221,24 +222,24 @@ export default function PreferencesPage() {
           </div>
 
           {/* Training Frequency & Duration */}
-          <div className="border border-iron-gray p-6">
-            <h2 className="font-heading text-xl text-iron-white mb-4 uppercase">Training Schedule</h2>
+          <div className="border border-iron-gray p-4 sm:p-6">
+            <h2 className="font-heading text-lg sm:text-xl text-iron-white mb-3 sm:mb-4 uppercase">Training Schedule</h2>
             <div className="space-y-4">
               <div>
-                <label className="block text-iron-gray text-sm mb-2 uppercase">Days Per Week</label>
-                <div className="grid grid-cols-5 gap-2">
+                <label className="block text-iron-gray text-xs sm:text-sm mb-2 uppercase">Days Per Week</label>
+                <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
                   {[3, 4, 5, 6, 7].map(days => (
                     <button
                       key={days}
                       type="button"
                       onClick={() => updateField('desired_training_frequency', days)}
-                      className={`p-4 border-2 transition-all ${
+                      className={`p-3 sm:p-4 border-2 transition-all ${
                         data.desired_training_frequency === days
                           ? 'border-iron-orange bg-iron-orange/10'
                           : 'border-iron-gray hover:border-iron-orange/50'
                       }`}
                     >
-                      <div className="text-2xl font-heading text-iron-orange">{days}</div>
+                      <div className="text-xl sm:text-2xl font-heading text-iron-orange">{days}</div>
                     </button>
                   ))}
                 </div>
@@ -248,9 +249,9 @@ export default function PreferencesPage() {
           </div>
 
           {/* Body Stats */}
-          <div className="border border-iron-gray p-6">
-            <h2 className="font-heading text-xl text-iron-white mb-4 uppercase">Body Stats</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="border border-iron-gray p-4 sm:p-6">
+            <h2 className="font-heading text-lg sm:text-xl text-iron-white mb-3 sm:mb-4 uppercase">Body Stats</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
               <div>
                 <label className="block text-iron-gray text-sm mb-2 uppercase">Age</label>
                 <input
@@ -286,31 +287,31 @@ export default function PreferencesPage() {
           </div>
 
           {/* Meals Per Day */}
-          <div className="border border-iron-gray p-6">
-            <h2 className="font-heading text-xl text-iron-white mb-4 uppercase">Nutrition</h2>
+          <div className="border border-iron-gray p-4 sm:p-6">
+            <h2 className="font-heading text-lg sm:text-xl text-iron-white mb-3 sm:mb-4 uppercase">Nutrition</h2>
             <div>
-              <label className="block text-iron-gray text-sm mb-2 uppercase">Meals Per Day</label>
-              <div className="grid grid-cols-5 gap-2">
+              <label className="block text-iron-gray text-xs sm:text-sm mb-2 uppercase">Meals Per Day</label>
+              <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
                 {[2, 3, 4, 5, 6].map(meals => (
                   <button
                     key={meals}
                     type="button"
                     onClick={() => updateField('daily_meal_preference', meals)}
-                    className={`p-4 border-2 transition-all ${
+                    className={`p-3 sm:p-4 border-2 transition-all ${
                       data.daily_meal_preference === meals
                         ? 'border-iron-orange bg-iron-orange/10'
                         : 'border-iron-gray hover:border-iron-orange/50'
                     }`}
                   >
-                    <div className="text-2xl font-heading text-iron-orange">{meals}</div>
+                    <div className="text-xl sm:text-2xl font-heading text-iron-orange">{meals}</div>
                   </button>
                 ))}
               </div>
             </div>
 
             <div className="mt-4">
-              <label className="block text-iron-gray text-sm mb-2 uppercase">Dietary Restrictions</label>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+              <label className="block text-iron-gray text-xs sm:text-sm mb-2 uppercase">Dietary Restrictions</label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
                 {['none', 'vegetarian', 'vegan', 'dairy_free', 'gluten_free', 'nut_allergies', 'shellfish_allergies'].map(option => (
                   <button
                     key={option}
@@ -336,9 +337,9 @@ export default function PreferencesPage() {
           </div>
 
           {/* Equipment */}
-          <div className="border border-iron-gray p-6">
-            <h2 className="font-heading text-xl text-iron-white mb-4 uppercase">Equipment Access</h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+          <div className="border border-iron-gray p-4 sm:p-6">
+            <h2 className="font-heading text-lg sm:text-xl text-iron-white mb-3 sm:mb-4 uppercase">Equipment Access</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
               {[
                 { id: 'full_gym', label: 'Full Gym' },
                 { id: 'home_gym', label: 'Home Gym' },
@@ -364,38 +365,38 @@ export default function PreferencesPage() {
           </div>
 
           {/* Location & Facilities */}
-          <div className="border border-iron-gray p-6">
-            <h2 className="font-heading text-xl text-iron-white mb-4 uppercase">Location & Facilities</h2>
+          <div className="border border-iron-gray p-4 sm:p-6">
+            <h2 className="font-heading text-lg sm:text-xl text-iron-white mb-3 sm:mb-4 uppercase">Location & Facilities</h2>
 
-            <div className="mb-6">
-              <label className="block text-iron-gray text-sm mb-2 uppercase">City</label>
+            <div className="mb-4 sm:mb-6">
+              <label className="block text-iron-gray text-xs sm:text-sm mb-2 uppercase">City</label>
               <input
                 type="text"
                 value={data.city || ''}
                 onChange={(e) => updateField('city', e.target.value)}
                 placeholder="Enter your city"
-                className="w-full bg-iron-black border-2 border-iron-gray text-white px-4 py-3 focus:border-iron-orange focus:outline-none"
+                className="w-full bg-iron-black border-2 border-iron-gray text-white px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base focus:border-iron-orange focus:outline-none"
               />
             </div>
 
-            <div className="mb-6">
-              <label className="flex items-center gap-3 p-4 border-2 border-iron-gray cursor-pointer hover:border-iron-orange/50 transition-all">
+            <div className="mb-4 sm:mb-6">
+              <label className="flex items-start sm:items-center gap-3 p-3 sm:p-4 border-2 border-iron-gray cursor-pointer hover:border-iron-orange/50 transition-all">
                 <input
                   type="checkbox"
                   checked={data.location_permission || false}
                   onChange={(e) => updateField('location_permission', e.target.checked)}
-                  className="w-5 h-5 accent-iron-orange"
+                  className="w-5 h-5 accent-iron-orange flex-shrink-0 mt-0.5 sm:mt-0"
                 />
                 <div>
-                  <div className="font-semibold text-iron-white">Allow location access</div>
-                  <div className="text-sm text-iron-gray">AI can adapt workouts based on weather (rain, snow, heat)</div>
+                  <div className="font-semibold text-iron-white text-sm sm:text-base">Allow location access</div>
+                  <div className="text-xs sm:text-sm text-iron-gray">AI can adapt workouts based on weather (rain, snow, heat)</div>
                 </div>
               </label>
             </div>
 
             <div>
-              <label className="block text-iron-gray text-sm mb-2 uppercase">Facility Access</label>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+              <label className="block text-iron-gray text-xs sm:text-sm mb-2 uppercase">Facility Access</label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {[
                   { id: 'gym', label: '🏋️ Gym' },
                   { id: 'tennis_courts', label: '🎾 Tennis Courts' },

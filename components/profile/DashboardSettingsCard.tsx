@@ -221,74 +221,74 @@ export function DashboardSettingsCard() {
 
   return (
     <Card className="bg-iron-gray border-iron-gray">
-      <CardHeader>
+      <CardHeader className="p-4 sm:p-6">
         <div className="flex items-center gap-2">
-          <LayoutDashboard className="w-5 h-5 text-iron-orange" aria-hidden="true" />
-          <CardTitle className="text-white text-xl">Dashboard Settings</CardTitle>
+          <LayoutDashboard className="w-4 h-4 sm:w-5 sm:h-5 text-iron-orange" aria-hidden="true" />
+          <CardTitle className="text-white text-lg sm:text-xl">Dashboard Settings</CardTitle>
         </div>
-        <CardDescription className="text-gray-400">
+        <CardDescription className="text-gray-400 text-sm">
           Customize how your dashboard looks and which cards appear
         </CardDescription>
       </CardHeader>
 
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-4 sm:space-y-6 p-4 sm:p-6">
         {/* Dashboard Style Selector */}
         <div className="space-y-3">
           <Label className="text-white font-semibold text-base">Dashboard Style</Label>
           <RadioGroup value={settings.preference} onValueChange={handlePreferenceChange}>
             {/* Simple */}
-            <div className="flex items-start space-x-3 p-4 border border-iron-gray rounded-lg hover:border-iron-orange transition-colors">
-              <RadioGroupItem value="simple" id="simple" className="mt-1" />
-              <div className="flex-1">
-                <Label htmlFor="simple" className="text-white font-medium cursor-pointer">
+            <div className="flex items-start space-x-2 sm:space-x-3 p-3 sm:p-4 border border-iron-gray rounded-lg hover:border-iron-orange transition-colors">
+              <RadioGroupItem value="simple" id="simple" className="mt-1 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <Label htmlFor="simple" className="text-white font-medium cursor-pointer text-sm sm:text-base">
                   Simple
                 </Label>
-                <p className="text-sm text-gray-400 mt-1">
+                <p className="text-xs sm:text-sm text-gray-400 mt-1">
                   Minimalist view with just your next action. Perfect for "just tell me what to do" users.
                 </p>
-                <div className="flex gap-2 mt-2">
-                  <span className="px-2 py-0.5 bg-iron-black text-xs text-gray-400 rounded">Next Action</span>
-                  <span className="px-2 py-0.5 bg-iron-black text-xs text-gray-400 rounded">Quick Actions</span>
-                  <span className="px-2 py-0.5 bg-iron-black text-xs text-gray-400 rounded">Nutrition</span>
+                <div className="flex flex-wrap gap-1.5 sm:gap-2 mt-2">
+                  <span className="px-2 py-0.5 bg-iron-black text-xs text-gray-400 rounded whitespace-nowrap">Next Action</span>
+                  <span className="px-2 py-0.5 bg-iron-black text-xs text-gray-400 rounded whitespace-nowrap">Quick Actions</span>
+                  <span className="px-2 py-0.5 bg-iron-black text-xs text-gray-400 rounded whitespace-nowrap">Nutrition</span>
                 </div>
               </div>
             </div>
 
             {/* Balanced */}
-            <div className="flex items-start space-x-3 p-4 border border-iron-gray rounded-lg hover:border-iron-orange transition-colors">
-              <RadioGroupItem value="balanced" id="balanced" className="mt-1" />
-              <div className="flex-1">
-                <Label htmlFor="balanced" className="text-white font-medium cursor-pointer">
+            <div className="flex items-start space-x-2 sm:space-x-3 p-3 sm:p-4 border border-iron-gray rounded-lg hover:border-iron-orange transition-colors">
+              <RadioGroupItem value="balanced" id="balanced" className="mt-1 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <Label htmlFor="balanced" className="text-white font-medium cursor-pointer text-sm sm:text-base">
                   Balanced <span className="text-xs text-iron-orange">(Recommended)</span>
                 </Label>
-                <p className="text-sm text-gray-400 mt-1">
+                <p className="text-xs sm:text-sm text-gray-400 mt-1">
                   Overview with key metrics. Most popular choice for tracking progress without overwhelm.
                 </p>
-                <div className="flex gap-2 mt-2">
-                  <span className="px-2 py-0.5 bg-iron-black text-xs text-gray-400 rounded">Today's Plan</span>
-                  <span className="px-2 py-0.5 bg-iron-black text-xs text-gray-400 rounded">Nutrition</span>
-                  <span className="px-2 py-0.5 bg-iron-black text-xs text-gray-400 rounded">Weight</span>
-                  <span className="px-2 py-0.5 bg-iron-black text-xs text-gray-400 rounded">Weekly Trends</span>
+                <div className="flex flex-wrap gap-1.5 sm:gap-2 mt-2">
+                  <span className="px-2 py-0.5 bg-iron-black text-xs text-gray-400 rounded whitespace-nowrap">Today's Plan</span>
+                  <span className="px-2 py-0.5 bg-iron-black text-xs text-gray-400 rounded whitespace-nowrap">Nutrition</span>
+                  <span className="px-2 py-0.5 bg-iron-black text-xs text-gray-400 rounded whitespace-nowrap">Weight</span>
+                  <span className="px-2 py-0.5 bg-iron-black text-xs text-gray-400 rounded whitespace-nowrap">Weekly Trends</span>
                 </div>
               </div>
             </div>
 
             {/* Detailed */}
-            <div className="flex items-start space-x-3 p-4 border border-iron-gray rounded-lg hover:border-iron-orange transition-colors">
-              <RadioGroupItem value="detailed" id="detailed" className="mt-1" />
-              <div className="flex-1">
-                <Label htmlFor="detailed" className="text-white font-medium cursor-pointer">
+            <div className="flex items-start space-x-2 sm:space-x-3 p-3 sm:p-4 border border-iron-gray rounded-lg hover:border-iron-orange transition-colors">
+              <RadioGroupItem value="detailed" id="detailed" className="mt-1 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <Label htmlFor="detailed" className="text-white font-medium cursor-pointer text-sm sm:text-base">
                   Detailed
                 </Label>
-                <p className="text-sm text-gray-400 mt-1">
+                <p className="text-xs sm:text-sm text-gray-400 mt-1">
                   Full analytics dashboard with charts, trends, and complete breakdown. For data enthusiasts.
                 </p>
-                <div className="flex gap-2 mt-2">
-                  <span className="px-2 py-0.5 bg-iron-black text-xs text-gray-400 rounded">Today's Plan</span>
-                  <span className="px-2 py-0.5 bg-iron-black text-xs text-gray-400 rounded">Nutrition</span>
-                  <span className="px-2 py-0.5 bg-iron-black text-xs text-gray-400 rounded">Weight</span>
-                  <span className="px-2 py-0.5 bg-iron-black text-xs text-gray-400 rounded">Activities</span>
-                  <span className="px-2 py-0.5 bg-iron-black text-xs text-gray-400 rounded">Analytics</span>
+                <div className="flex flex-wrap gap-1.5 sm:gap-2 mt-2">
+                  <span className="px-2 py-0.5 bg-iron-black text-xs text-gray-400 rounded whitespace-nowrap">Today's Plan</span>
+                  <span className="px-2 py-0.5 bg-iron-black text-xs text-gray-400 rounded whitespace-nowrap">Nutrition</span>
+                  <span className="px-2 py-0.5 bg-iron-black text-xs text-gray-400 rounded whitespace-nowrap">Weight</span>
+                  <span className="px-2 py-0.5 bg-iron-black text-xs text-gray-400 rounded whitespace-nowrap">Activities</span>
+                  <span className="px-2 py-0.5 bg-iron-black text-xs text-gray-400 rounded whitespace-nowrap">Analytics</span>
                 </div>
               </div>
             </div>
@@ -297,24 +297,24 @@ export function DashboardSettingsCard() {
 
         {/* Card Visibility Toggles */}
         <div className="space-y-3">
-          <Label className="text-white font-semibold text-base">Card Visibility</Label>
-          <p className="text-sm text-gray-400 mb-3">
+          <Label className="text-white font-semibold text-sm sm:text-base">Card Visibility</Label>
+          <p className="text-xs sm:text-sm text-gray-400 mb-3">
             Choose which optional cards appear on your dashboard
           </p>
 
           {/* Weight Tracking Card */}
-          <div className="flex items-center justify-between p-4 border border-iron-gray rounded-lg">
-            <div className="flex items-start gap-3">
+          <div className="flex items-center justify-between p-3 sm:p-4 border border-iron-gray rounded-lg gap-2">
+            <div className="flex items-start gap-2 sm:gap-3 min-w-0 flex-1">
               {settings.showsWeightCard ? (
-                <Eye className="w-5 h-5 text-iron-orange mt-0.5" aria-hidden="true" />
+                <Eye className="w-4 h-4 sm:w-5 sm:h-5 text-iron-orange mt-0.5 flex-shrink-0" aria-hidden="true" />
               ) : (
-                <EyeOff className="w-5 h-5 text-gray-500 mt-0.5" aria-hidden="true" />
+                <EyeOff className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500 mt-0.5 flex-shrink-0" aria-hidden="true" />
               )}
-              <div>
-                <Label htmlFor="weight-card" className="text-white font-medium cursor-pointer">
+              <div className="min-w-0">
+                <Label htmlFor="weight-card" className="text-white font-medium cursor-pointer text-sm sm:text-base">
                   Weight Tracking Card
                 </Label>
-                <p className="text-sm text-gray-400 mt-1">
+                <p className="text-xs sm:text-sm text-gray-400 mt-1">
                   Shows weight progress, sparkline graph, and goal tracking
                 </p>
               </div>
@@ -323,22 +323,23 @@ export function DashboardSettingsCard() {
               id="weight-card"
               checked={settings.showsWeightCard}
               onCheckedChange={(checked) => handleToggle('showsWeightCard', checked)}
+              className="flex-shrink-0"
             />
           </div>
 
           {/* Recovery Metrics Card */}
-          <div className="flex items-center justify-between p-4 border border-iron-gray rounded-lg">
-            <div className="flex items-start gap-3">
+          <div className="flex items-center justify-between p-3 sm:p-4 border border-iron-gray rounded-lg gap-2">
+            <div className="flex items-start gap-2 sm:gap-3 min-w-0 flex-1">
               {settings.showsRecoveryCard ? (
-                <Eye className="w-5 h-5 text-iron-orange mt-0.5" aria-hidden="true" />
+                <Eye className="w-4 h-4 sm:w-5 sm:h-5 text-iron-orange mt-0.5 flex-shrink-0" aria-hidden="true" />
               ) : (
-                <EyeOff className="w-5 h-5 text-gray-500 mt-0.5" aria-hidden="true" />
+                <EyeOff className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500 mt-0.5 flex-shrink-0" aria-hidden="true" />
               )}
-              <div>
-                <Label htmlFor="recovery-card" className="text-white font-medium cursor-pointer">
+              <div className="min-w-0">
+                <Label htmlFor="recovery-card" className="text-white font-medium cursor-pointer text-sm sm:text-base">
                   Recovery Metrics Card
                 </Label>
-                <p className="text-sm text-gray-400 mt-1">
+                <p className="text-xs sm:text-sm text-gray-400 mt-1">
                   Shows sleep hours, soreness level, and readiness score
                 </p>
               </div>
@@ -347,22 +348,23 @@ export function DashboardSettingsCard() {
               id="recovery-card"
               checked={settings.showsRecoveryCard}
               onCheckedChange={(checked) => handleToggle('showsRecoveryCard', checked)}
+              className="flex-shrink-0"
             />
           </div>
 
           {/* Workout Card */}
-          <div className="flex items-center justify-between p-4 border border-iron-gray rounded-lg">
-            <div className="flex items-start gap-3">
+          <div className="flex items-center justify-between p-3 sm:p-4 border border-iron-gray rounded-lg gap-2">
+            <div className="flex items-start gap-2 sm:gap-3 min-w-0 flex-1">
               {settings.showsWorkoutCard ? (
-                <Eye className="w-5 h-5 text-iron-orange mt-0.5" aria-hidden="true" />
+                <Eye className="w-4 h-4 sm:w-5 sm:h-5 text-iron-orange mt-0.5 flex-shrink-0" aria-hidden="true" />
               ) : (
-                <EyeOff className="w-5 h-5 text-gray-500 mt-0.5" aria-hidden="true" />
+                <EyeOff className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500 mt-0.5 flex-shrink-0" aria-hidden="true" />
               )}
-              <div>
-                <Label htmlFor="workout-card" className="text-white font-medium cursor-pointer">
+              <div className="min-w-0">
+                <Label htmlFor="workout-card" className="text-white font-medium cursor-pointer text-sm sm:text-base">
                   Workout Card
                 </Label>
-                <p className="text-sm text-gray-400 mt-1">
+                <p className="text-xs sm:text-sm text-gray-400 mt-1">
                   Shows today's workout plan and completed activities
                 </p>
               </div>
@@ -371,15 +373,16 @@ export function DashboardSettingsCard() {
               id="workout-card"
               checked={settings.showsWorkoutCard}
               onCheckedChange={(checked) => handleToggle('showsWorkoutCard', checked)}
+              className="flex-shrink-0"
             />
           </div>
         </div>
 
         {/* Auto-Detect Info */}
-        <div className="bg-iron-black p-4 rounded-lg border border-iron-gray">
-          <div className="flex items-start gap-3">
-            <Info className="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" aria-hidden="true" />
-            <div className="text-sm text-gray-400">
+        <div className="bg-iron-black p-3 sm:p-4 rounded-lg border border-iron-gray">
+          <div className="flex items-start gap-2 sm:gap-3">
+            <Info className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400 mt-0.5 flex-shrink-0" aria-hidden="true" />
+            <div className="text-xs sm:text-sm text-gray-400">
               <p className="font-medium text-white mb-1">Smart Auto-Detection</p>
               <p>
                 Some cards auto-show based on your usage. For example, the Weight Tracking card
@@ -390,11 +393,11 @@ export function DashboardSettingsCard() {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex gap-3 pt-2">
+        <div className="flex flex-col sm:flex-row gap-3 pt-2">
           <Button
             onClick={saveSettings}
             disabled={!hasChanges || isSaving}
-            className="flex-1 bg-iron-orange hover:bg-orange-600 text-white font-semibold"
+            className="w-full sm:flex-1 bg-iron-orange hover:bg-orange-600 text-white font-semibold"
           >
             {isSaving ? (
               <>
@@ -413,10 +416,11 @@ export function DashboardSettingsCard() {
             onClick={resetToAutoDetect}
             disabled={isSaving}
             variant="outline"
-            className="border-iron-gray bg-iron-black hover:bg-iron-gray text-white"
+            className="w-full sm:w-auto border-iron-gray bg-iron-black hover:bg-iron-gray text-white"
           >
             <RefreshCw className="w-4 h-4 mr-2" />
-            Reset to Auto-Detect
+            <span className="hidden sm:inline">Reset to Auto-Detect</span>
+            <span className="sm:hidden">Reset</span>
           </Button>
         </div>
 

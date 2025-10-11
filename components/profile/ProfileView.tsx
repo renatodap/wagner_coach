@@ -83,7 +83,7 @@ export function ProfileView({
   return (
     <main
       className={cn(
-        "container mx-auto p-6 space-y-6",
+        "container mx-auto p-4 sm:p-6 space-y-4 sm:space-y-6",
         isMobile ? "mobile-layout" : "desktop-layout"
       )}
       data-testid="profile-container"
@@ -91,24 +91,24 @@ export function ProfileView({
     >
       {/* Hero Section */}
       <Card className="overflow-hidden">
-        <CardContent className="p-6">
+        <CardContent className="p-4 sm:p-6">
           <div className="flex flex-col md:flex-row items-start md:items-center space-y-4 md:space-y-0 md:space-x-6">
-            <Avatar className="h-24 w-24">
+            <Avatar className="h-16 w-16 sm:h-20 sm:w-20 md:h-24 md:w-24 flex-shrink-0">
               <AvatarImage
                 src={profile.avatar_url || ''}
                 alt="Profile avatar"
               />
-              <AvatarFallback className="text-2xl">
+              <AvatarFallback className="text-xl sm:text-2xl">
                 {profile.full_name?.charAt(0)?.toUpperCase() || 'U'}
               </AvatarFallback>
             </Avatar>
 
-            <div className="flex-1 space-y-2">
+            <div className="flex-1 space-y-2 min-w-0">
               <div>
-                <h1 className="text-3xl font-bold">
+                <h1 className="text-2xl sm:text-3xl font-bold break-words">
                   {profile.full_name || 'Unknown User'}
                 </h1>
-                <p className="text-muted-foreground">
+                <p className="text-muted-foreground text-sm sm:text-base break-all">
                   {profile.email}
                 </p>
                 <div className="flex flex-wrap gap-2 mt-2">
@@ -143,9 +143,10 @@ export function ProfileView({
               )}
             </div>
 
-            <Button onClick={onEditProfile} aria-label="Edit profile">
+            <Button onClick={onEditProfile} aria-label="Edit profile" className="w-full md:w-auto">
               <Edit className="mr-2 h-4 w-4" />
-              Edit Profile
+              <span className="hidden sm:inline">Edit Profile</span>
+              <span className="sm:hidden">Edit</span>
             </Button>
           </div>
         </CardContent>
@@ -153,36 +154,36 @@ export function ProfileView({
 
       {/* Stats Section */}
       <section aria-label="Stats section">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
           <Card>
-            <CardContent className="p-4 text-center">
-              <Activity className="h-8 w-8 mx-auto mb-2 text-blue-500" />
-              <div className="text-2xl font-bold">{(stats.totalWorkouts || 0).toLocaleString()}</div>
-              <p className="text-sm text-muted-foreground">Total Workouts</p>
+            <CardContent className="p-3 sm:p-4 text-center">
+              <Activity className="h-6 w-6 sm:h-8 sm:w-8 mx-auto mb-2 text-blue-500" />
+              <div className="text-xl sm:text-2xl font-bold">{(stats.totalWorkouts || 0).toLocaleString()}</div>
+              <p className="text-xs sm:text-sm text-muted-foreground">Total Workouts</p>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="p-4 text-center">
-              <Flame className="h-8 w-8 mx-auto mb-2 text-orange-500" />
-              <div className="text-2xl font-bold">{stats.currentStreak || 0}</div>
-              <p className="text-sm text-muted-foreground">Day Streak</p>
+            <CardContent className="p-3 sm:p-4 text-center">
+              <Flame className="h-6 w-6 sm:h-8 sm:w-8 mx-auto mb-2 text-orange-500" />
+              <div className="text-xl sm:text-2xl font-bold">{stats.currentStreak || 0}</div>
+              <p className="text-xs sm:text-sm text-muted-foreground">Day Streak</p>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="p-4 text-center">
-              <Trophy className="h-8 w-8 mx-auto mb-2 text-yellow-500" />
-              <div className="text-2xl font-bold">{stats.goalsCompleted || 0}</div>
-              <p className="text-sm text-muted-foreground">Goals Completed</p>
+            <CardContent className="p-3 sm:p-4 text-center">
+              <Trophy className="h-6 w-6 sm:h-8 sm:w-8 mx-auto mb-2 text-yellow-500" />
+              <div className="text-xl sm:text-2xl font-bold">{stats.goalsCompleted || 0}</div>
+              <p className="text-xs sm:text-sm text-muted-foreground">Goals Completed</p>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="p-4 text-center">
-              <Clock className="h-8 w-8 mx-auto mb-2 text-green-500" />
-              <div className="text-2xl font-bold">{(stats.totalMinutes || 0).toLocaleString()}</div>
-              <p className="text-sm text-muted-foreground">Total Minutes</p>
+            <CardContent className="p-3 sm:p-4 text-center">
+              <Clock className="h-6 w-6 sm:h-8 sm:w-8 mx-auto mb-2 text-green-500" />
+              <div className="text-xl sm:text-2xl font-bold">{(stats.totalMinutes || 0).toLocaleString()}</div>
+              <p className="text-xs sm:text-sm text-muted-foreground">Total Minutes</p>
             </CardContent>
           </Card>
         </div>
