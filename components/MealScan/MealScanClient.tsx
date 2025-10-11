@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Camera, Upload, Loader2, CheckCircle, XCircle, Lightbulb, RotateCw } from 'lucide-react'
 import { validateFile } from '@/lib/utils/file-upload'
@@ -17,6 +17,40 @@ export function MealScanClient() {
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const { toast } = useToast()
   const router = useRouter()
+
+  // Auto-detect pending image from camera button
+  useEffect(() => {
+    const pendingImage = sessionStorage.getItem('pendingImageUpload')
+    const pendingName = sessionStorage.getItem('pendingImageName')
+
+    if (pendingImage && pendingName) {
+      console.log('[MealScanClient] Detected pending image from camera button')
+
+      // Convert base64 to File
+      fetch(pendingImage)
+        .then(res => res.blob())
+        .then(blob => {
+          const file = new File([blob], pendingName, { type: blob.type })
+          setSelectedImage(file)
+          setImagePreview(pendingImage)
+
+          // Clear sessionStorage
+          sessionStorage.removeItem('pendingImageUpload')
+          sessionStorage.removeItem('pendingImageName')
+
+          // Auto-analyze
+          handleAnalyze(file)
+        })
+        .catch(error => {
+          console.error('[MealScanClient] Failed to load pending image:', error)
+          toast({
+            title: 'Failed to load image',
+            description: 'Please try taking the photo again',
+            variant: 'destructive'
+          })
+        })
+    }
+  }, [])
 
   function handleFileSelect(files: FileList | null) {
     if (!files || files.length === 0) return
@@ -52,8 +86,9 @@ export function MealScanClient() {
     })
   }
 
-  async function handleAnalyze() {
-    if (!selectedImage) return
+  async function handleAnalyze(imageFile?: File) {
+    const fileToAnalyze = imageFile || selectedImage
+    if (!fileToAnalyze) return
 
     setIsAnalyzing(true)
     toast({
@@ -63,7 +98,7 @@ export function MealScanClient() {
 
     try {
       // Step 1: Analyze image with OpenAI Vision (client-side)
-      const result = await analyzeImage(selectedImage, '')
+      const result = await analyzeImage(fileToAnalyze, '')
       console.log('[MealScanClient] Image analysis result:', result)
 
       // Step 2: Format analysis as text

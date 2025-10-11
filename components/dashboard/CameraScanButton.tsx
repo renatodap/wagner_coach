@@ -32,7 +32,7 @@ export function CameraScanButton() {
       sessionStorage.setItem('pendingImageName', file.name)
 
       // Navigate to dedicated photo meal logging page
-      router.push('/nutrition/photo-log')
+      router.push('/meal-scan')
     }
     reader.readAsDataURL(file)
 
