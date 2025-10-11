@@ -22,6 +22,7 @@ import { ChatMessage } from './ChatMessage'
 import { ChatInput } from './ChatInput'
 import { ConversationSidebar } from './ConversationSidebar'
 import { useToast } from '@/hooks/use-toast'
+import BottomNavigation from '@/app/components/BottomNavigation'
 
 export function CoachV3Client() {
   const { messages, sendMessage, logMeal, startNewConversation } = useCoachV3()
@@ -146,27 +147,6 @@ export function CoachV3Client() {
                   </p>
                 </div>
 
-                <div className="space-y-3 text-left bg-zinc-900/50 rounded-2xl p-6 border border-zinc-800 backdrop-blur-sm">
-                  <h3 className="font-semibold text-white">Try asking:</h3>
-                  <ul className="space-y-2 text-iron-gray">
-                    <li className="flex items-start gap-2">
-                      <span className="text-iron-orange">•</span>
-                      <span>"I ate 2 chicken breasts and 150g of rice for lunch"</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-iron-orange">•</span>
-                      <span>"What should I eat to hit my protein goal today?"</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-iron-orange">•</span>
-                      <span>"How am I doing on my nutrition this week?"</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-iron-orange">•</span>
-                      <span>"Create a workout plan for building strength"</span>
-                    </li>
-                  </ul>
-                </div>
               </div>
             )}
 
@@ -195,6 +175,9 @@ export function CoachV3Client() {
           </div>
         </main>
       </div>
+
+      {/* Bottom Navigation */}
+      <BottomNavigation />
     </div>
   )
 }
