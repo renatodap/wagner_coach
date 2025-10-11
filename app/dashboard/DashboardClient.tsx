@@ -233,7 +233,7 @@ export default function DashboardClient({
                       Get AI-powered recommendations tailored to YOUR goals. Unlock personalized meal plans and workout programs.
                     </p>
                     <Button
-                      onClick={() => router.push('/consultation')}
+                      onClick={() => router.push('/onboarding/dashboard')}
                       className="bg-white text-iron-orange hover:bg-gray-100 font-semibold text-sm h-9"
                     >
                       Start Now

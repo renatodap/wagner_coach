@@ -28,7 +28,8 @@ import type {
 import {
   sendConsultationMessage,
   getConsultationSummary,
-  completeConsultation
+  completeConsultation,
+  getConsultationMessages
 } from '@/lib/api/consultation';
 import { SPECIALISTS } from '@/types/consultation';
 
@@ -50,13 +51,8 @@ export function ConsultationChat({
   onComplete
 }: ConsultationChatProps) {
   const [session, setSession] = useState(initialSession);
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      role: 'assistant',
-      content: initialSession.initial_question || 'Hello! How can I help you today?',
-      timestamp: new Date()
-    }
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [isLoadingMessages, setIsLoadingMessages] = useState(true);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
@@ -88,6 +84,56 @@ export function ConsultationChat({
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Load conversation history on mount
+  useEffect(() => {
+    async function loadConversationHistory() {
+      try {
+        setIsLoadingMessages(true);
+        const response = await getConsultationMessages(session.session_id);
+
+        if (response.messages && response.messages.length > 0) {
+          // Convert backend messages to frontend Message format
+          const loadedMessages: Message[] = response.messages.map(msg => ({
+            role: msg.role as 'user' | 'assistant',
+            content: msg.content,
+            timestamp: msg.created_at ? new Date(msg.created_at) : new Date()
+          }));
+
+          setMessages(loadedMessages);
+        } else {
+          // No messages yet - show initial question
+          setMessages([
+            {
+              role: 'assistant',
+              content: initialSession.initial_question || 'Hello! How can I help you today?',
+              timestamp: new Date()
+            }
+          ]);
+        }
+      } catch (error) {
+        console.error('Failed to load conversation history:', error);
+        // Fall back to showing initial question
+        setMessages([
+          {
+            role: 'assistant',
+            content: initialSession.initial_question || 'Hello! How can I help you today?',
+            timestamp: new Date()
+          }
+        ]);
+
+        toast({
+          title: 'Could not load conversation history',
+          description: 'Starting fresh conversation',
+          variant: 'default'
+        });
+      } finally {
+        setIsLoadingMessages(false);
+      }
+    }
+
+    loadConversationHistory();
+  }, [session.session_id, initialSession.initial_question, toast]);
 
   const handleSendMessage = async () => {
     if (!input.trim() || isLoading) return;
@@ -341,7 +387,18 @@ export function ConsultationChat({
 
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-br from-iron-black to-neutral-900">
-        {messages.map((message, index) => (
+        {/* Initial Loading State */}
+        {isLoadingMessages && (
+          <div className="flex justify-center items-center h-full">
+            <div className="flex flex-col items-center gap-3">
+              <Loader2 className="h-8 w-8 text-iron-orange animate-spin" />
+              <p className="text-sm text-iron-gray">Loading conversation...</p>
+            </div>
+          </div>
+        )}
+
+        {/* Messages */}
+        {!isLoadingMessages && messages.map((message, index) => (
           <div
             key={index}
             className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}

@@ -100,6 +100,17 @@ export async function sendConsultationMessage(
 }
 
 /**
+ * Get consultation messages (conversation history)
+ */
+export async function getConsultationMessages(
+  sessionId: string
+): Promise<{ messages: Array<{ role: string; content: string; created_at?: string }>; total: number }> {
+  return apiRequest<{ messages: Array<{ role: string; content: string; created_at?: string }>; total: number }>(
+    `/api/v1/consultation/${sessionId}/messages`
+  );
+}
+
+/**
  * Get consultation summary
  */
 export async function getConsultationSummary(
