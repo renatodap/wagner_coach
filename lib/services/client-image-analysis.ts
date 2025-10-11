@@ -17,13 +17,8 @@ interface ImageAnalysisResult {
     name: string
     quantity: string
     unit: string
+    grams?: string
   }>
-  nutrition?: {
-    calories: number
-    protein_g: number
-    carbs_g: number
-    fats_g: number
-  }
   meal_type?: string
   confidence: number
   reasoning?: string
@@ -82,78 +77,67 @@ export async function analyzeImage(
       dangerouslyAllowBrowser: true // Required for client-side usage
     })
 
-    const systemPrompt = `You are a food recognition AI that works with a USDA food database of 1000+ foods.
+    const systemPrompt = `You are a food detection AI. Analyze this meal photo and identify the foods and portions you see.
 
-YOUR JOB:
-Identify foods using COMMON, DATABASE-FRIENDLY names that can be matched to USDA food database entries.
-The backend will match your detected names to real foods and provide accurate nutrition data.
+CRITICAL RULES:
+- List each food item separately (don't group similar items)
+- Estimate portions in BOTH common units (oz, cups, pieces, servings) AND grams when possible
+- Be highly descriptive about the food (e.g., "grilled boneless skinless chicken breast" not just "chicken")
+- Detect cooking methods when visible (grilled, fried, raw, baked, steamed, roasted)
+- Include food preparation details (peeled, chopped, diced, whole)
+- DO NOT estimate calories, protein, carbs, fats, or any macronutrients
+- DO NOT provide nutrition advice or recommendations
+- Output ONLY valid JSON in the exact format specified below
 
-CRITICAL NAMING RULES:
-1. Use STANDARD USDA-style names with cooking method
+NAMING RULES:
+1. Use STANDARD database-friendly names with cooking method
    ✅ GOOD: "Chicken Breast, Grilled" (matches database)
    ✅ GOOD: "Rice, White, Cooked" (matches database)
    ✅ GOOD: "Broccoli, Steamed" (matches database)
    ✅ GOOD: "Banana, Raw" (matches database)
 
-   ❌ BAD: "Chick-fil-A Grilled Chicken Sandwich" (too specific, won't match)
-   ❌ BAD: "My homemade fried rice" (too vague)
-   ❌ BAD: "Optimum Nutrition Whey" (brand-specific, use "Whey Protein Isolate")
+   ❌ BAD: "Chick-fil-A Sandwich" (too brand-specific)
+   ❌ BAD: "My homemade rice" (too vague)
+   ❌ BAD: "Optimum Nutrition Whey" (use "Whey Protein Powder")
 
-2. ONLY mention brands if packaging/logo CLEARLY visible
-   - If no branding visible, use generic ingredient name
-   - Prefer: "Protein Powder, Whey Isolate" over "Optimum Nutrition Gold Standard"
-
-3. Include cooking method when relevant
+2. Include cooking method when visible
    - "Chicken Breast, Grilled" NOT just "Chicken"
    - "Eggs, Scrambled" NOT just "Eggs"
    - "Broccoli, Steamed" NOT just "Broccoli"
 
-4. Use common portion units
+3. Use common portion units
    - Meats: oz, g, breast, thigh, piece
    - Grains: cup, oz, g, slice
    - Vegetables: cup, oz, g
    - Liquids: cup, ml, oz
 
-5. Be CONSERVATIVE with portions (underestimate better than overestimate)
+4. Be CONSERVATIVE with portions (underestimate better than overestimate)
 
-NUTRITION ESTIMATES:
-- Provide ROUGH estimates only (backend will use database values)
-- Your nutrition is fallback for unmatched foods only
-- Focus on accurate food identification, not perfect nutrition math
-
-Analyze the image and determine:
-1. Is this food? (yes/no)
-2. List all visible foods with database-friendly names
-3. Estimate conservative portions
-4. Provide rough nutrition estimates (will be replaced by database values)
-5. Identify meal type
-
-Return ONLY valid JSON (no markdown):
+Output format (valid JSON only):
 {
-    "is_food": true/false,
-    "food_items": [
-        {"name": "database-friendly name with cooking method", "quantity": "amount", "unit": "oz/g/cup"}
-    ],
-    "nutrition": {
-        "calories": rough_total_estimate,
-        "protein_g": rough_estimate,
-        "carbs_g": rough_estimate,
-        "fats_g": rough_estimate
-    },
-    "meal_type": "breakfast/lunch/dinner/snack",
-    "description": "Natural language description",
-    "confidence": 0.0-1.0,
-    "reasoning": "Brief identification explanation"
+  "is_food": true/false,
+  "food_items": [
+    {
+      "name": "descriptive food name with cooking method",
+      "quantity": "estimated quantity as string number",
+      "unit": "common unit (oz, cup, piece, serving, tbsp, tsp, slice, etc.)",
+      "grams": "estimated grams as string number (if determinable)"
+    }
+  ],
+  "meal_type": "breakfast" | "lunch" | "dinner" | "snack",
+  "description": "brief overall description of the meal",
+  "confidence": 0.0-1.0,
+  "reasoning": "Brief identification explanation"
 }
 
 If NOT food:
 {
-    "is_food": false,
-    "description": "What the image shows",
-    "confidence": 1.0
+  "is_food": false,
+  "description": "What the image shows",
+  "confidence": 1.0
 }
 
-REMEMBER: Use generic, database-matchable names. The backend will find the best match from USDA database and provide accurate nutrition.`
+IMPORTANT: The backend will match your detected food names to a database and provide accurate nutrition data. Your job is ONLY to identify foods and estimate portions - DO NOT estimate calories or macros.`
 
     let userPrompt = 'Analyze this food image.'
     if (userMessage) {

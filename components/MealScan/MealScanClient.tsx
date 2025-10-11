@@ -19,6 +19,7 @@ import { useToast } from '@/hooks/use-toast'
 import BottomNavigation from '@/app/components/BottomNavigation'
 import { createClient } from '@/lib/supabase/client'
 import { API_BASE_URL } from '@/lib/api-config'
+import { analyzeImage } from '@/lib/services/client-image-analysis'
 
 export function MealScanClient() {
   const [selectedImage, setSelectedImage] = useState<File | null>(null)
@@ -35,11 +36,30 @@ export function MealScanClient() {
     setIsAnalyzing(true)
     toast({
       title: '🔍 Analyzing meal...',
-      description: 'Detecting foods and matching nutrition',
+      description: 'Detecting foods with AI...',
     })
 
     try {
-      // Get auth token
+      // Step 1: Client-side OpenAI Vision analysis (NO nutrition estimates)
+      console.log('[MealScanClient] Starting client-side image analysis')
+      const analysis = await analyzeImage(fileToAnalyze, '')
+
+      if (!analysis.success || !analysis.is_food) {
+        throw new Error(analysis.description || 'No food detected in image')
+      }
+
+      if (!analysis.food_items || analysis.food_items.length === 0) {
+        throw new Error('No foods detected. Please try a different photo.')
+      }
+
+      console.log(`[MealScanClient] Detected ${analysis.food_items.length} foods:`, analysis.food_items)
+
+      toast({
+        title: '🔍 Matching nutrition...',
+        description: `Found ${analysis.food_items.length} foods, matching with database...`,
+      })
+
+      // Step 2: Send food descriptions to backend for database matching
       const supabase = createClient()
       const { data: { session } } = await supabase.auth.getSession()
 
@@ -47,22 +67,23 @@ export function MealScanClient() {
         throw new Error('Not authenticated')
       }
 
-      // Build form data
-      const formData = new FormData()
-      formData.append('image', fileToAnalyze)
-
-      // Call new photo analyze API
-      const response = await fetch(`${API_BASE_URL}/api/v1/meals/photo/analyze`, {
+      // Call backend with TEXT food descriptions (not image)
+      const response = await fetch(`${API_BASE_URL}/api/v1/meals/photo/analyze-text`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${session.access_token}`
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
         },
-        body: formData
+        body: JSON.stringify({
+          food_items: analysis.food_items,
+          meal_type: analysis.meal_type || 'lunch',
+          description: analysis.description
+        })
       })
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.detail || 'Photo analysis failed')
+        throw new Error(errorData.detail || 'Food matching failed')
       }
 
       const mealPreview = await response.json()
