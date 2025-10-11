@@ -283,14 +283,25 @@ export async function POST(request: NextRequest) {
                 servingUnit: foodData.serving_unit
               });
 
-              // V2: Use gram_quantity directly for nutrition calculation
-              // If dual quantity tracking is in place, gram_quantity is the source of truth
+              /**
+               * HOW NUTRITION WORKS:
+               * - Base nutrition stored in foods table per serving_size (typically 100g)
+               * - User inputs in servings (e.g., "1.5 breasts") OR grams (e.g., "210g")
+               * - Backend converts between servings↔grams using household_serving_grams if available
+               * - Nutrition calculated: multiplier = gram_quantity / serving_size
+               * - Each macronutrient: value * multiplier
+               * - Stored in meal_foods with pre-calculated nutrition
+               *
+               * CRITICAL: gram_quantity is the SOURCE OF TRUTH for all nutrition calculations
+               */
               const gramQuantity = food.gram_quantity || food.quantity || 1;
               const servingSize = foodData.serving_size || 100;
-              
+
               // Calculate nutrition multiplier based on grams
+              // Formula: multiplier = gram_quantity / serving_size
               const multiplier = gramQuantity / servingSize;
 
+              // Apply multiplier to each macronutrient
               totalCalories += (foodData.calories || 0) * multiplier;
               totalProtein += (foodData.protein_g || 0) * multiplier;
               totalCarbs += (foodData.total_carbs_g || 0) * multiplier;

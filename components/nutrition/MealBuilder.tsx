@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { FoodSearch } from './FoodSearch';
 import { Food, FoodUnit, MealCategory } from '@/types/nutrition-v2';
 import { Trash2, Edit2, Plus } from 'lucide-react';
+import { FoodQuantityConverter, type FoodEnhanced } from '@/lib/utils/food-quantity-converter';
 
 interface MealFood {
   food: Food;
@@ -37,26 +38,56 @@ export function MealBuilder({ onSubmit, onCancel, initialDate = new Date() }: Me
   const [showFoodSearch, setShowFoodSearch] = useState(false);
   const [editingFood, setEditingFood] = useState<string | null>(null);
 
-  // Calculate totals
+  /**
+   * Calculate nutrition totals using the official FoodQuantityConverter.
+   *
+   * HOW NUTRITION WORKS:
+   * 1. Base nutrition stored in foods table per serving_size (typically 100g)
+   * 2. User inputs in servings OR grams
+   * 3. Backend converts between servings↔grams using household_serving_grams if available
+   * 4. Nutrition calculated: multiplier = gram_quantity / serving_size
+   * 5. Each macronutrient: value * multiplier
+   */
   const totals = foods.reduce((acc, item) => {
-    const multiplier = calculateMultiplier(item.quantity, item.unit, item.food.serving_size, item.food.serving_unit);
+    // Convert food to FoodEnhanced format for the converter
+    const foodEnhanced: FoodEnhanced = {
+      id: item.food.id,
+      name: item.food.name,
+      serving_size: item.food.serving_size,
+      serving_unit: item.food.serving_unit,
+      household_serving_grams: item.food.household_serving_grams || null,
+      household_serving_unit: item.food.household_serving_unit || null,
+      calories: item.food.calories || 0,
+      protein_g: item.food.protein_g || 0,
+      total_carbs_g: item.food.carbs_g || 0,
+      total_fat_g: item.food.fat_g || 0,
+      dietary_fiber_g: item.food.fiber_g || 0,
+      total_sugars_g: 0,
+      sodium_mg: 0
+    };
+
+    // Determine if quantity is in grams or servings based on unit
+    const isGrams = item.unit === 'g';
+    const quantities = FoodQuantityConverter.calculateQuantities(
+      foodEnhanced,
+      item.quantity,
+      isGrams ? 'grams' : 'serving'
+    );
+
+    // Calculate nutrition from gram quantity (source of truth)
+    const nutrition = FoodQuantityConverter.calculateNutrition(
+      foodEnhanced,
+      quantities.gramQuantity
+    );
+
     return {
-      calories: acc.calories + (item.food.calories || 0) * multiplier,
-      protein: acc.protein + (item.food.protein_g || 0) * multiplier,
-      carbs: acc.carbs + (item.food.carbs_g || 0) * multiplier,
-      fat: acc.fat + (item.food.fat_g || 0) * multiplier,
-      fiber: acc.fiber + (item.food.fiber_g || 0) * multiplier,
+      calories: acc.calories + nutrition.calories,
+      protein: acc.protein + nutrition.protein_g,
+      carbs: acc.carbs + nutrition.carbs_g,
+      fat: acc.fat + nutrition.fat_g,
+      fiber: acc.fiber + nutrition.fiber_g,
     };
   }, { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 });
-
-  function calculateMultiplier(quantity: number, unit: FoodUnit, servingSize: number, servingUnit: FoodUnit): number {
-    // Simplified - in production you'd have proper unit conversion
-    if (unit === servingUnit) {
-      return quantity / servingSize;
-    }
-    // Add more conversion logic as needed
-    return quantity / servingSize;
-  }
 
   const handleAddFood = (food: Food) => {
     const newFood: MealFood = {
@@ -257,12 +288,40 @@ export function MealBuilder({ onSubmit, onCancel, initialDate = new Date() }: Me
                     {/* Nutrition for this quantity */}
                     <div className="text-iron-gray text-xs mt-1">
                       {(() => {
-                        const mult = calculateMultiplier(item.quantity, item.unit, item.food.serving_size, item.food.serving_unit);
+                        // Calculate nutrition using FoodQuantityConverter (official method)
+                        const foodEnhanced: FoodEnhanced = {
+                          id: item.food.id,
+                          name: item.food.name,
+                          serving_size: item.food.serving_size,
+                          serving_unit: item.food.serving_unit,
+                          household_serving_grams: item.food.household_serving_grams || null,
+                          household_serving_unit: item.food.household_serving_unit || null,
+                          calories: item.food.calories || 0,
+                          protein_g: item.food.protein_g || 0,
+                          total_carbs_g: item.food.carbs_g || 0,
+                          total_fat_g: item.food.fat_g || 0,
+                          dietary_fiber_g: item.food.fiber_g || 0,
+                          total_sugars_g: 0,
+                          sodium_mg: 0
+                        };
+
+                        const isGrams = item.unit === 'g';
+                        const quantities = FoodQuantityConverter.calculateQuantities(
+                          foodEnhanced,
+                          item.quantity,
+                          isGrams ? 'grams' : 'serving'
+                        );
+
+                        const nutrition = FoodQuantityConverter.calculateNutrition(
+                          foodEnhanced,
+                          quantities.gramQuantity
+                        );
+
                         return [
-                          item.food.calories && `${Math.round((item.food.calories || 0) * mult)} cal`,
-                          item.food.protein_g && `${Math.round((item.food.protein_g || 0) * mult)}g protein`,
-                          item.food.carbs_g && `${Math.round((item.food.carbs_g || 0) * mult)}g carbs`,
-                          item.food.fat_g && `${Math.round((item.food.fat_g || 0) * mult)}g fat`,
+                          nutrition.calories > 0 && `${Math.round(nutrition.calories)} cal`,
+                          nutrition.protein_g > 0 && `${Math.round(nutrition.protein_g)}g protein`,
+                          nutrition.carbs_g > 0 && `${Math.round(nutrition.carbs_g)}g carbs`,
+                          nutrition.fat_g > 0 && `${Math.round(nutrition.fat_g)}g fat`,
                         ].filter(Boolean).join(' • ');
                       })()}
                     </div>

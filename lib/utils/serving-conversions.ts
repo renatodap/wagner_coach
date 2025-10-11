@@ -1,16 +1,31 @@
+/**
+ * @deprecated This file contains LEGACY serving conversion logic.
+ *
+ * ⚠️ DO NOT USE THESE FUNCTIONS FOR NEW CODE ⚠️
+ *
+ * Use `FoodQuantityConverter` from `@/lib/utils/food-quantity-converter` instead.
+ *
+ * This file is kept for backward compatibility with older components (MealEditor).
+ * All nutrition calculations should use the official FoodQuantityConverter which:
+ * 1. Uses household_serving_grams directly from the database (no hardcoded values)
+ * 2. Calculates nutrition as: multiplier = gram_quantity / serving_size
+ * 3. Supports dual quantity tracking (servings + grams)
+ *
+ * Migration guide:
+ * - getGramsPerHouseholdServing() → FoodQuantityConverter.calculateQuantities()
+ * - calculateNutritionForGrams() → FoodQuantityConverter.calculateNutrition()
+ * - servingsToGrams() → FoodQuantityConverter.calculateQuantities(food, servings, 'serving')
+ * - gramsToServings() → FoodQuantityConverter.calculateQuantities(food, grams, 'grams')
+ * - formatServingDisplay() → FoodQuantityConverter.formatServingDisplay()
+ */
+
 import type { MealFood } from '@/components/nutrition/MealEditor'
 
 /**
- * Calculate grams per household serving
- * 
- * This function extracts the actual weight in grams for one household serving.
- * Examples:
- * - Pizza: 1 slice = 120g
- * - Banana: 1 medium = 118g
- * - Protein: 1 scoop = 30g
- * 
- * @param food - The food item with household serving data
- * @returns The weight in grams for one household serving
+ * @deprecated Use FoodQuantityConverter.calculateQuantities() instead.
+ *
+ * This function has HARDCODED unit conversions which may not match database values.
+ * The official converter uses household_serving_grams directly from the database.
  */
 export function getGramsPerHouseholdServing(food: MealFood): number {
   // If household serving data exists, use it
@@ -57,11 +72,9 @@ export function getGramsPerHouseholdServing(food: MealFood): number {
 }
 
 /**
- * Calculate nutrition for a given quantity in grams
- * 
- * @param food - The food item
- * @param grams - The quantity in grams
- * @returns Object with calculated nutrition values
+ * @deprecated Use FoodQuantityConverter.calculateNutrition() instead.
+ *
+ * The official converter uses the correct formula: multiplier = gram_quantity / serving_size
  */
 export function calculateNutritionForGrams(
   food: MealFood,
@@ -86,11 +99,7 @@ export function calculateNutritionForGrams(
 }
 
 /**
- * Convert servings to grams
- * 
- * @param servings - Number of household servings
- * @param food - The food item
- * @returns Weight in grams
+ * @deprecated Use FoodQuantityConverter.calculateQuantities(food, servings, 'serving') instead.
  */
 export function servingsToGrams(servings: number, food: MealFood): number {
   const gramsPerServing = getGramsPerHouseholdServing(food)
@@ -98,11 +107,7 @@ export function servingsToGrams(servings: number, food: MealFood): number {
 }
 
 /**
- * Convert grams to servings
- * 
- * @param grams - Weight in grams
- * @param food - The food item
- * @returns Number of household servings
+ * @deprecated Use FoodQuantityConverter.calculateQuantities(food, grams, 'grams') instead.
  */
 export function gramsToServings(grams: number, food: MealFood): number {
   const gramsPerServing = getGramsPerHouseholdServing(food)
@@ -110,11 +115,7 @@ export function gramsToServings(grams: number, food: MealFood): number {
 }
 
 /**
- * Format serving display with pluralization
- * 
- * @param servings - Number of servings
- * @param unit - The unit name
- * @returns Formatted string (e.g., "1 slice", "2 slices")
+ * @deprecated Use FoodQuantityConverter.formatServingDisplay() instead.
  */
 export function formatServingDisplay(servings: number, unit: string): string {
   const pluralMap: Record<string, string> = {

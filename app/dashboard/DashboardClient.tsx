@@ -196,106 +196,74 @@ export default function DashboardClient({
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-iron-black to-neutral-900 pb-24">
-      {/* Header */}
+      {/* Header - Compact */}
       <div className="bg-iron-black/50 backdrop-blur-sm border-b border-iron-gray/20">
-        <div className="max-w-4xl mx-auto px-4 py-6">
-          <h1 className="text-2xl font-bold text-white mb-2">
+        <div className="max-w-4xl mx-auto px-4 py-4">
+          <h1 className="text-xl font-bold text-white mb-1">
             {getGreeting()}
           </h1>
-          <p className="text-iron-gray">
+          <p className="text-iron-gray text-sm">
             {new Date().toLocaleDateString('en-US', {
-              weekday: 'long',
-              year: 'numeric',
-              month: 'long',
+              weekday: 'short',
+              month: 'short',
               day: 'numeric'
             })}
           </p>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="max-w-4xl mx-auto px-4 py-8">
+      {/* Main Content - Compact Spacing */}
+      <div className="max-w-4xl mx-auto px-4 py-4">
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="w-12 h-12 text-iron-orange animate-spin" />
           </div>
         ) : nutritionData ? (
-          <div className="space-y-8">
-            {/* First-Time User Consultation Banner */}
+          <div className="space-y-4">
+            {/* First-Time User Consultation Banner - Compact */}
             {hasCompletedConsultation === false && (
-              <div className="bg-gradient-to-r from-iron-orange to-orange-600 rounded-lg p-6 border border-orange-400">
-                <div className="flex items-start gap-4">
-                  <Sparkles className="h-8 w-8 text-white flex-shrink-0 mt-1" />
+              <div className="bg-gradient-to-r from-iron-orange to-orange-600 rounded-lg p-4 border border-orange-400">
+                <div className="flex items-start gap-3">
+                  <Sparkles className="h-6 w-6 text-white flex-shrink-0" />
                   <div className="flex-1">
-                    <h3 className="text-xl font-bold text-white mb-2">
-                      🎯 Complete Your Personalized Consultation
+                    <h3 className="text-lg font-bold text-white mb-1">
+                      🎯 Complete Your Consultation
                     </h3>
-                    <p className="text-white/90 mb-4">
-                      Get AI-powered recommendations tailored to YOUR goals, preferences, and lifestyle.
-                      This 5-minute consultation will unlock personalized meal plans, workout programs, and daily recommendations.
+                    <p className="text-sm text-white/90 mb-3">
+                      Get AI-powered recommendations tailored to YOUR goals. Unlock personalized meal plans and workout programs.
                     </p>
                     <Button
                       onClick={() => router.push('/consultation')}
-                      className="bg-white text-iron-orange hover:bg-gray-100 font-semibold"
+                      className="bg-white text-iron-orange hover:bg-gray-100 font-semibold text-sm h-9"
                     >
-                      Start Consultation Now
+                      Start Now
                     </Button>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* Quick Actions Section */}
+            {/* Quick Actions Section - Simplified to 2 Primary Actions */}
             <div className="bg-iron-black/50 backdrop-blur-sm border border-iron-gray/20 rounded-lg p-4">
-              <h2 className="text-lg font-semibold text-white mb-4">Quick Actions</h2>
+              <h2 className="text-base font-semibold text-white mb-3">Quick Actions</h2>
 
-              {/* Primary Actions - 3 Button Layout */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {/* Primary Actions - 2 Most Important */}
+              <div className="grid grid-cols-2 gap-3">
                 <Button
                   onClick={() => router.push('/nutrition/log')}
-                  className="bg-iron-orange hover:bg-iron-orange/90 text-white font-semibold h-auto py-6 flex flex-col items-center gap-2 transition-all hover:scale-105"
+                  className="bg-iron-orange hover:bg-iron-orange/90 text-white font-semibold h-auto py-4 flex flex-col items-center gap-2 transition-all hover:scale-105"
                   aria-label="Log a meal manually"
                 >
-                  <UtensilsCrossed size={28} />
-                  <span>Log Meal</span>
-                </Button>
-                <Button
-                  onClick={() => router.push('/meal-scan')}
-                  className="bg-gradient-to-br from-iron-orange to-orange-600 hover:from-iron-orange/90 hover:to-orange-600/90 text-white font-semibold h-auto py-6 flex flex-col items-center gap-2 transition-all hover:scale-105"
-                  aria-label="Scan a meal with your camera"
-                >
-                  <Camera size={28} />
-                  <span>Scan Meal</span>
+                  <UtensilsCrossed size={24} />
+                  <span className="text-sm">Log Meal</span>
                 </Button>
                 <Button
                   onClick={() => router.push('/coach-v2')}
-                  className="bg-iron-orange hover:bg-iron-orange/90 text-white font-semibold h-auto py-6 flex flex-col items-center gap-2 transition-all hover:scale-105"
+                  className="bg-iron-orange hover:bg-iron-orange/90 text-white font-semibold h-auto py-4 flex flex-col items-center gap-2 transition-all hover:scale-105"
                   aria-label="Chat with your AI coach"
                 >
-                  <MessageCircle size={28} />
-                  <span>Ask Coach</span>
-                </Button>
-              </div>
-
-              {/* Secondary Actions */}
-              <div className="grid grid-cols-2 gap-3 mt-3">
-                <Button
-                  onClick={() => router.push('/activities/log')}
-                  variant="outline"
-                  className="border-iron-gray/30 text-white hover:bg-iron-gray/20 h-auto py-3 flex flex-col items-center gap-1.5"
-                  aria-label="Log an activity or workout"
-                >
-                  <Activity size={20} />
-                  <span className="text-sm">Log Activity</span>
-                </Button>
-                <Button
-                  onClick={() => router.push('/consultation')}
-                  variant="outline"
-                  className="border-iron-gray/30 text-white hover:bg-iron-gray/20 h-auto py-3 flex flex-col items-center gap-1.5"
-                  aria-label="Start a consultation with a specialist"
-                >
-                  <Sparkles size={20} />
-                  <span className="text-sm">Consultation</span>
+                  <MessageCircle size={24} />
+                  <span className="text-sm">Ask Coach</span>
                 </Button>
               </div>
             </div>
@@ -307,32 +275,32 @@ export default function DashboardClient({
               </div>
             )}
 
-            {/* Nutrition Progress */}
-            <div className="space-y-8">
+            {/* Nutrition Progress - Compact */}
+            <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold text-white">Today's Nutrition</h2>
+                <h2 className="text-lg font-semibold text-white">Today's Nutrition</h2>
                 <button
                   onClick={() => router.push('/nutrition')}
-                  className="text-sm text-iron-orange hover:text-orange-400 underline"
+                  className="text-xs text-iron-orange hover:text-orange-400 underline"
                 >
                   View All
                 </button>
               </div>
 
-              {/* Calories - Large Circle */}
+              {/* Calories - Medium Circle */}
               <div className="flex justify-center">
               <CircularProgress
                 value={nutritionData.current.calories}
                 max={nutritionData.targets.calories}
                 label="Calories"
-                size="large"
+                size="medium"
                 color="#ff6b35"
                 unit=" cal"
               />
             </div>
 
-            {/* Macros - Smaller Circles */}
-            <div className="grid grid-cols-3 gap-6">
+            {/* Macros - Smaller Circles, Reduced Gap */}
+            <div className="grid grid-cols-3 gap-3">
               <CircularProgress
                 value={nutritionData.current.protein}
                 max={nutritionData.targets.protein}
@@ -360,36 +328,36 @@ export default function DashboardClient({
             </div>
             </div>
 
-            {/* Activity Progress */}
+            {/* Activity Progress - Compact */}
             {activityData && (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-semibold text-white">Today's Activity</h2>
+                  <h2 className="text-lg font-semibold text-white">Today's Activity</h2>
                   <button
                     onClick={() => router.push('/activities/daily')}
-                    className="text-sm text-iron-orange hover:text-orange-400 underline"
+                    className="text-xs text-iron-orange hover:text-orange-400 underline"
                   >
                     View All
                   </button>
                 </div>
 
-                <div className="bg-iron-black/50 backdrop-blur-sm border border-iron-gray/20 rounded-lg p-6">
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div className="bg-iron-black/50 backdrop-blur-sm border border-iron-gray/20 rounded-lg p-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     <div className="text-center">
-                      <p className="text-iron-gray text-sm mb-1">Activities</p>
-                      <p className="text-2xl font-bold text-white">{activityData.count}</p>
+                      <p className="text-iron-gray text-xs mb-1">Activities</p>
+                      <p className="text-xl font-bold text-white">{activityData.count}</p>
                     </div>
                     <div className="text-center">
-                      <p className="text-iron-gray text-sm mb-1">Duration</p>
-                      <p className="text-2xl font-bold text-white">{formatDuration(activityData.duration)}</p>
+                      <p className="text-iron-gray text-xs mb-1">Duration</p>
+                      <p className="text-xl font-bold text-white">{formatDuration(activityData.duration)}</p>
                     </div>
                     <div className="text-center">
-                      <p className="text-iron-gray text-sm mb-1">Calories</p>
-                      <p className="text-2xl font-bold text-white">{activityData.calories}</p>
+                      <p className="text-iron-gray text-xs mb-1">Calories</p>
+                      <p className="text-xl font-bold text-white">{activityData.calories}</p>
                     </div>
                     <div className="text-center">
-                      <p className="text-iron-gray text-sm mb-1">Distance</p>
-                      <p className="text-2xl font-bold text-white">
+                      <p className="text-iron-gray text-xs mb-1">Distance</p>
+                      <p className="text-xl font-bold text-white">
                         {activityData.distance > 0 ? formatDistance(activityData.distance) : '-'}
                       </p>
                     </div>
@@ -405,14 +373,7 @@ export default function DashboardClient({
         )}
       </div>
 
-      {/* Floating Action Button - Log Meal */}
-      <button
-        onClick={() => router.push('/nutrition/log')}
-        className="fixed bottom-20 right-4 z-40 bg-iron-orange hover:bg-iron-orange/90 text-white rounded-full p-4 shadow-lg transition-all duration-200 hover:scale-110 focus-visible:ring-2 focus-visible:ring-iron-orange focus-visible:ring-offset-2"
-        aria-label="Log a meal"
-      >
-        <UtensilsCrossed size={24} />
-      </button>
+      {/* Floating Action Button Removed - Already in Quick Actions */}
 
       <BottomNavigation />
     </div>
