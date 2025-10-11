@@ -90,18 +90,32 @@ export function CameraScanButton() {
 
       const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
 
-      // Log meal to backend
-      const response = await fetch(`${API_BASE_URL}/api/v1/coach/confirm-log`, {
+      // Build meal log request in the format the backend expects
+      const mealLogRequest = {
+        meal_type: foodData.meal_type || 'snack',
+        logged_at: new Date().toISOString(),
+        calories: Math.round(foodData.nutrition.calories),
+        protein_g: Math.round(foodData.nutrition.protein_g * 10) / 10,
+        carbs_g: Math.round(foodData.nutrition.carbs_g * 10) / 10,
+        fats_g: Math.round(foodData.nutrition.fats_g * 10) / 10,
+        fiber_g: foodData.nutrition.fiber_g,
+        sugar_g: foodData.nutrition.sugar_g,
+        sodium_mg: foodData.nutrition.sodium_mg,
+        foods: foodData.food_items.map(item => item.name),
+        notes: `Camera scan: ${foodData.description}`,
+        source: 'camera_scan' as const
+      }
+
+      console.log('[CameraScanButton] Meal log request:', mealLogRequest)
+
+      // Log meal to backend using direct meals endpoint
+      const response = await fetch(`${API_BASE_URL}/api/v1/meals`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session.access_token}`
         },
-        body: JSON.stringify({
-          conversation_id: null, // No conversation context for dashboard scans
-          food_detected: foodData,
-          user_confirmation: true
-        })
+        body: JSON.stringify(mealLogRequest)
       })
 
       if (!response.ok) {
