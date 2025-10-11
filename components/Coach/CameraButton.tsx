@@ -78,6 +78,7 @@ export function CameraButton({ onImageSelected, disabled = false }: CameraButton
       <button
         type="button"
         onClick={handleClick}
+        onTouchEnd={handleClick}
         disabled={disabled || isProcessing}
         className="text-iron-gray hover:text-iron-orange hover:bg-iron-orange/10 p-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         aria-label="Take or select photo"
@@ -97,7 +98,7 @@ export function CameraButton({ onImageSelected, disabled = false }: CameraButton
         accept="image/*"
         capture="environment"
         onChange={handleFileChange}
-        className="hidden"
+        style={{ display: 'none' }}
         aria-hidden="true"
       />
     </>
