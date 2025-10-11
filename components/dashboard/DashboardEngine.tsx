@@ -52,10 +52,10 @@ export function DashboardEngine({ userId, variant = 'balanced' }: DashboardEngin
       const data = await fetchDashboardContext()
       setContext(data)
 
-      // Log dashboard open behavior signal (non-blocking)
-      logBehaviorSignal('dashboard_open', variant, {
-        timestamp: new Date().toISOString(),
-      }).catch((err) => console.error('Failed to log dashboard open:', err))
+      // Behavior signal logging disabled (backend table not yet implemented)
+      // logBehaviorSignal('dashboard_open', variant, {
+      //   timestamp: new Date().toISOString(),
+      // }).catch((err) => console.error('Failed to log dashboard open:', err))
     } catch (error) {
       console.error('Failed to load dashboard context:', error)
       setContext(null) // Set to null to trigger error state
@@ -92,10 +92,10 @@ export function DashboardEngine({ userId, variant = 'balanced' }: DashboardEngin
         <NextActionCard />
       )}
 
-      {/* Priority 2: Today's Plan (Balanced/Detailed) */}
-      {(variant === 'balanced' || variant === 'detailed') && context.user.hasActiveProgram && (
+      {/* Priority 2: Today's Plan (Balanced/Detailed) - Disabled until backend provides real program data */}
+      {/* {(variant === 'balanced' || variant === 'detailed') && context.user.hasActiveProgram && (
         <TodaysPlanCard variant={variant} />
-      )}
+      )} */}
 
       {/* Priority 3: Quick Actions (All personas) */}
       <QuickActionsCard variant={variant} />
@@ -105,8 +105,9 @@ export function DashboardEngine({ userId, variant = 'balanced' }: DashboardEngin
         <EventCountdownCard event={context.events.primaryEvent} />
       )}
 
-      {/* Priority 5: Coach Insight (conditional) */}
-      {context.program && context.program.adherenceLast3Days < 60 && (
+      {/* Priority 5: Coach Insight - Disabled until we have minimum data threshold logic */}
+      {/* Only show if user has logged >= 5 meals OR >= 2 workouts */}
+      {/* {context.program && context.program.adherenceLast3Days < 60 && (
         <CoachInsightCard
           insight={{
             type: 'warning',
@@ -118,7 +119,7 @@ export function DashboardEngine({ userId, variant = 'balanced' }: DashboardEngin
             }
           }}
         />
-      )}
+      )} */}
 
       {/* Priority 7-8: Nutrition (All personas with variants) */}
       <NutritionCard variant={variant} />
@@ -148,10 +149,11 @@ export function DashboardEngine({ userId, variant = 'balanced' }: DashboardEngin
         <RecoveryMetricsCard />
       )}
 
-      {/* Priority 21-24: Weekly Trends (Balanced/Detailed) */}
-      {(variant === 'balanced' || variant === 'detailed') && (
+      {/* Priority 21-24: Weekly Trends (Balanced/Detailed) - Disabled until we pass real data */}
+      {/* Need to fetch weekly analytics and pass to card */}
+      {/* {(variant === 'balanced' || variant === 'detailed') && (
         <WeeklyTrendsCard variant={variant} />
-      )}
+      )} */}
     </div>
   )
 }

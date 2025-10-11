@@ -28,21 +28,21 @@
       "short_name": "Activity",
       "description": "Log a new workout activity",
       "url": "/activities/add",
-      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+      "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
     },
     {
       "name": "Log Meal",
       "short_name": "Meal",
       "description": "Log a new meal",
       "url": "/nutrition/log",
-      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+      "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
     },
     {
       "name": "AI Coach",
       "short_name": "Coach",
       "description": "Chat with your AI fitness coach",
-      "url": "/coach",
-      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+      "url": "/coach-v2",
+      "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
     }
   ],
   "screenshots": [],

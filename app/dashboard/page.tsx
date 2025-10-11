@@ -43,7 +43,7 @@ export default function DashboardPage() {
         // Get user profile with dashboard preference
         const { data: profileData } = await supabase
           .from('profiles')
-          .select('id, name, dashboard_preference, shows_weight_card, shows_recovery_card, shows_workout_card')
+          .select('id, full_name, dashboard_preference')
           .eq('id', user.id)
           .single()
 
@@ -94,7 +94,7 @@ export default function DashboardPage() {
       <div className="bg-gradient-to-b from-iron-gray to-iron-black p-6 sticky top-0 z-10 border-b border-iron-gray">
         <div className="max-w-4xl mx-auto">
           <h1 className="text-2xl font-bold text-white mb-1">
-            Welcome back{profile?.name ? `, ${profile.name}` : ''}
+            Welcome back{profile?.full_name ? `, ${profile.full_name.split(' ')[0]}` : ''}
           </h1>
           <p className="text-sm text-gray-400">
             {variant === 'simple' && 'Your next action awaits'}
