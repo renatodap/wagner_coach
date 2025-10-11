@@ -93,8 +93,8 @@ export function MealScanClient() {
 
             // Build meal data with matched foods (V2 format with dual quantity tracking)
             const mealData = {
-              meal_type: foodData.meal_type || 'dinner',
-              notes: `Detected from image: ${foodData.description}`,
+              meal_type: foodData.meal_type || result.meal_type || 'dinner',
+              notes: `Detected from image: ${result.description || foodData.description}`,
               foods: matchResult.matched_foods.map(food => {
                 // Parse detected quantity (e.g., "1 serving" → 1)
                 const detectedQty = parseFloat(food.detected_quantity) || 1
@@ -120,7 +120,7 @@ export function MealScanClient() {
 
                   // Dual quantity tracking (V2)
                   serving_quantity: detectedQty,
-                  serving_unit: food.serving_unit,
+                  serving_unit: detectedUnit, // Use detected unit (oz, cup) not database unit (g)
                   gram_quantity: gramQuantity,
                   last_edited_field: 'serving' as const,
 
@@ -172,8 +172,8 @@ export function MealScanClient() {
 
             // Still redirect, but without matched nutrition
             const fallbackData = {
-              meal_type: foodData.meal_type || 'dinner',
-              notes: `Detected from image: ${foodData.description}\n\nDetected foods: ${foodData.food_items.map(item => `${item.name} (${item.quantity} ${item.unit})`).join(', ')}\n\n(Auto-match failed - please search and add foods manually)`,
+              meal_type: foodData.meal_type || result.meal_type || 'dinner',
+              notes: `Detected from image: ${result.description || foodData.description}\n\nDetected foods: ${foodData.food_items.map(item => `${item.name} (${item.quantity} ${item.unit})`).join(', ')}\n\n(Auto-match failed - please search and add foods manually)`,
               foods: []
             }
 
