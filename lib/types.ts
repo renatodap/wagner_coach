@@ -213,3 +213,95 @@ export interface WorkoutExerciseTemplate {
   // Relations
   exercises?: Exercise;
 }
+
+// ============================================================================
+// COACH TYPES - Unified Coach AI Interface
+// ============================================================================
+
+/**
+ * FoodItem - Individual food detected in a meal
+ */
+export interface FoodItem {
+  name: string;
+  quantity?: string | number;
+  portion?: string;
+  calories?: number;
+  protein_g?: number;
+  carbs_g?: number;
+  fats_g?: number;
+}
+
+/**
+ * NutritionData - Nutritional breakdown of a meal
+ */
+export interface NutritionData {
+  calories: number;
+  protein_g: number;
+  carbs_g: number;
+  fats_g: number;
+  fiber_g?: number;
+  sugar_g?: number;
+  sodium_mg?: number;
+}
+
+/**
+ * FoodDetected - Food detection data from AI coach
+ * Returned when coach detects food in image or text
+ */
+export interface FoodDetected {
+  is_food: boolean;
+  nutrition: NutritionData;
+  food_items: FoodItem[];
+  meal_type: 'breakfast' | 'lunch' | 'dinner' | 'snack' | null;
+  confidence: number;
+  description: string;
+}
+
+/**
+ * LogPreview - Preview of detected log requiring user confirmation
+ */
+export interface LogPreview {
+  log_type: 'meal' | 'workout' | 'activity' | 'measurement';
+  confidence: number;
+  data: Record<string, any>;
+  reasoning: string;
+  summary: string;
+  validation?: {
+    errors?: string[];
+    warnings?: string[];
+    missing_critical?: string[];
+  };
+  suggestions?: string[];
+}
+
+/**
+ * RAGContext - Information about context used in AI response
+ */
+export interface RAGContext {
+  sources_count: number;
+  coach_messages_count: number;
+  quick_entries_count: number;
+  similarity_threshold: number;
+}
+
+/**
+ * CoachMessage - Single message in coach chat
+ */
+export interface CoachMessage {
+  id: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  created_at: string;
+
+  // Optional metadata
+  is_log_preview?: boolean;
+  log_preview?: LogPreview;
+  food_detected?: FoodDetected;
+  quick_entry_log_id?: string;
+  rag_context?: RAGContext;
+  tokens_used?: number;
+  cost_usd?: number;
+
+  // Streaming state (client-side only)
+  isStreaming?: boolean;
+}

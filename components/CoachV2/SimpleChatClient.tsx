@@ -4,10 +4,12 @@ import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Send, Loader2, MessageSquare, Plus, Zap } from 'lucide-react'
 import { sendMessageStreaming, getConversations, getConversationMessages, confirmLog, cancelLog } from '@/lib/api/unified-coach'
-import type { SendMessageResponse, ConversationSummary, UnifiedMessage, LogType } from '@/lib/api/unified-coach'
+import type { SendMessageResponse, ConversationSummary, UnifiedMessage, LogType, FoodDetected } from '@/lib/api/unified-coach'
 import { getAutoLogPreference, updateAutoLogPreference } from '@/lib/api/profile'
 import BottomNavigation from '@/app/components/BottomNavigation'
 import { useToast } from '@/hooks/use-toast'
+import { InlineMealCard } from '@/components/Coach/InlineMealCard'
+import type { FoodDetected as FoodDetectedType } from '@/lib/types'
 
 interface Message {
   id: string
@@ -15,6 +17,8 @@ interface Message {
   content: string
   timestamp: Date
   isStreaming?: boolean
+  food_detected?: FoodDetectedType
+  food_logged?: boolean
 }
 
 interface PendingLog {
@@ -228,6 +232,88 @@ export function SimpleChatClient() {
     }
   }
 
+  async function handleLogMeal(messageId: string, foodData: FoodDetectedType) {
+    if (!conversationId) {
+      toast({
+        title: 'Error',
+        description: 'Missing conversation context. Please try again.',
+        variant: 'destructive'
+      })
+      return
+    }
+
+    // Mark meal as logging
+    setMessages(prev =>
+      prev.map(msg =>
+        msg.id === messageId
+          ? { ...msg, food_logged: true }
+          : msg
+      )
+    )
+
+    try {
+      // Convert FoodDetected to meal log format
+      const mealLogData = {
+        category: foodData.meal_type || 'meal',
+        logged_at: new Date().toISOString(),
+        total_calories: foodData.nutrition.calories,
+        total_protein_g: foodData.nutrition.protein_g,
+        total_carbs_g: foodData.nutrition.carbs_g,
+        total_fat_g: foodData.nutrition.fats_g,
+        foods: foodData.food_items.map((item) => ({
+          name: item.name,
+          quantity: item.quantity || 1,
+          unit: item.portion || 'serving',
+          calories: item.calories,
+          protein_g: item.protein_g,
+          carbs_g: item.carbs_g,
+          fats_g: item.fats_g
+        })),
+        notes: foodData.description || undefined
+      }
+
+      await confirmLog({
+        conversation_id: conversationId,
+        user_message_id: messageId,
+        log_type: 'meal',
+        log_data: mealLogData
+      })
+
+      toast({
+        title: 'Meal logged successfully!',
+        description: `${Math.round(foodData.nutrition.calories)} calories, ${Math.round(foodData.nutrition.protein_g)}g protein`,
+        action: (
+          <button
+            onClick={() => {
+              router.refresh()
+              router.push('/nutrition')
+            }}
+            className="px-3 py-1 bg-iron-orange text-white text-sm rounded hover:bg-orange-600 transition-colors"
+          >
+            View
+          </button>
+        ),
+      })
+    } catch (error) {
+      console.error('[SimpleChatClient] Failed to log meal:', error)
+
+      // Revert logged state
+      setMessages(prev =>
+        prev.map(msg =>
+          msg.id === messageId
+            ? { ...msg, food_logged: false }
+            : msg
+        )
+      )
+
+      toast({
+        title: 'Failed to log meal',
+        description: 'Unable to save the meal. Please try again.',
+        variant: 'destructive'
+      })
+    }
+  }
+
   const handleSubmit = async () => {
     if (!text.trim() || isLoading) {
       return
@@ -271,6 +357,7 @@ export function SimpleChatClient() {
       let newConversationId = conversationId
       let receivedPendingLogs: PendingLog[] = []
       let receivedAutoLogged: AutoLoggedItem[] = []
+      let receivedFoodDetected: FoodDetectedType | undefined = undefined
 
       for await (const chunk of stream) {
         if (chunk.conversation_id && !newConversationId) {
@@ -288,6 +375,20 @@ export function SimpleChatClient() {
             prev.map(msg =>
               msg.id === aiMessageId
                 ? { ...msg, content: fullResponse }
+                : msg
+            )
+          )
+        }
+
+        // Check for food detection data (from image or text analysis)
+        if (chunk.food_detected && chunk.food_detected.is_food) {
+          receivedFoodDetected = chunk.food_detected as FoodDetectedType
+
+          // Update message with food_detected
+          setMessages(prev =>
+            prev.map(msg =>
+              msg.id === aiMessageId
+                ? { ...msg, food_detected: receivedFoodDetected }
                 : msg
             )
           )
@@ -590,30 +691,42 @@ export function SimpleChatClient() {
                 role="article"
                 aria-label={`${message.role === 'user' ? 'Your message' : 'Coach response'} at ${message.timestamp.toLocaleTimeString()}`}
               >
-                <div
-                  className={`max-w-[80%] rounded-lg px-4 py-3 ${
-                    message.role === 'user'
-                      ? 'bg-iron-orange text-iron-black'
-                      : 'bg-zinc-800 text-iron-white border border-iron-gray'
-                  }`}
-                >
-                  {message.isStreaming && !message.content ? (
-                    <div className="flex items-center gap-2">
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span className="text-sm text-iron-gray">Thinking...</span>
-                    </div>
-                  ) : (
-                    <>
-                      <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <p className="text-xs opacity-70">
-                          {message.timestamp.toLocaleTimeString()}
-                        </p>
-                        {message.isStreaming && (
-                          <Loader2 className="w-3 h-3 animate-spin" />
-                        )}
+                <div className={`max-w-[80%] space-y-3 ${message.role === 'assistant' ? 'w-full' : ''}`}>
+                  {/* Text message bubble */}
+                  <div
+                    className={`rounded-lg px-4 py-3 ${
+                      message.role === 'user'
+                        ? 'bg-iron-orange text-iron-black'
+                        : 'bg-zinc-800 text-iron-white border border-iron-gray'
+                    }`}
+                  >
+                    {message.isStreaming && !message.content ? (
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span className="text-sm text-iron-gray">Thinking...</span>
                       </div>
-                    </>
+                    ) : (
+                      <>
+                        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <p className="text-xs opacity-70">
+                            {message.timestamp.toLocaleTimeString()}
+                          </p>
+                          {message.isStreaming && (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Inline Meal Card - Render if food detected */}
+                  {message.food_detected && message.role === 'assistant' && (
+                    <InlineMealCard
+                      foodDetected={message.food_detected}
+                      onLogMeal={(foodData) => handleLogMeal(message.id, foodData)}
+                      isLogged={message.food_logged}
+                    />
                   )}
                 </div>
               </div>
