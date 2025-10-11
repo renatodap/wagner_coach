@@ -51,12 +51,10 @@ export default function IntegrationsSection() {
     try {
       setConnectionError('');
 
-      // Use backend URL from environment or fallback to local
-      const backendUrl = (process.env.NEXT_PUBLIC_GARMIN_BACKEND_URL || 'http://localhost:8000').replace(/\/$/, '');
-
       console.log('Testing Garmin connection...');
 
-      const response = await fetch(`${backendUrl}/api/v1/garmin/test-connection`, {
+      // Call Next.js API route (which forwards to Python backend with auth)
+      const response = await fetch('/api/connections/garmin/test', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(garminCredentials)
@@ -66,39 +64,39 @@ export default function IntegrationsSection() {
 
       if (!response.ok) {
         // Parse specific error types
-        if (data.details?.includes('401') || data.details?.includes('Unauthorized')) {
+        if (data.detail?.includes('401') || data.detail?.includes('Unauthorized')) {
           setConnectionError('Invalid Garmin credentials. Please check your email and password.');
-        } else if (data.details?.includes('429') || data.details?.includes('Too Many Requests')) {
+        } else if (data.detail?.includes('429') || data.detail?.includes('Too Many Requests')) {
           setConnectionError('Too many attempts. Please wait a few minutes and try again.');
-        } else if (data.details?.includes('Garmin API not available')) {
-          setConnectionError('Garmin sync service is not running. Please ensure the Python API is active.');
+        } else if (data.error?.includes('Garmin API not available')) {
+          setConnectionError('Garmin sync service is not running. Please ensure the backend is active.');
         } else {
-          setConnectionError(data.error || 'Failed to connect to Garmin');
+          setConnectionError(data.error || data.detail || 'Failed to connect to Garmin');
         }
         console.error('Garmin connection failed:', data);
         return;
       }
 
-      // Save connection to Supabase
-      const saveResponse = await fetch('/api/activities/garmin', {
+      // Save connection to Supabase integrations table
+      const saveResponse = await fetch('/api/connections/garmin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'connect',
           email: garminCredentials.email,
           password: garminCredentials.password
         })
       });
 
       if (!saveResponse.ok) {
-        alert('Failed to save Garmin connection');
+        const saveError = await saveResponse.json();
+        setConnectionError(saveError.error || 'Failed to save Garmin connection');
         return;
       }
 
       setGarminConnected(true);
       setShowGarminForm(false);
       setGarminCredentials({ email: '', password: '' });
-      alert('Successfully connected to Garmin! You can now sync your activities.');
+      alert('Successfully connected to Garmin! You can now sync your health data.');
     } catch (error) {
       console.error('Garmin connection error:', error);
       setConnectionError('Network error. Please check your connection and try again.');
@@ -132,80 +130,58 @@ export default function IntegrationsSection() {
         return;
       }
 
-      // Get credentials from our API
-      const credsResponse = await fetch('/api/activities/garmin');
-      if (!credsResponse.ok) {
+      // Check if Garmin is connected
+      const statusResponse = await fetch('/api/connections/garmin');
+      if (!statusResponse.ok) {
         alert('Please connect your Garmin account first');
         return;
       }
 
-      const credsData = await credsResponse.json();
-      if (!credsData.connected) {
+      const statusData = await statusResponse.json();
+      if (!statusData.connected) {
         alert('Please connect your Garmin account first');
         return;
       }
 
-      // Use backend URL from environment or fallback to local
-      const backendUrl = (process.env.NEXT_PUBLIC_GARMIN_BACKEND_URL || 'http://localhost:8000').replace(/\/$/, '');
+      console.log('Starting Garmin sync (30 days)...');
 
-      // Sync with Garmin backend
-      const response = await fetch(`${backendUrl}/api/v1/garmin/sync`, {
+      // Call Next.js API route (which forwards to Python backend with auth)
+      const response = await fetch('/api/connections/garmin/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: credsData.email,
-          password: credsData.password,
-          days_back: 30
-        })
+        body: JSON.stringify({ days_back: 30 })
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        alert(errorData.detail || 'Failed to sync Garmin activities');
+        alert(errorData.error || errorData.detail || 'Failed to sync Garmin data');
+        console.error('Garmin sync failed:', errorData);
         return;
       }
 
       const syncData = await response.json();
       console.log('Garmin sync response:', syncData);
 
-      if (!syncData.activities || syncData.activities.length === 0) {
-        alert('No activities found from Garmin');
+      const totalSynced = syncData.total_synced || 0;
+      const totalErrors = syncData.total_errors || 0;
+
+      if (totalSynced === 0 && totalErrors === 0) {
+        alert('No new health data found from Garmin');
         return;
       }
 
-      // Save activities to Supabase
-      console.log(`Saving ${syncData.activities.length} activities to Supabase...`);
-      const saveResponse = await fetch('/api/activities/garmin', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'sync',
-          activities: syncData.activities
-        })
-      });
-
-      const saveData = await saveResponse.json();
-      console.log('Save response:', saveData);
-
-      if (!saveResponse.ok || saveData.error) {
-        alert(saveData.error || 'Failed to save activities to database');
-        return;
+      if (totalErrors > 0) {
+        alert(`Synced ${totalSynced} records with ${totalErrors} errors. Check console for details.`);
+      } else {
+        alert(`Successfully synced ${totalSynced} health records from Garmin!`);
       }
 
-      if (saveData.savedCount === 0 && saveData.errors?.length > 0) {
-        console.error('Save errors:', saveData.errors);
-        alert(`Failed to save activities. Errors: ${saveData.errors[0]}`);
-        return;
-      }
-
-      alert(`Successfully synced ${saveData.savedCount || syncData.count} activities from Garmin`);
-
-      // Refresh the page to show new activities
+      // Refresh the page to show new data
       window.location.reload();
 
     } catch (error) {
       console.error('Garmin sync error:', error);
-      alert('Failed to sync Garmin activities.');
+      alert('Failed to sync Garmin data. Please try again.');
     } finally {
       setGarminSyncing(false);
     }
