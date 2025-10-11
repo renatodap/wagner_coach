@@ -1,15 +1,24 @@
 'use client'
 
+/**
+ * MealScanClient - Simplified Photo Meal Logging
+ *
+ * NEW FLOW:
+ * 1. User uploads/captures photo
+ * 2. Send to /api/v1/meals/photo/analyze
+ * 3. Backend: OpenAI → food matching → meal construction
+ * 4. Redirect to /meal-photo-confirm with preview data
+ * 5. User confirms → backend saves to database
+ */
+
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { Camera, Upload, Loader2, CheckCircle, XCircle, Lightbulb, RotateCw } from 'lucide-react'
+import { Camera, Upload, Loader2, Lightbulb, RotateCw } from 'lucide-react'
 import { validateFile } from '@/lib/utils/file-upload'
-import { analyzeImage, formatAnalysisAsText } from '@/lib/services/client-image-analysis'
-import { sendMessageStreaming } from '@/lib/api/unified-coach'
-import { matchDetectedFoods, type DetectedFood } from '@/lib/api/foods'
-import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/hooks/use-toast'
 import BottomNavigation from '@/app/components/BottomNavigation'
+import { createClient } from '@/lib/supabase/client'
+import { API_BASE_URL } from '@/lib/api-config'
 
 export function MealScanClient() {
   const [selectedImage, setSelectedImage] = useState<File | null>(null)
@@ -18,7 +27,7 @@ export function MealScanClient() {
   const { toast } = useToast()
   const router = useRouter()
 
-  // Memoized analyze function with proper dependencies
+  // Memoized analyze function
   const handleAnalyze = useCallback(async (imageFile?: File) => {
     const fileToAnalyze = imageFile || selectedImage
     if (!fileToAnalyze) return
@@ -26,177 +35,51 @@ export function MealScanClient() {
     setIsAnalyzing(true)
     toast({
       title: '🔍 Analyzing meal...',
-      description: 'Detecting food items and matching nutrition',
+      description: 'Detecting foods and matching nutrition',
     })
 
     try {
-      // Step 1: Analyze image with OpenAI Vision (client-side)
-      const result = await analyzeImage(fileToAnalyze, '')
-      console.log('[MealScanClient] Image analysis result:', result)
+      // Get auth token
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
 
-      // Step 2: Format as natural language for classifier
-      const foodList = result.food_items?.map(item =>
-        `${item.name} (${item.quantity} ${item.unit})`
-      ).join(', ') || 'some food'
-
-      const mealType = result.meal_type || 'my meal'
-      const calories = result.nutrition?.calories || 'unknown'
-      const protein = result.nutrition?.protein_g || 'unknown'
-
-      // Natural language message that classifier will recognize as food log
-      const message = `I just ate ${foodList} for ${mealType}. Estimated ${calories} calories, ${protein}g protein.`
-
-      console.log('[MealScanClient] Natural language message:', message)
-
-      // Step 3: Send to unified coach backend
-      toast({
-        title: '🤖 Processing with AI...',
-        description: 'Sending to coach for food detection',
-      })
-
-      const stream = sendMessageStreaming({
-        message: message,
-        conversation_id: null, // Creates new conversation
-        has_image: true, // Signal this is image-based
-      })
-
-      // Step 4: Listen for food_detected chunk
-      for await (const chunk of stream) {
-        console.log('[MealScanClient] Received chunk:', chunk)
-
-        if (chunk.food_detected && chunk.food_detected.is_food) {
-          const foodData = chunk.food_detected
-
-          // Step 5: Match foods to database
-          toast({
-            title: '🔍 Matching foods to database...',
-            description: 'Finding nutrition information',
-          })
-
-          try {
-            // Get auth token
-            const supabase = createClient()
-            const { data: { session } } = await supabase.auth.getSession()
-
-            if (!session?.access_token) {
-              throw new Error('Not authenticated')
-            }
-
-            // Call backend matching API
-            const detectedFoods: DetectedFood[] = foodData.food_items.map(item => ({
-              name: item.name,
-              quantity: item.quantity || '1',
-              unit: item.unit || 'serving'
-            }))
-
-            const matchResult = await matchDetectedFoods(detectedFoods, session.access_token)
-
-            // Build meal data with matched foods (V2 format with dual quantity tracking)
-            const mealData = {
-              meal_type: foodData.meal_type || result.meal_type || 'dinner',
-              notes: `Detected from image: ${result.description || foodData.description}`,
-              foods: matchResult.matched_foods.map(food => {
-                // Parse detected quantity (e.g., "1 serving" → 1)
-                const detectedQty = parseFloat(food.detected_quantity) || 1
-                const detectedUnit = food.detected_unit || 'serving'
-
-                // Calculate gram quantity based on detected unit
-                let gramQuantity = food.serving_size // Default to food's serving_size
-                if (detectedUnit === 'g' || detectedUnit === 'grams') {
-                  gramQuantity = detectedQty
-                } else if (detectedUnit === 'serving') {
-                  gramQuantity = detectedQty * food.serving_size
-                } else if (food.household_serving_grams) {
-                  gramQuantity = detectedQty * food.household_serving_grams
-                } else {
-                  // Fallback: assume detected quantity is in servings
-                  gramQuantity = detectedQty * food.serving_size
-                }
-
-                return {
-                  food_id: food.id,
-                  name: food.name,
-                  brand: food.brand_name,
-
-                  // Dual quantity tracking (V2)
-                  serving_quantity: detectedQty,
-                  serving_unit: detectedUnit, // Use detected unit (oz, cup) not database unit (g)
-                  gram_quantity: gramQuantity,
-                  last_edited_field: 'serving' as const,
-
-                  // Reference data for display
-                  serving_size: food.serving_size,
-                  food_serving_unit: food.serving_unit,
-                  household_serving_size: food.household_serving_grams?.toString(),
-                  household_serving_unit: food.household_serving_unit,
-
-                  // Calculated nutrition (MealEditor interface expects these names)
-                  calories: food.calories * detectedQty,
-                  protein_g: food.protein_g * detectedQty,
-                  carbs_g: food.total_carbs_g * detectedQty,
-                  fat_g: food.total_fat_g * detectedQty,
-                  fiber_g: (food.dietary_fiber_g || 0) * detectedQty
-                }
-              })
-            }
-
-            // Add unmatched foods to notes
-            if (matchResult.unmatched_foods.length > 0) {
-              mealData.notes += `\n\nCouldn't find in database: ${matchResult.unmatched_foods.map(f => f.name).join(', ')}`
-            }
-
-            toast({
-              title: '✅ Food matching complete!',
-              description: `Matched ${matchResult.matched_foods.length}/${foodData.food_items.length} foods`,
-            })
-
-            // Step 6: Redirect to meal log with enriched data
-            const params = new URLSearchParams({
-              previewData: JSON.stringify(mealData),
-              returnTo: '/meal-scan',
-              conversationId: chunk.conversation_id || '',
-              userMessageId: chunk.message_id,
-              logType: 'meal'
-            })
-
-            router.push(`/nutrition/log?${params.toString()}`)
-            return
-          } catch (matchError) {
-            // Fallback: redirect with original data (no matches)
-            console.error('[MealScanClient] Food matching failed:', matchError)
-            toast({
-              title: '⚠️ Auto-match failed',
-              description: 'Please search for foods manually',
-              variant: 'destructive'
-            })
-
-            // Still redirect, but without matched nutrition
-            const fallbackData = {
-              meal_type: foodData.meal_type || result.meal_type || 'dinner',
-              notes: `Detected from image: ${result.description || foodData.description}\n\nDetected foods: ${foodData.food_items.map(item => `${item.name} (${item.quantity} ${item.unit})`).join(', ')}\n\n(Auto-match failed - please search and add foods manually)`,
-              foods: []
-            }
-
-            const params = new URLSearchParams({
-              previewData: JSON.stringify(fallbackData),
-              returnTo: '/meal-scan',
-              conversationId: chunk.conversation_id || '',
-              userMessageId: chunk.message_id,
-              logType: 'meal'
-            })
-
-            router.push(`/nutrition/log?${params.toString()}`)
-            return
-          }
-        }
+      if (!session?.access_token) {
+        throw new Error('Not authenticated')
       }
 
-      // If we get here, no food was detected
-      toast({
-        title: '⚠️ No food detected',
-        description: 'This doesn\'t appear to be a meal photo. Try taking another picture.',
-        variant: 'destructive'
+      // Build form data
+      const formData = new FormData()
+      formData.append('image', fileToAnalyze)
+
+      // Call new photo analyze API
+      const response = await fetch(`${API_BASE_URL}/api/v1/meals/photo/analyze`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: formData
       })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.detail || 'Photo analysis failed')
+      }
+
+      const mealPreview = await response.json()
+
+      // Show success
+      toast({
+        title: '✅ Analysis complete!',
+        description: `Detected ${mealPreview.meta.total_foods} foods`,
+      })
+
+      // Redirect to confirmation page with preview data
+      const params = new URLSearchParams({
+        previewData: encodeURIComponent(JSON.stringify(mealPreview))
+      })
+
+      router.push(`/meal-photo-confirm?${params.toString()}`)
+
     } catch (error) {
       console.error('[MealScanClient] Analysis failed:', error)
       toast({
@@ -211,7 +94,7 @@ export function MealScanClient() {
 
   // Auto-detect pending image from camera button
   useEffect(() => {
-    // Guard against SSR - only run on client
+    // Guard against SSR
     if (typeof window === 'undefined') return
 
     const pendingImage = sessionStorage.getItem('pendingImageUpload')
@@ -386,7 +269,7 @@ export function MealScanClient() {
             <div className="space-y-3">
               {/* Primary Action - Analyze */}
               <button
-                onClick={handleAnalyze}
+                onClick={() => handleAnalyze()}
                 disabled={isAnalyzing}
                 className="w-full bg-iron-orange hover:bg-orange-600 disabled:opacity-50 text-white font-medium py-3 px-6 rounded-lg flex items-center justify-center gap-2 transition-colors"
               >
@@ -397,7 +280,7 @@ export function MealScanClient() {
                   </>
                 ) : (
                   <>
-                    <CheckCircle className="w-5 h-5" />
+                    <Camera className="w-5 h-5" />
                     Analyze Meal
                   </>
                 )}
