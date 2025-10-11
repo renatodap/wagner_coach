@@ -16,6 +16,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { DashboardEngine } from '@/components/dashboard/DashboardEngine'
+import { CameraScanButton } from '@/components/dashboard/CameraScanButton'
 import BottomNavigation from '@/app/components/BottomNavigation'
 import type { DashboardVariant } from '@/lib/types/dashboard'
 
@@ -111,6 +112,9 @@ export default function DashboardPage() {
           variant={variant}
         />
       </div>
+
+      {/* Floating Camera Scan Button */}
+      <CameraScanButton />
 
       {/* Bottom Navigation */}
       <BottomNavigation />
