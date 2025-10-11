@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { MealScanClient } from '@/components/MealScan/MealScanClient'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 
 export const metadata = {
   title: 'Meal Scan | Wagner Coach',
@@ -16,5 +17,9 @@ export default async function MealScanPage() {
     redirect('/login')
   }
 
-  return <MealScanClient />
+  return (
+    <ErrorBoundary>
+      <MealScanClient />
+    </ErrorBoundary>
+  )
 }
