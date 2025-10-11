@@ -625,35 +625,35 @@ export function SimpleChatClient() {
       return
     }
 
-    const userMessageContent = text
-
-    // Add user message
-    const userMessage: Message = {
-      id: `user-${Date.now()}`,
-      role: 'user',
-      content: userMessageContent,
-      timestamp: new Date()
-    }
-
-    setMessages(prev => [...prev, userMessage])
-
-    // Clear input
-    setText('')
-    setIsLoading(true)
-
-    // Create placeholder AI message for streaming
-    const aiMessageId = `ai-${Date.now()}`
-    const aiMessage: Message = {
-      id: aiMessageId,
-      role: 'assistant',
-      content: '',
-      timestamp: new Date(),
-      isStreaming: true,
-      originatingUserMessageId: userMessage.id  // Track which user message triggered this response
-    }
-    setMessages(prev => [...prev, aiMessage])
-
     try {
+      setIsLoading(true)
+
+      const userMessageContent = text
+
+      // Add user message
+      const userMessage: Message = {
+        id: `user-${Date.now()}`,
+        role: 'user',
+        content: userMessageContent,
+        timestamp: new Date()
+      }
+
+      setMessages(prev => [...prev, userMessage])
+
+      // Clear input
+      setText('')
+
+      // Create placeholder AI message for streaming
+      const aiMessageId = `ai-${Date.now()}`
+      const aiMessage: Message = {
+        id: aiMessageId,
+        role: 'assistant',
+        content: '',
+        timestamp: new Date(),
+        isStreaming: true,
+        originatingUserMessageId: userMessage.id  // Track which user message triggered this response
+      }
+      setMessages(prev => [...prev, aiMessage])
       // Call real backend API with streaming
       const stream = sendMessageStreaming({
         message: userMessageContent,
