@@ -449,6 +449,8 @@ export function SimpleChatClient() {
         // Check for food detection data (from image or text analysis)
         if (chunk.food_detected && chunk.food_detected.is_food) {
           receivedFoodDetected = chunk.food_detected as FoodDetectedType
+          console.log('[SimpleChatClient] 📥 RECEIVED food_detected from API:', receivedFoodDetected)
+          console.log('[SimpleChatClient] 📊 Nutrition values:', receivedFoodDetected.nutrition)
 
           // Update message with food_detected
           setMessages(prev =>

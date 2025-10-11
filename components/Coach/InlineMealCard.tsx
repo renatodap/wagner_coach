@@ -33,6 +33,15 @@ export function InlineMealCard({
 
   const { nutrition, food_items, meal_type, confidence, description } = currentData
 
+  // Debug logging
+  console.log('[InlineMealCard] 🎨 RENDERING with nutrition:', nutrition)
+  console.log('[InlineMealCard] 📊 Values to display:', {
+    calories: nutrition.calories,
+    protein_g: nutrition.protein_g,
+    carbs_g: nutrition.carbs_g,
+    fats_g: nutrition.fats_g
+  })
+
   const handleLogMeal = async () => {
     if (onLogMeal && !isLogged && !isSaving) {
       console.log('[InlineMealCard] Logging meal:', currentData)
