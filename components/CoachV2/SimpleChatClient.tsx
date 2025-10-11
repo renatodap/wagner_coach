@@ -10,6 +10,7 @@ import BottomNavigation from '@/app/components/BottomNavigation'
 import { useToast } from '@/hooks/use-toast'
 import { InlineMealCard } from '@/components/Coach/InlineMealCard'
 import { ActionButtons } from '@/components/Coach/ActionButtons'
+import { FloatingQuickActions } from '@/components/Coach/FloatingQuickActions'
 import type { FoodDetected as FoodDetectedType, SuggestedAction as SuggestedActionType } from '@/lib/types'
 
 interface Message {
@@ -339,6 +340,26 @@ export function SimpleChatClient() {
       default:
         console.warn('[SimpleChatClient] Unknown action:', action.action)
     }
+  }
+
+  // Floating quick action handlers
+  function handleCameraClick() {
+    router.push('/meal-scan')
+  }
+
+  function handleMicClick() {
+    toast({
+      title: 'Voice input',
+      description: 'Voice recording will be available soon!'
+    })
+  }
+
+  function handleQuickEntryClick() {
+    router.push('/quick-entry-optimized')
+  }
+
+  function handleProgressClick() {
+    router.push('/analytics')
   }
 
   const handleSubmit = async () => {
@@ -791,6 +812,14 @@ export function SimpleChatClient() {
       <div className="fixed bottom-16 left-0 right-0 bg-zinc-900 border-t-2 border-iron-orange p-4">
         <div className="max-w-4xl mx-auto">
           <div className="flex gap-2 items-end">
+            {/* Floating Quick Actions */}
+            <FloatingQuickActions
+              onCameraClick={handleCameraClick}
+              onMicClick={handleMicClick}
+              onQuickEntryClick={handleQuickEntryClick}
+              onProgressClick={handleProgressClick}
+            />
+
             {/* Text Input */}
             <textarea
               value={text}
