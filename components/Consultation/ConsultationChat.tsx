@@ -88,6 +88,20 @@ export function ConsultationChat({
   // Load conversation history on mount
   useEffect(() => {
     async function loadConversationHistory() {
+      // Guard: Don't try to load if session_id is not available
+      if (!session.session_id) {
+        console.warn('Session ID not available, showing initial question');
+        setMessages([
+          {
+            role: 'assistant',
+            content: initialSession.initial_question || 'Hello! How can I help you today?',
+            timestamp: new Date()
+          }
+        ]);
+        setIsLoadingMessages(false);
+        return;
+      }
+
       try {
         setIsLoadingMessages(true);
         const response = await getConsultationMessages(session.session_id);
