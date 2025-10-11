@@ -14,6 +14,7 @@ import { confirmLog, cancelLog } from '@/lib/api/unified-coach'
 import type { Food } from '@/lib/api/foods'
 import { createClient } from '@/lib/supabase/client'
 import { formatInTimeZone, toZonedTime, fromZonedTime } from 'date-fns-tz'
+import { calculateDailyTotals } from '@/lib/utils/nutrition-calculations'
 
 type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack' | 'other'
 
@@ -233,7 +234,7 @@ function LogMealForm() {
         const endOfDay = new Date(today)
         endOfDay.setHours(23, 59, 59, 999)
 
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/nutrition/meals?start_date=${startOfDay.toISOString()}&end_date=${endOfDay.toISOString()}`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/meals?start_date=${startOfDay.toISOString()}&end_date=${endOfDay.toISOString()}`, {
           headers: {
             'Authorization': `Bearer ${session.access_token}`
           }
@@ -243,14 +244,10 @@ function LogMealForm() {
           const data = await response.json()
           const meals = data.meals || []
 
-          // Calculate totals
-          const totals = meals.reduce((acc: any, meal: any) => ({
-            calories: acc.calories + (meal.total_calories || 0),
-            protein_g: acc.protein_g + (meal.total_protein_g || 0),
-            carbs_g: acc.carbs_g + (meal.total_carbs_g || 0),
-            fat_g: acc.fat_g + (meal.total_fat_g || 0),
-          }), { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 })
+          // Calculate totals with client-side fallback (handles backend nutrition calculation bug)
+          const totals = calculateDailyTotals(meals)
 
+          console.log('📊 [Daily Totals] Calculated for review mode:', totals)
           setDailyTotals(totals)
         }
       } catch (err) {
