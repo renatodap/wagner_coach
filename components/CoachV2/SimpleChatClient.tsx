@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Send, Loader2, MessageSquare, Plus, Zap, Camera, PlusCircle } from 'lucide-react'
+import { Send, Loader2, MessageSquare, Plus, Zap } from 'lucide-react'
 import { sendMessageStreaming, getConversations, getConversationMessages, confirmLog, cancelLog } from '@/lib/api/unified-coach'
 import type { SendMessageResponse, ConversationSummary, UnifiedMessage, LogType, FoodDetected, SuggestedAction } from '@/lib/api/unified-coach'
 import { getAutoLogPreference, updateAutoLogPreference } from '@/lib/api/profile'
@@ -13,6 +13,7 @@ import { ActionButtons } from '@/components/Coach/ActionButtons'
 import { FloatingQuickActions } from '@/components/Coach/FloatingQuickActions'
 import { MessageActions } from '@/components/Coach/MessageActions'
 import { VoiceRecorder } from '@/components/Coach/VoiceRecorder'
+import { CameraButton } from '@/components/Coach/CameraButton'
 import { generateSmartSuggestions, getTimeBasedGreeting } from '@/lib/utils/smartSuggestions'
 import type { FoodDetected as FoodDetectedType, SuggestedAction as SuggestedActionType } from '@/lib/types'
 
@@ -345,9 +346,15 @@ export function SimpleChatClient() {
     }
   }
 
-  // Floating quick action handlers
-  function handleCameraClick() {
-    router.push('/meal-scan')
+  // Image upload handler
+  function handleImageSelected(file: File) {
+    // TODO: Upload image and process with AI
+    // For now, show a coming soon message
+    toast({
+      title: 'Image selected',
+      description: `${file.name} - Processing will be available soon!`
+    })
+    console.log('Image selected:', file.name, file.size, file.type)
   }
 
   function handleVoiceTranscript(transcript: string) {
@@ -365,10 +372,6 @@ export function SimpleChatClient() {
       description: error,
       variant: 'destructive'
     })
-  }
-
-  function handleQuickEntryClick() {
-    router.push('/quick-entry-optimized')
   }
 
   function handleProgressClick() {
@@ -845,33 +848,17 @@ export function SimpleChatClient() {
       <div className="fixed bottom-16 left-0 right-0 bg-zinc-900 border-t-2 border-iron-orange p-4">
         <div className="max-w-4xl mx-auto">
           <div className="flex gap-2 items-end">
-            {/* Camera Button */}
-            <button
-              type="button"
-              onClick={handleCameraClick}
-              className="text-iron-gray hover:text-iron-orange hover:bg-iron-orange/10 p-2 rounded-lg transition-colors"
-              aria-label="Scan meal photo"
-              title="Scan meal photo"
-            >
-              <Camera className="h-5 w-5" />
-            </button>
+            {/* Camera Button - Opens camera on mobile, file picker on desktop */}
+            <CameraButton
+              onImageSelected={handleImageSelected}
+              disabled={isLoading}
+            />
 
             {/* Voice Recorder */}
             <VoiceRecorder
               onTranscript={handleVoiceTranscript}
               onError={handleVoiceError}
             />
-
-            {/* Quick Entry Button */}
-            <button
-              type="button"
-              onClick={handleQuickEntryClick}
-              className="text-iron-gray hover:text-iron-orange hover:bg-iron-orange/10 p-2 rounded-lg transition-colors"
-              aria-label="Quick entry"
-              title="Quick entry"
-            >
-              <PlusCircle className="h-5 w-5" />
-            </button>
 
             {/* Text Input */}
             <textarea
