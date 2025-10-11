@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, useMemo, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ArrowLeft, Save, CheckCircle, Loader2, Clock, Plus, Bookmark } from 'lucide-react'
+import { ArrowLeft, Save, CheckCircle, Loader2, Clock, Plus, Bookmark, ChevronDown, ChevronUp } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -27,6 +27,9 @@ function LogMealForm() {
   const userMessageId = searchParams.get('userMessageId')
   const previewDataStr = searchParams.get('previewData')
 
+  // Determine UI mode: Review (AI-prefilled) vs Manual Entry
+  const isReviewMode = Boolean(previewDataStr)
+
   const [mealType, setMealType] = useState<MealType>('breakfast')
   const [mealTime, setMealTime] = useState('')
   const [userTimezone, setUserTimezone] = useState<string>('UTC')
@@ -35,6 +38,11 @@ function LogMealForm() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+
+  // For manual mode: collapsed sections
+  const [showTemplates, setShowTemplates] = useState(false)
+  const [showRecentMeals, setShowRecentMeals] = useState(false)
+  const [showFoodSearch, setShowFoodSearch] = useState(false)
 
   // Recent meals for quick-add
   const [recentMeals, setRecentMeals] = useState<Meal[]>([])
@@ -73,8 +81,10 @@ function LogMealForm() {
     fetchUserTimezone()
   }, [])
 
-  // Fetch recent meals for quick-add
+  // Fetch recent meals for quick-add (skip in review mode)
   useEffect(() => {
+    if (isReviewMode) return // Skip if AI already provided foods
+
     async function fetchRecentMeals() {
       try {
         setLoadingRecentMeals(true)
@@ -94,10 +104,12 @@ function LogMealForm() {
     }
 
     fetchRecentMeals()
-  }, [])
+  }, [isReviewMode])
 
-  // Fetch meal templates
+  // Fetch meal templates (skip in review mode)
   useEffect(() => {
+    if (isReviewMode) return // Skip if AI already provided foods
+
     async function fetchTemplates() {
       try {
         setLoadingTemplates(true)
@@ -120,7 +132,7 @@ function LogMealForm() {
     }
 
     fetchTemplates()
-  }, [])
+  }, [isReviewMode])
 
   // Pre-fill data from URL parameters (from coach meal preview)
   useEffect(() => {
@@ -373,6 +385,27 @@ function LogMealForm() {
     router.push(redirectUrl.pathname + redirectUrl.search)
   }
 
+  // Calculate nutrition totals
+  const totals = useMemo(() => {
+    return foods.reduce(
+      (acc, food) => ({
+        calories: acc.calories + food.calories,
+        protein_g: acc.protein_g + food.protein_g,
+        carbs_g: acc.carbs_g + food.carbs_g,
+        fat_g: acc.fat_g + food.fat_g,
+        fiber_g: acc.fiber_g + food.fiber_g
+      }),
+      { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0, fiber_g: 0 }
+    )
+  }, [foods])
+
+  // Determine "back to" label
+  const getBackToLabel = () => {
+    if (returnTo.includes('coach')) return 'Back to Coach'
+    if (returnTo.includes('scan')) return 'Back to Meal Scan'
+    return 'Back'
+  }
+
   if (success) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-iron-black to-neutral-900 flex items-center justify-center p-4">
@@ -399,228 +432,446 @@ function LogMealForm() {
           >
             <ArrowLeft size={24} />
           </button>
-          <h1 className="text-2xl font-bold text-white">Log Meal</h1>
+          <div className="flex-1">
+            <h1 className="text-2xl font-bold text-white">
+              {isReviewMode ? 'Review & Confirm Meal' : 'Log Meal'}
+            </h1>
+            {isReviewMode && (
+              <p className="text-sm text-iron-gray mt-1">
+                {getBackToLabel()} • Quick review and adjust
+              </p>
+            )}
+          </div>
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-        {/* Meal Type & Time */}
-        <div className="bg-iron-black/50 backdrop-blur-sm border border-iron-gray/20 rounded-lg p-6 space-y-4">
-          <div>
-            <Label htmlFor="mealType" className="text-base font-semibold text-white">Meal Type</Label>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mt-2">
-              {(['breakfast', 'lunch', 'dinner', 'snack', 'other'] as MealType[]).map((type) => (
+        {isReviewMode ? (
+          /* ============ REVIEW MODE (AI-Prefilled) ============ */
+          <>
+            {/* Nutrition Totals - Prominent at Top */}
+            {foods.length > 0 && (
+              <div className="bg-iron-orange/10 backdrop-blur-sm border-2 border-iron-orange rounded-lg p-4 sm:p-6">
+                <h2 className="text-lg font-bold text-iron-orange mb-3">Total Nutrition</h2>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+                  <div className="text-center">
+                    <p className="text-xs text-iron-gray uppercase">Calories</p>
+                    <p className="text-2xl sm:text-3xl font-bold text-iron-orange">{Math.round(totals.calories)}</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs text-iron-gray uppercase">Protein</p>
+                    <p className="text-2xl sm:text-3xl font-bold text-iron-orange">{totals.protein_g.toFixed(1)}g</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs text-iron-gray uppercase">Carbs</p>
+                    <p className="text-2xl sm:text-3xl font-bold text-iron-orange">{totals.carbs_g.toFixed(1)}g</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs text-iron-gray uppercase">Fat</p>
+                    <p className="text-2xl sm:text-3xl font-bold text-iron-orange">{totals.fat_g.toFixed(1)}g</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Compact Meal Info */}
+            <div className="bg-iron-black/50 backdrop-blur-sm border border-iron-gray/20 rounded-lg p-4">
+              <div className="flex items-center justify-between gap-4 flex-wrap">
+                <div className="flex items-center gap-3">
+                  <span className="text-iron-white font-semibold capitalize">{mealType}</span>
+                  <span className="text-iron-gray">•</span>
+                  <input
+                    type="datetime-local"
+                    id="mealTime"
+                    value={mealTime}
+                    onChange={(e) => setMealTime(e.target.value)}
+                    className="bg-transparent border-0 text-iron-gray text-sm focus:outline-none focus:text-white"
+                  />
+                </div>
                 <button
-                  key={type}
                   type="button"
-                  onClick={() => setMealType(type)}
-                  className={`px-4 py-3 rounded-lg font-medium transition-all capitalize ${
-                    mealType === type
-                      ? 'bg-iron-orange text-white shadow-md'
-                      : 'bg-iron-gray/20 text-iron-gray hover:bg-iron-gray/30'
-                  }`}
+                  onClick={() => {
+                    // Open meal type selector (you could add a modal here)
+                    const newType = prompt(`Change meal type (current: ${mealType})\nOptions: breakfast, lunch, dinner, snack, other`)
+                    if (newType && ['breakfast', 'lunch', 'dinner', 'snack', 'other'].includes(newType)) {
+                      setMealType(newType as MealType)
+                    }
+                  }}
+                  className="text-xs text-iron-gray hover:text-iron-orange transition-colors"
                 >
-                  {type}
+                  Edit meal info
                 </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <Label htmlFor="mealTime" className="text-base font-semibold text-white">Time</Label>
-            <input
-              type="datetime-local"
-              id="mealTime"
-              value={mealTime}
-              onChange={(e) => setMealTime(e.target.value)}
-              className="w-full bg-neutral-800 border border-iron-gray/30 text-white rounded-lg px-4 py-2 mt-2 focus:outline-none focus:ring-2 focus:ring-iron-orange"
-            />
-          </div>
-        </div>
-
-        {/* Meal Templates Quick-Select */}
-        {templates.length > 0 && (
-          <div className="bg-iron-black/50 backdrop-blur-sm border border-iron-gray/20 rounded-lg p-6">
-            <div className="flex items-center gap-2 mb-3">
-              <Bookmark className="w-5 h-5 text-iron-orange" />
-              <Label className="text-base font-semibold text-white">Saved Templates</Label>
-            </div>
-            <p className="text-sm text-iron-gray mb-4">Quick-select your saved meal templates</p>
-
-            {loadingTemplates ? (
-              <div className="flex items-center gap-2 text-iron-gray">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span className="text-sm">Loading templates...</span>
               </div>
-            ) : (
-              <div className="grid gap-2">
-                {templates.map((template) => (
+            </div>
+
+            {/* Foods List - Compact View with Full Editor */}
+            <div className="bg-iron-black/50 backdrop-blur-sm border border-iron-gray/20 rounded-lg p-6">
+              <Label className="text-base font-semibold text-white mb-3 block">Detected Foods</Label>
+              <MealEditor
+                foods={foods}
+                onFoodsChange={setFoods}
+                showTotals={false}
+              />
+            </div>
+
+            {/* Collapsible: Add More Foods */}
+            <div className="bg-iron-black/50 backdrop-blur-sm border border-iron-gray/20 rounded-lg overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setShowFoodSearch(!showFoodSearch)}
+                className="w-full flex items-center justify-between p-4 hover:bg-iron-gray/10 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <Plus className="w-5 h-5 text-iron-orange" />
+                  <span className="text-white font-medium">Add More Foods</span>
+                  <span className="text-sm text-iron-gray">(if AI missed something)</span>
+                </div>
+                {showFoodSearch ? <ChevronUp className="w-5 h-5 text-iron-gray" /> : <ChevronDown className="w-5 h-5 text-iron-gray" />}
+              </button>
+              {showFoodSearch && (
+                <div className="p-4 border-t border-iron-gray/20">
+                  <FoodSearchV2
+                    onSelectFood={handleSelectFood}
+                    placeholder="Search for additional foods..."
+                    showRecentFoods={true}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Notes */}
+            <div className="bg-iron-black/50 backdrop-blur-sm border border-iron-gray/20 rounded-lg p-6">
+              <Label htmlFor="notes" className="text-base font-semibold text-white">Notes (Optional)</Label>
+              <Textarea
+                id="notes"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="e.g., Post-workout meal, eating out, meal prep..."
+                className="mt-2 bg-neutral-800 border-iron-gray/30 text-white placeholder:text-iron-gray focus:ring-iron-orange"
+                rows={2}
+                maxLength={500}
+              />
+              <p className="text-xs text-iron-gray mt-1">{notes.length}/500 characters</p>
+            </div>
+
+            {/* Error Message */}
+            {error && (
+              <div className="bg-red-900/20 border border-red-500/50 text-red-400 p-4 rounded-lg">
+                <p className="font-medium">Error</p>
+                <p className="text-sm">{error}</p>
+              </div>
+            )}
+
+            {/* Actions - Prominent */}
+            <div className="flex gap-4 sticky bottom-4 bg-iron-black/90 backdrop-blur-sm border-2 border-iron-orange rounded-lg p-4 shadow-2xl">
+              <Button
+                type="submit"
+                disabled={loading || foods.length === 0}
+                className="flex-1 bg-iron-orange hover:bg-iron-orange/90 disabled:bg-iron-gray/30 disabled:text-iron-gray h-14 text-lg font-bold"
+              >
+                {loading ? (
+                  <>
+                    <div className="animate-spin inline-block w-5 h-5 border-2 border-white border-t-transparent rounded-full mr-2" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle size={22} className="mr-2" />
+                    Confirm & Save
+                  </>
+                )}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleCancel}
+                disabled={loading}
+                className="px-6 h-14 border-iron-gray/30 text-iron-gray hover:bg-iron-gray/20 font-semibold"
+              >
+                Cancel
+              </Button>
+            </div>
+          </>
+        ) : (
+          /* ============ MANUAL MODE (Empty Start) ============ */
+          <>
+            {/* Meal Type & Time */}
+            <div className="bg-iron-black/50 backdrop-blur-sm border border-iron-gray/20 rounded-lg p-6 space-y-4">
+              <div>
+                <Label htmlFor="mealType" className="text-base font-semibold text-white">Meal Type</Label>
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mt-2">
+                  {(['breakfast', 'lunch', 'dinner', 'snack', 'other'] as MealType[]).map((type) => (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => setMealType(type)}
+                      className={`px-4 py-3 rounded-lg font-medium transition-all capitalize ${
+                        mealType === type
+                          ? 'bg-iron-orange text-white shadow-md'
+                          : 'bg-iron-gray/20 text-iron-gray hover:bg-iron-gray/30'
+                      }`}
+                    >
+                      {type}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="mealTime" className="text-base font-semibold text-white">Time</Label>
+                <input
+                  type="datetime-local"
+                  id="mealTime"
+                  value={mealTime}
+                  onChange={(e) => setMealTime(e.target.value)}
+                  className="w-full bg-neutral-800 border border-iron-gray/30 text-white rounded-lg px-4 py-2 mt-2 focus:outline-none focus:ring-2 focus:ring-iron-orange"
+                />
+              </div>
+            </div>
+
+            {/* How would you like to add foods? - Selection Cards */}
+            {foods.length === 0 && (
+              <div className="bg-iron-black/50 backdrop-blur-sm border border-iron-gray/20 rounded-lg p-6">
+                <Label className="text-base font-semibold text-white mb-4 block">How would you like to add foods?</Label>
+                <div className="grid gap-3">
+                  {/* Food Search Card */}
                   <button
-                    key={template.id}
                     type="button"
-                    onClick={() => handleSelectTemplate(template)}
-                    className="flex items-center justify-between p-3 bg-neutral-800 hover:bg-neutral-700 border border-iron-gray/30 hover:border-iron-orange/50 rounded-lg transition-all text-left group"
+                    onClick={() => setShowFoodSearch(!showFoodSearch)}
+                    className="flex items-center justify-between p-4 bg-neutral-800 hover:bg-neutral-700 border border-iron-gray/30 hover:border-iron-orange/50 rounded-lg transition-all text-left"
                   >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-sm font-medium text-white">
-                          {template.name}
-                        </span>
-                        <span className="text-xs text-iron-gray capitalize">
-                          {template.category}
-                        </span>
-                        {template.is_favorite && (
-                          <span className="text-xs text-iron-orange">★</span>
-                        )}
+                    <div className="flex items-center gap-3">
+                      <div className="text-2xl">🔍</div>
+                      <div>
+                        <p className="text-white font-medium">Search for Foods</p>
+                        <p className="text-xs text-iron-gray mt-0.5">Build meal from scratch</p>
                       </div>
-                      {template.description && (
-                        <div className="text-xs text-iron-gray mb-1 truncate">
-                          {template.description}
+                    </div>
+                    {showFoodSearch ? <ChevronUp className="w-5 h-5 text-iron-gray" /> : <ChevronDown className="w-5 h-5 text-iron-gray" />}
+                  </button>
+
+                  {/* Templates Card */}
+                  {templates.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setShowTemplates(!showTemplates)}
+                      className="flex items-center justify-between p-4 bg-neutral-800 hover:bg-neutral-700 border border-iron-gray/30 hover:border-iron-orange/50 rounded-lg transition-all text-left"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="text-2xl">📋</div>
+                        <div>
+                          <p className="text-white font-medium">Use a Saved Template</p>
+                          <p className="text-xs text-iron-gray mt-0.5">Quick-add complete meals</p>
                         </div>
-                      )}
-                      <div className="text-xs text-iron-gray truncate">
-                        {template.items.map(item => item.name).join(', ')}
                       </div>
-                      <div className="flex items-center gap-3 mt-1 text-xs text-iron-gray">
-                        {template.total_calories && <span>{Math.round(template.total_calories)} cal</span>}
-                        {template.total_protein_g && <span>{Math.round(template.total_protein_g)}g protein</span>}
-                        {template.use_count > 0 && <span className="text-iron-orange">Used {template.use_count}x</span>}
+                      {showTemplates ? <ChevronUp className="w-5 h-5 text-iron-gray" /> : <ChevronDown className="w-5 h-5 text-iron-gray" />}
+                    </button>
+                  )}
+
+                  {/* Recent Meals Card */}
+                  {recentMeals.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setShowRecentMeals(!showRecentMeals)}
+                      className="flex items-center justify-between p-4 bg-neutral-800 hover:bg-neutral-700 border border-iron-gray/30 hover:border-iron-orange/50 rounded-lg transition-all text-left"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="text-2xl">🔄</div>
+                        <div>
+                          <p className="text-white font-medium">Log from Recent Meals</p>
+                          <p className="text-xs text-iron-gray mt-0.5">Re-log yesterday's food</p>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2 text-iron-orange group-hover:text-orange-400">
-                      <Plus className="w-5 h-5" />
-                      <span className="text-xs font-medium">Add</span>
-                    </div>
-                  </button>
-                ))}
+                      {showRecentMeals ? <ChevronUp className="w-5 h-5 text-iron-gray" /> : <ChevronDown className="w-5 h-5 text-iron-gray" />}
+                    </button>
+                  )}
+                </div>
               </div>
             )}
-          </div>
-        )}
 
-        {/* Recent Meals Quick-Add */}
-        {recentMeals.length > 0 && (
-          <div className="bg-iron-black/50 backdrop-blur-sm border border-iron-gray/20 rounded-lg p-6">
-            <div className="flex items-center gap-2 mb-3">
-              <Clock className="w-5 h-5 text-iron-orange" />
-              <Label className="text-base font-semibold text-white">Recent Meals</Label>
+            {/* Expanded Sections */}
+            {showFoodSearch && (
+              <div className="bg-iron-black/50 backdrop-blur-sm border border-iron-gray/20 rounded-lg p-6 overflow-visible">
+                <Label className="text-base font-semibold text-white mb-3 block">Search & Add Foods</Label>
+                <FoodSearchV2
+                  onSelectFood={handleSelectFood}
+                  placeholder="Search for foods (e.g., chicken breast, brown rice)..."
+                  showRecentFoods={true}
+                />
+              </div>
+            )}
+
+            {showTemplates && templates.length > 0 && (
+              <div className="bg-iron-black/50 backdrop-blur-sm border border-iron-gray/20 rounded-lg p-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <Bookmark className="w-5 h-5 text-iron-orange" />
+                  <Label className="text-base font-semibold text-white">Saved Templates</Label>
+                </div>
+                {loadingTemplates ? (
+                  <div className="flex items-center gap-2 text-iron-gray">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span className="text-sm">Loading templates...</span>
+                  </div>
+                ) : (
+                  <div className="grid gap-2">
+                    {templates.map((template) => (
+                      <button
+                        key={template.id}
+                        type="button"
+                        onClick={() => handleSelectTemplate(template)}
+                        className="flex items-center justify-between p-3 bg-neutral-800 hover:bg-neutral-700 border border-iron-gray/30 hover:border-iron-orange/50 rounded-lg transition-all text-left group"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-sm font-medium text-white">
+                              {template.name}
+                            </span>
+                            <span className="text-xs text-iron-gray capitalize">
+                              {template.category}
+                            </span>
+                            {template.is_favorite && (
+                              <span className="text-xs text-iron-orange">★</span>
+                            )}
+                          </div>
+                          {template.description && (
+                            <div className="text-xs text-iron-gray mb-1 truncate">
+                              {template.description}
+                            </div>
+                          )}
+                          <div className="text-xs text-iron-gray truncate">
+                            {template.items.map(item => item.name).join(', ')}
+                          </div>
+                          <div className="flex items-center gap-3 mt-1 text-xs text-iron-gray">
+                            {template.total_calories && <span>{Math.round(template.total_calories)} cal</span>}
+                            {template.total_protein_g && <span>{Math.round(template.total_protein_g)}g protein</span>}
+                            {template.use_count > 0 && <span className="text-iron-orange">Used {template.use_count}x</span>}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 text-iron-orange group-hover:text-orange-400">
+                          <Plus className="w-5 h-5" />
+                          <span className="text-xs font-medium">Add</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {showRecentMeals && recentMeals.length > 0 && (
+              <div className="bg-iron-black/50 backdrop-blur-sm border border-iron-gray/20 rounded-lg p-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <Clock className="w-5 h-5 text-iron-orange" />
+                  <Label className="text-base font-semibold text-white">Recent Meals</Label>
+                </div>
+                {loadingRecentMeals ? (
+                  <div className="flex items-center gap-2 text-iron-gray">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span className="text-sm">Loading recent meals...</span>
+                  </div>
+                ) : (
+                  <div className="grid gap-2">
+                    {recentMeals.map((meal) => (
+                      <button
+                        key={meal.id}
+                        type="button"
+                        onClick={() => handleQuickAddMeal(meal)}
+                        className="flex items-center justify-between p-3 bg-neutral-800 hover:bg-neutral-700 border border-iron-gray/30 hover:border-iron-orange/50 rounded-lg transition-all text-left group"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-sm font-medium text-white capitalize">
+                              {meal.name || meal.category}
+                            </span>
+                            <span className="text-xs text-iron-gray">
+                              {new Date(meal.logged_at).toLocaleDateString()}
+                            </span>
+                          </div>
+                          <div className="text-xs text-iron-gray truncate">
+                            {meal.foods.map(f => f.name).join(', ')}
+                          </div>
+                          <div className="flex items-center gap-3 mt-1 text-xs text-iron-gray">
+                            {meal.total_calories && <span>{Math.round(meal.total_calories)} cal</span>}
+                            {meal.total_protein_g && <span>{Math.round(meal.total_protein_g)}g protein</span>}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 text-iron-orange group-hover:text-orange-400">
+                          <Plus className="w-5 h-5" />
+                          <span className="text-xs font-medium">Add</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Meal Editor */}
+            {foods.length > 0 && (
+              <div className="bg-iron-black/50 backdrop-blur-sm border border-iron-gray/20 rounded-lg p-6">
+                <Label className="text-base font-semibold text-white mb-3 block">Foods in This Meal</Label>
+                <MealEditor
+                  foods={foods}
+                  onFoodsChange={setFoods}
+                  showTotals={true}
+                />
+              </div>
+            )}
+
+            {/* Notes */}
+            <div className="bg-iron-black/50 backdrop-blur-sm border border-iron-gray/20 rounded-lg p-6">
+              <Label htmlFor="notes" className="text-base font-semibold text-white">Notes (Optional)</Label>
+              <Textarea
+                id="notes"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="e.g., Post-workout meal, eating out, meal prep..."
+                className="mt-2 bg-neutral-800 border-iron-gray/30 text-white placeholder:text-iron-gray focus:ring-iron-orange"
+                rows={3}
+                maxLength={500}
+              />
+              <p className="text-xs text-iron-gray mt-1">{notes.length}/500 characters</p>
             </div>
-            <p className="text-sm text-iron-gray mb-4">Quick-add foods from your recent meals</p>
 
-            {loadingRecentMeals ? (
-              <div className="flex items-center gap-2 text-iron-gray">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span className="text-sm">Loading recent meals...</span>
-              </div>
-            ) : (
-              <div className="grid gap-2">
-                {recentMeals.map((meal) => (
-                  <button
-                    key={meal.id}
-                    type="button"
-                    onClick={() => handleQuickAddMeal(meal)}
-                    className="flex items-center justify-between p-3 bg-neutral-800 hover:bg-neutral-700 border border-iron-gray/30 hover:border-iron-orange/50 rounded-lg transition-all text-left group"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-sm font-medium text-white capitalize">
-                          {meal.name || meal.category}
-                        </span>
-                        <span className="text-xs text-iron-gray">
-                          {new Date(meal.logged_at).toLocaleDateString()}
-                        </span>
-                      </div>
-                      <div className="text-xs text-iron-gray truncate">
-                        {meal.foods.map(f => f.name).join(', ')}
-                      </div>
-                      <div className="flex items-center gap-3 mt-1 text-xs text-iron-gray">
-                        {meal.total_calories && <span>{Math.round(meal.total_calories)} cal</span>}
-                        {meal.total_protein_g && <span>{Math.round(meal.total_protein_g)}g protein</span>}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 text-iron-orange group-hover:text-orange-400">
-                      <Plus className="w-5 h-5" />
-                      <span className="text-xs font-medium">Add</span>
-                    </div>
-                  </button>
-                ))}
+            {/* Error Message */}
+            {error && (
+              <div className="bg-red-900/20 border border-red-500/50 text-red-400 p-4 rounded-lg">
+                <p className="font-medium">Error</p>
+                <p className="text-sm">{error}</p>
               </div>
             )}
-          </div>
+
+            {/* Actions */}
+            <div className="flex gap-4 sticky bottom-4 bg-iron-black/90 backdrop-blur-sm border border-iron-gray/20 rounded-lg p-4 shadow-lg">
+              <Button
+                type="submit"
+                disabled={loading || foods.length === 0}
+                className="flex-1 bg-iron-orange hover:bg-iron-orange/90 disabled:bg-iron-gray/30 disabled:text-iron-gray h-12 text-lg font-semibold"
+              >
+                {loading ? (
+                  <>
+                    <div className="animate-spin inline-block w-5 h-5 border-2 border-white border-t-transparent rounded-full mr-2" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save size={20} className="mr-2" />
+                    Save Meal
+                  </>
+                )}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleCancel}
+                disabled={loading}
+                className="px-6 h-12 border-iron-gray/30 text-iron-gray hover:bg-iron-gray/20"
+              >
+                Cancel
+              </Button>
+            </div>
+          </>
         )}
-
-        {/* Food Search */}
-        <div className="bg-iron-black/50 backdrop-blur-sm border border-iron-gray/20 rounded-lg p-6 overflow-visible">
-          <Label className="text-base font-semibold text-white mb-3 block">Search & Add Foods</Label>
-          <FoodSearchV2
-            onSelectFood={handleSelectFood}
-            placeholder="Search for foods (e.g., chicken breast, brown rice)..."
-            showRecentFoods={true}
-          />
-        </div>
-
-        {/* Meal Editor */}
-        <div className="bg-iron-black/50 backdrop-blur-sm border border-iron-gray/20 rounded-lg p-6">
-          <Label className="text-base font-semibold text-white mb-3 block">Foods in This Meal</Label>
-          <MealEditor
-            foods={foods}
-            onFoodsChange={setFoods}
-            showTotals={true}
-          />
-        </div>
-
-        {/* Notes */}
-        <div className="bg-iron-black/50 backdrop-blur-sm border border-iron-gray/20 rounded-lg p-6">
-          <Label htmlFor="notes" className="text-base font-semibold text-white">Notes (Optional)</Label>
-          <Textarea
-            id="notes"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="e.g., Post-workout meal, eating out, meal prep..."
-            className="mt-2 bg-neutral-800 border-iron-gray/30 text-white placeholder:text-iron-gray focus:ring-iron-orange"
-            rows={3}
-            maxLength={500}
-          />
-          <p className="text-xs text-iron-gray mt-1">{notes.length}/500 characters</p>
-        </div>
-
-        {/* Error Message */}
-        {error && (
-          <div className="bg-red-900/20 border border-red-500/50 text-red-400 p-4 rounded-lg">
-            <p className="font-medium">Error</p>
-            <p className="text-sm">{error}</p>
-          </div>
-        )}
-
-        {/* Actions */}
-        <div className="flex gap-4 sticky bottom-4 bg-iron-black/90 backdrop-blur-sm border border-iron-gray/20 rounded-lg p-4 shadow-lg">
-          <Button
-            type="submit"
-            disabled={loading || foods.length === 0}
-            className="flex-1 bg-iron-orange hover:bg-iron-orange/90 disabled:bg-iron-gray/30 disabled:text-iron-gray h-12 text-lg font-semibold"
-          >
-            {loading ? (
-              <>
-                <div className="animate-spin inline-block w-5 h-5 border-2 border-white border-t-transparent rounded-full mr-2" />
-                Saving...
-              </>
-            ) : (
-              <>
-                <Save size={20} className="mr-2" />
-                Save Meal
-              </>
-            )}
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleCancel}
-            disabled={loading}
-            className="px-6 h-12 border-iron-gray/30 text-iron-gray hover:bg-iron-gray/20"
-          >
-            Cancel
-          </Button>
-        </div>
       </form>
     </div>
   )
