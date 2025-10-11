@@ -29,19 +29,36 @@ export function InlineMealCard({
   const [isExpanded, setIsExpanded] = useState(false)
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [currentData, setCurrentData] = useState(foodDetected)
+  const [isSaving, setIsSaving] = useState(false)
 
   const { nutrition, food_items, meal_type, confidence, description } = currentData
 
-  const handleLogMeal = () => {
-    if (onLogMeal && !isLogged) {
-      onLogMeal(currentData)
+  const handleLogMeal = async () => {
+    if (onLogMeal && !isLogged && !isSaving) {
+      console.log('[InlineMealCard] Logging meal:', currentData)
+      try {
+        setIsSaving(true)
+        await onLogMeal(currentData)
+        console.log('[InlineMealCard] Meal logged successfully')
+      } catch (error) {
+        console.error('[InlineMealCard] Failed to log meal:', error)
+        setIsSaving(false)
+      }
     }
   }
 
   const handleEditSave = async (editedData: FoodDetected) => {
+    console.log('[InlineMealCard] Saving edited data:', editedData)
     setCurrentData(editedData)
-    if (onLogMeal && !isLogged) {
-      await onLogMeal(editedData)
+    if (onLogMeal && !isLogged && !isSaving) {
+      try {
+        setIsSaving(true)
+        await onLogMeal(editedData)
+        console.log('[InlineMealCard] Edited meal logged successfully')
+      } catch (error) {
+        console.error('[InlineMealCard] Failed to log edited meal:', error)
+        setIsSaving(false)
+      }
     }
   }
 
@@ -176,14 +193,14 @@ export function InlineMealCard({
 
         <Button
           onClick={handleLogMeal}
-          disabled={isLoading || isLogged}
+          disabled={isLoading || isLogged || isSaving}
           className={`flex-1 transition-all duration-200 ${
             isLogged
               ? 'bg-green-600 hover:bg-green-600 cursor-default'
               : 'bg-iron-orange hover:bg-iron-orange/90'
           }`}
         >
-          {isLoading ? (
+          {(isLoading || isSaving) ? (
             <>
               <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
               Logging meal...

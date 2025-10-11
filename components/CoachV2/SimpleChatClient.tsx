@@ -251,7 +251,10 @@ export function SimpleChatClient() {
   }
 
   async function handleLogMeal(messageId: string, foodData: FoodDetectedType) {
+    console.log('[SimpleChatClient] handleLogMeal called with:', { messageId, foodData })
+
     if (!conversationId) {
+      console.error('[SimpleChatClient] Missing conversation ID')
       toast({
         title: 'Error',
         description: 'Missing conversation context. Please try again.',
@@ -261,6 +264,7 @@ export function SimpleChatClient() {
     }
 
     // Mark meal as logging
+    console.log('[SimpleChatClient] Marking meal as logging...')
     setMessages(prev =>
       prev.map(msg =>
         msg.id === messageId
@@ -272,30 +276,39 @@ export function SimpleChatClient() {
     try {
       // Convert FoodDetected to meal log format
       const mealLogData = {
-        category: foodData.meal_type || 'meal',
+        meal_type: foodData.meal_type || 'snack',  // Backend expects meal_type, not category
         logged_at: new Date().toISOString(),
-        total_calories: foodData.nutrition.calories,
-        total_protein_g: foodData.nutrition.protein_g,
-        total_carbs_g: foodData.nutrition.carbs_g,
-        total_fat_g: foodData.nutrition.fats_g,
+        total_calories: foodData.nutrition.calories || 0,
+        total_protein_g: foodData.nutrition.protein_g || 0,
+        total_carbs_g: foodData.nutrition.carbs_g || 0,
+        total_fat_g: foodData.nutrition.fats_g || 0,
         foods: foodData.food_items.map((item) => ({
           name: item.name,
           quantity: item.quantity || 1,
           unit: item.portion || 'serving',
-          calories: item.calories,
-          protein_g: item.protein_g,
-          carbs_g: item.carbs_g,
-          fats_g: item.fats_g
+          calories: item.calories || 0,
+          protein_g: item.protein_g || 0,
+          carbs_g: item.carbs_g || 0,
+          fats_g: item.fats_g || 0
         })),
-        notes: foodData.description || undefined
+        notes: foodData.description || ''
       }
 
-      await confirmLog({
+      console.log('[SimpleChatClient] Sending confirmLog with data:', {
         conversation_id: conversationId,
         user_message_id: messageId,
         log_type: 'meal',
         log_data: mealLogData
       })
+
+      const response = await confirmLog({
+        conversation_id: conversationId,
+        user_message_id: messageId,
+        log_type: 'meal',
+        log_data: mealLogData
+      })
+
+      console.log('[SimpleChatClient] confirmLog response:', response)
 
       toast({
         title: 'Meal logged successfully!',
@@ -314,6 +327,11 @@ export function SimpleChatClient() {
       })
     } catch (error) {
       console.error('[SimpleChatClient] Failed to log meal:', error)
+      console.error('[SimpleChatClient] Error details:', {
+        name: error instanceof Error ? error.name : 'Unknown',
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined
+      })
 
       // Revert logged state
       setMessages(prev =>
@@ -324,9 +342,10 @@ export function SimpleChatClient() {
         )
       )
 
+      const errorMessage = error instanceof Error ? error.message : 'Unable to save the meal'
       toast({
         title: 'Failed to log meal',
-        description: 'Unable to save the meal. Please try again.',
+        description: errorMessage + '. Please try again.',
         variant: 'destructive'
       })
     }
@@ -734,7 +753,7 @@ export function SimpleChatClient() {
                   {message.food_detected && message.role === 'assistant' && (
                     <InlineMealCard
                       foodDetected={message.food_detected}
-                      onLogMeal={(foodData) => handleLogMeal(message.id, foodData)}
+                      onLogMeal={(foodData) => handleLogMeal(message.originatingUserMessageId || message.id, foodData)}
                       isLogged={message.food_logged}
                     />
                   )}
