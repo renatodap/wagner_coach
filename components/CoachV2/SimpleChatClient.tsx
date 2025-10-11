@@ -16,7 +16,8 @@ import { VoiceRecorder } from '@/components/Coach/VoiceRecorder'
 import { CameraButton } from '@/components/Coach/CameraButton'
 import { generateSmartSuggestions, getTimeBasedGreeting } from '@/lib/utils/smartSuggestions'
 import type { FoodDetected as FoodDetectedType, SuggestedAction as SuggestedActionType } from '@/lib/types'
-import { analyzeImage, formatAnalysisAsText, convertToFoodDetected } from '@/lib/services/client-image-analysis'
+import { analyzeImage, formatAnalysisAsText, convertToFoodDetected, matchFoodsToDatabase, buildFoodDetectedFromDatabase } from '@/lib/services/client-image-analysis'
+import { createClient } from '@/lib/supabase/client'
 
 interface Message {
   id: string
@@ -394,8 +395,33 @@ export function SimpleChatClient() {
       // Analyze image client-side with AI vision
       const analysis = await analyzeImage(file, userText)
 
-      // Convert analysis to FoodDetected type for UI display
-      const clientFoodDetected = convertToFoodDetected(analysis)
+      // Get user's auth token for database matching
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      const authToken = session?.access_token
+
+      // Declare food detected variable
+      let clientFoodDetected = convertToFoodDetected(analysis)
+
+      // If food detected and we have auth token, match to database
+      if (analysis.is_food && analysis.food_items && analysis.food_items.length > 0 && authToken) {
+        console.log('[SimpleChatClient] Matching detected foods to database...')
+
+        // Call backend to match foods
+        const matchResult = await matchFoodsToDatabase(analysis.food_items, authToken)
+
+        // If we got matches, use database nutrition instead of AI estimates
+        if (matchResult.matched_foods.length > 0) {
+          console.log('[SimpleChatClient] Found database matches, using accurate nutrition')
+          clientFoodDetected = buildFoodDetectedFromDatabase(matchResult, {
+            meal_type: analysis.meal_type,
+            description: analysis.description,
+            confidence: analysis.confidence
+          })
+        } else {
+          console.log('[SimpleChatClient] No database matches found, using AI estimates')
+        }
+      }
 
       // Format analysis as system context for backend
       const formattedAnalysis = formatAnalysisAsText(analysis)
