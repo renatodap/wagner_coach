@@ -43,9 +43,9 @@ export default function BottomNavigation() {
     },
     {
       name: 'Coach',
-      href: '/coach-v2',
+      href: '/coach-v3',
       icon: MessageSquare,
-      current: pathname === '/coach-v2' || pathname === '/coach' || pathname === '/quick-entry' || pathname === '/quick-entry-optimized',
+      current: pathname === '/coach-v3' || pathname === '/coach-v2' || pathname === '/coach' || pathname === '/quick-entry' || pathname === '/quick-entry-optimized',
       ariaLabel: 'Chat with your AI coach'
     },
     {
