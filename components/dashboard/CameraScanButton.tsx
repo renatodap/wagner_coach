@@ -77,6 +77,8 @@ export function CameraScanButton() {
       })
 
       // Step 4: Listen for food_detected chunk
+      let foundFood = false  // Track detection with local variable (not state)
+
       for await (const chunk of stream) {
         console.log('[CameraScanButton] Received chunk:', chunk)
 
@@ -87,6 +89,7 @@ export function CameraScanButton() {
 
           // Show meal card with food data from unified coach
           setFoodDetected(chunk.food_detected)
+          foundFood = true  // Set flag before state updates
 
           console.log('[CameraScanButton] Food detected from coach:', chunk.food_detected)
           toast({
@@ -98,8 +101,8 @@ export function CameraScanButton() {
         }
       }
 
-      // If no food detected in stream
-      if (!conversationId) {
+      // If no food detected in stream (check local variable, not state)
+      if (!foundFood) {
         toast({
           title: 'No food detected',
           description: 'Please try again with a food image',
