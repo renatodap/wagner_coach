@@ -1,0 +1,41 @@
+{
+  "title": "Treinador IA",
+  "subtitle": "Seu assistente de fitness e nutrição 24/7",
+  "quickActions": {
+    "title": "Ações Rápidas",
+    "mealSuggestion": "Sugerir uma refeição",
+    "workoutAdvice": "Obter conselho de treino",
+    "progressCheck": "Verificar meu progresso",
+    "motivation": "Me motivar"
+  },
+  "chat": {
+    "placeholder": "Pergunte qualquer coisa ao seu treinador...",
+    "send": "Enviar",
+    "typing": "Treinador está digitando...",
+    "error": "Falha ao enviar mensagem. Por favor, tente novamente.",
+    "rateLimit": "Você atingiu seu limite diário de mensagens. Atualize para Pro para mensagens ilimitadas.",
+    "examples": {
+      "title": "Experimente perguntar:",
+      "meal": "O que devo comer no café da manhã?",
+      "workout": "Como posso melhorar minha forma no agachamento?",
+      "progress": "Estou no caminho certo com minhas metas de proteína?",
+      "recovery": "Meus músculos estão doloridos, devo descansar?"
+    }
+  },
+  "suggestions": {
+    "title": "Tópicos Sugeridos",
+    "nutrition": "Conselhos Nutricionais",
+    "training": "Dicas de Treino",
+    "recovery": "Estratégias de Recuperação",
+    "supplements": "Orientação sobre Suplementos"
+  },
+  "history": {
+    "title": "Histórico de Conversa",
+    "today": "Hoje",
+    "yesterday": "Ontem",
+    "thisWeek": "Esta Semana",
+    "older": "Mais Antigos",
+    "clear": "Limpar Histórico",
+    "confirmClear": "Tem certeza de que deseja limpar o histórico de conversa?"
+  }
+}

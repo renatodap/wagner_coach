@@ -9,7 +9,7 @@ import { sendMessageStreaming } from '@/lib/api/unified-coach'
 import { matchDetectedFoods, type DetectedFood } from '@/lib/api/foods'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/hooks/use-toast'
-import BottomNavigation from '@/app/components/BottomNavigation'
+import BottomNavigation from '@/components/BottomNavigation'
 
 export function MealScanClient() {
   const [selectedImage, setSelectedImage] = useState<File | null>(null)

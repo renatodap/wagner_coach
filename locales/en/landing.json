@@ -1,0 +1,110 @@
+{
+  "hero": {
+    "title": "Transform Your Fitness Journey with AI",
+    "subtitle": "Personalized training programs, nutrition tracking, and 24/7 AI coaching - all in one app",
+    "cta": "Get Started Free",
+    "secondaryCta": "Learn More"
+  },
+  "features": {
+    "title": "Everything You Need to Succeed",
+    "subtitle": "Comprehensive tools for fitness and nutrition",
+    "aiCoach": {
+      "title": "AI Coach",
+      "description": "Get personalized advice, meal suggestions, and workout tips from your AI-powered coach"
+    },
+    "programs": {
+      "title": "Custom Programs",
+      "description": "12-week AI-generated training and nutrition programs tailored to your goals"
+    },
+    "quickEntry": {
+      "title": "Quick Entry",
+      "description": "Log meals and workouts via text, voice, or photo - powered by multimodal AI"
+    },
+    "tracking": {
+      "title": "Smart Tracking",
+      "description": "Automatically sync activities from Strava and Garmin, track progress effortlessly"
+    },
+    "analytics": {
+      "title": "Progress Analytics",
+      "description": "Visualize your journey with detailed charts and insights"
+    },
+    "nutrition": {
+      "title": "Nutrition Database",
+      "description": "Access 10,000+ foods including Brazilian favorites and restaurant items"
+    }
+  },
+  "howItWorks": {
+    "title": "How It Works",
+    "subtitle": "Three simple steps to start your transformation",
+    "step1": {
+      "title": "Create Your Profile",
+      "description": "Tell us about your goals, fitness level, and dietary preferences"
+    },
+    "step2": {
+      "title": "Get Your AI Program",
+      "description": "Receive a personalized 12-week training and nutrition plan"
+    },
+    "step3": {
+      "title": "Track & Improve",
+      "description": "Log your progress, chat with your AI coach, and watch yourself transform"
+    }
+  },
+  "testimonials": {
+    "title": "What Our Users Say",
+    "subtitle": "Join thousands who've transformed their lives"
+  },
+  "pricing": {
+    "title": "Simple, Transparent Pricing",
+    "subtitle": "Choose the plan that fits your goals",
+    "free": {
+      "title": "Free",
+      "price": "$0",
+      "period": "forever",
+      "features": [
+        "AI Coach (50 messages/month)",
+        "Basic nutrition tracking",
+        "Manual workout logging",
+        "Progress dashboard"
+      ]
+    },
+    "pro": {
+      "title": "Pro",
+      "price": "$9.99",
+      "period": "per month",
+      "features": [
+        "Unlimited AI Coach",
+        "AI-generated programs",
+        "Multimodal quick entry",
+        "Strava & Garmin sync",
+        "Advanced analytics",
+        "Priority support"
+      ],
+      "badge": "Most Popular"
+    }
+  },
+  "faq": {
+    "title": "Frequently Asked Questions",
+    "subtitle": "Everything you need to know"
+  },
+  "cta": {
+    "title": "Ready to Transform?",
+    "subtitle": "Join Wagner Coach today and start your fitness journey",
+    "button": "Start Free Trial"
+  },
+  "footer": {
+    "tagline": "Your AI-powered fitness companion",
+    "links": {
+      "product": "Product",
+      "features": "Features",
+      "pricing": "Pricing",
+      "support": "Support",
+      "blog": "Blog",
+      "company": "Company",
+      "about": "About",
+      "contact": "Contact",
+      "privacy": "Privacy Policy",
+      "terms": "Terms of Service"
+    },
+    "copyright": "© 2025 Wagner Coach. All rights reserved."
+  }
+}

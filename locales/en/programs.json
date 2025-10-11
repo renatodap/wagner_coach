@@ -1,0 +1,86 @@
+{
+  "title": "Programs",
+  "subtitle": "AI-generated 12-week training & nutrition plans",
+  "create": {
+    "title": "Create Your Program",
+    "subtitle": "Answer a few questions to generate your personalized plan",
+    "goal": {
+      "title": "What's your primary goal?",
+      "buildMuscle": "Build Muscle",
+      "loseFat": "Lose Fat",
+      "getStronger": "Get Stronger",
+      "improveEndurance": "Improve Endurance",
+      "generalFitness": "General Fitness"
+    },
+    "experience": {
+      "title": "What's your fitness level?",
+      "beginner": "Beginner (0-1 years)",
+      "intermediate": "Intermediate (1-3 years)",
+      "advanced": "Advanced (3+ years)"
+    },
+    "daysPerWeek": {
+      "title": "How many days can you train?",
+      "subtitle": "per week"
+    },
+    "equipment": {
+      "title": "What equipment do you have?",
+      "fullGym": "Full Gym",
+      "homeGym": "Home Gym",
+      "minimalEquipment": "Minimal Equipment",
+      "bodyweightOnly": "Bodyweight Only"
+    },
+    "dietary": {
+      "title": "Any dietary preferences?",
+      "none": "No Restrictions",
+      "vegetarian": "Vegetarian",
+      "vegan": "Vegan",
+      "keto": "Keto",
+      "paleo": "Paleo"
+    },
+    "generate": "Generate My Program",
+    "generating": "Generating your personalized program..."
+  },
+  "view": {
+    "title": "My Programs",
+    "active": "Active Program",
+    "completed": "Completed",
+    "archived": "Archived",
+    "noPrograms": "No programs yet",
+    "createFirst": "Create your first AI program",
+    "week": "Week",
+    "day": "Day",
+    "startProgram": "Start Program",
+    "continueProgram": "Continue Program",
+    "viewDetails": "View Details"
+  },
+  "detail": {
+    "overview": "Overview",
+    "calendar": "Calendar",
+    "progress": "Progress",
+    "workoutPlan": "Workout Plan",
+    "mealPlan": "Meal Plan",
+    "exercises": "Exercises",
+    "sets": "Sets",
+    "reps": "Reps",
+    "rest": "Rest",
+    "meals": "Meals",
+    "breakfast": "Breakfast",
+    "lunch": "Lunch",
+    "dinner": "Dinner",
+    "snacks": "Snacks",
+    "totalCalories": "Total Calories",
+    "totalProtein": "Total Protein",
+    "markComplete": "Mark as Complete",
+    "completed": "Completed"
+  },
+  "progress": {
+    "title": "Program Progress",
+    "daysCompleted": "Days Completed",
+    "workoutsCompleted": "Workouts Completed",
+    "mealsLogged": "Meals Logged",
+    "adherence": "Adherence Rate",
+    "onTrack": "You're on track!",
+    "behindSchedule": "You're behind schedule",
+    "aheadOfSchedule": "You're ahead of schedule"
+  }
+}

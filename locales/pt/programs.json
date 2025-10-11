@@ -1,0 +1,86 @@
+{
+  "title": "Programas",
+  "subtitle": "Planos de treino e nutrição de 12 semanas gerados por IA",
+  "create": {
+    "title": "Crie Seu Programa",
+    "subtitle": "Responda algumas perguntas para gerar seu plano personalizado",
+    "goal": {
+      "title": "Qual é seu objetivo principal?",
+      "buildMuscle": "Ganhar Músculo",
+      "loseFat": "Perder Gordura",
+      "getStronger": "Ficar Mais Forte",
+      "improveEndurance": "Melhorar Resistência",
+      "generalFitness": "Condicionamento Geral"
+    },
+    "experience": {
+      "title": "Qual é seu nível de condicionamento?",
+      "beginner": "Iniciante (0-1 anos)",
+      "intermediate": "Intermediário (1-3 anos)",
+      "advanced": "Avançado (3+ anos)"
+    },
+    "daysPerWeek": {
+      "title": "Quantos dias você pode treinar?",
+      "subtitle": "por semana"
+    },
+    "equipment": {
+      "title": "Que equipamento você tem?",
+      "fullGym": "Academia Completa",
+      "homeGym": "Academia em Casa",
+      "minimalEquipment": "Equipamento Mínimo",
+      "bodyweightOnly": "Apenas Peso Corporal"
+    },
+    "dietary": {
+      "title": "Alguma preferência alimentar?",
+      "none": "Sem Restrições",
+      "vegetarian": "Vegetariano",
+      "vegan": "Vegano",
+      "keto": "Keto",
+      "paleo": "Paleo"
+    },
+    "generate": "Gerar Meu Programa",
+    "generating": "Gerando seu programa personalizado..."
+  },
+  "view": {
+    "title": "Meus Programas",
+    "active": "Programa Ativo",
+    "completed": "Concluído",
+    "archived": "Arquivado",
+    "noPrograms": "Nenhum programa ainda",
+    "createFirst": "Crie seu primeiro programa IA",
+    "week": "Semana",
+    "day": "Dia",
+    "startProgram": "Iniciar Programa",
+    "continueProgram": "Continuar Programa",
+    "viewDetails": "Ver Detalhes"
+  },
+  "detail": {
+    "overview": "Visão Geral",
+    "calendar": "Calendário",
+    "progress": "Progresso",
+    "workoutPlan": "Plano de Treino",
+    "mealPlan": "Plano de Refeições",
+    "exercises": "Exercícios",
+    "sets": "Séries",
+    "reps": "Repetições",
+    "rest": "Descanso",
+    "meals": "Refeições",
+    "breakfast": "Café da Manhã",
+    "lunch": "Almoço",
+    "dinner": "Jantar",
+    "snacks": "Lanches",
+    "totalCalories": "Total de Calorias",
+    "totalProtein": "Total de Proteína",
+    "markComplete": "Marcar como Concluído",
+    "completed": "Concluído"
+  },
+  "progress": {
+    "title": "Progresso do Programa",
+    "daysCompleted": "Dias Concluídos",
+    "workoutsCompleted": "Treinos Concluídos",
+    "mealsLogged": "Refeições Registradas",
+    "adherence": "Taxa de Aderência",
+    "onTrack": "Você está no caminho certo!",
+    "behindSchedule": "Você está atrasado",
+    "aheadOfSchedule": "Você está adiantado"
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "welcome": {
+    "title": "Welcome to Wagner Coach!",
+    "subtitle": "Let's set up your profile to personalize your experience"
+  },
+  "steps": {
+    "personal": "Personal Info",
+    "goals": "Goals",
+    "preferences": "Preferences",
+    "complete": "Complete"
+  },
+  "personal": {
+    "title": "Tell us about yourself",
+    "name": "Full Name",
+    "age": "Age",
+    "gender": "Gender",
+    "male": "Male",
+    "female": "Female",
+    "other": "Other",
+    "height": "Height",
+    "weight": "Current Weight",
+    "targetWeight": "Target Weight"
+  },
+  "goals": {
+    "title": "What are your goals?",
+    "primary": "Primary Goal",
+    "buildMuscle": "Build Muscle",
+    "loseFat": "Lose Fat",
+    "getStronger": "Get Stronger",
+    "improveEndurance": "Improve Endurance",
+    "generalFitness": "General Fitness",
+    "activityLevel": "Activity Level",
+    "sedentary": "Sedentary (little/no exercise)",
+    "lightlyActive": "Lightly Active (1-3 days/week)",
+    "moderatelyActive": "Moderately Active (3-5 days/week)",
+    "veryActive": "Very Active (6-7 days/week)",
+    "athleticActive": "Athletic (2x per day)"
+  },
+  "preferences": {
+    "title": "Your preferences",
+    "dietary": "Dietary Preference",
+    "none": "No Restrictions",
+    "vegetarian": "Vegetarian",
+    "vegan": "Vegan",
+    "keto": "Keto",
+    "paleo": "Paleo",
+    "equipment": "Available Equipment",
+    "fullGym": "Full Gym Access",
+    "homeGym": "Home Gym",
+    "minimal": "Minimal Equipment",
+    "bodyweight": "Bodyweight Only",
+    "experience": "Training Experience",
+    "beginner": "Beginner (0-1 years)",
+    "intermediate": "Intermediate (1-3 years)",
+    "advanced": "Advanced (3+ years)"
+  },
+  "complete": {
+    "title": "You're all set!",
+    "subtitle": "Your profile has been created",
+    "generating": "Generating your personalized dashboard...",
+    "goToDashboard": "Go to Dashboard"
+  }
+}

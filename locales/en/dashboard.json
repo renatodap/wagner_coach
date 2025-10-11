@@ -1,0 +1,45 @@
+{
+  "title": "Dashboard",
+  "welcome": "Welcome back, {name}!",
+  "overview": {
+    "title": "Today's Overview",
+    "caloriesConsumed": "Calories Consumed",
+    "caloriesRemaining": "Remaining",
+    "proteinConsumed": "Protein",
+    "workoutsCompleted": "Workouts Completed",
+    "activeDays": "Active Days",
+    "currentStreak": "Current Streak"
+  },
+  "quickActions": {
+    "title": "Quick Actions",
+    "logMeal": "Log Meal",
+    "logWorkout": "Log Workout",
+    "chatWithCoach": "Chat with Coach",
+    "viewProgram": "View Program"
+  },
+  "recentActivity": {
+    "title": "Recent Activity",
+    "noActivity": "No recent activity",
+    "viewAll": "View All"
+  },
+  "upcomingWorkouts": {
+    "title": "Upcoming Workouts",
+    "today": "Today's Workout",
+    "noWorkouts": "No workouts scheduled for today",
+    "viewProgram": "View Full Program"
+  },
+  "progressSummary": {
+    "title": "This Week's Progress",
+    "mealsLogged": "Meals Logged",
+    "workoutsCompleted": "Workouts Completed",
+    "avgCalories": "Avg. Calories",
+    "avgProtein": "Avg. Protein"
+  },
+  "goals": {
+    "title": "Your Goals",
+    "dailyCalories": "Daily Calorie Target",
+    "dailyProtein": "Daily Protein Target",
+    "weeklyWorkouts": "Weekly Workout Target",
+    "edit": "Edit Goals"
+  }
+}

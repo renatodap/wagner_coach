@@ -1,0 +1,65 @@
+{
+  "title": "Nutrição",
+  "subtitle": "Acompanhe suas refeições e alcance seus objetivos",
+  "log": {
+    "title": "Registrar Refeição",
+    "mealType": "Tipo de Refeição",
+    "breakfast": "Café da Manhã",
+    "lunch": "Almoço",
+    "dinner": "Jantar",
+    "snack": "Lanche",
+    "date": "Data",
+    "time": "Hora",
+    "foods": "Alimentos",
+    "addFood": "Adicionar Alimento",
+    "searchFood": "Pesquisar alimentos...",
+    "calories": "Calorias",
+    "protein": "Proteína (g)",
+    "carbs": "Carboidratos (g)",
+    "fats": "Gorduras (g)",
+    "notes": "Observações",
+    "photo": "Adicionar Foto",
+    "logMeal": "Registrar Refeição",
+    "success": "Refeição registrada com sucesso!"
+  },
+  "history": {
+    "title": "Histórico de Refeições",
+    "filter": "Filtrar",
+    "thisWeek": "Esta Semana",
+    "lastWeek": "Semana Passada",
+    "thisMonth": "Este Mês",
+    "custom": "Período Personalizado",
+    "noMeals": "Nenhuma refeição registrada ainda",
+    "logFirst": "Registre sua primeira refeição para começar a acompanhar",
+    "edit": "Editar",
+    "delete": "Excluir",
+    "confirmDelete": "Tem certeza de que deseja excluir esta refeição?"
+  },
+  "quickEntry": {
+    "title": "Entrada Rápida",
+    "text": "Digite o que comeu",
+    "voice": "Usar voz",
+    "photo": "Tirar uma foto",
+    "processing": "Processando sua entrada...",
+    "placeholder": "ex: Frango grelhado com arroz e vegetais"
+  },
+  "summary": {
+    "title": "Resumo Diário",
+    "consumed": "Consumido",
+    "remaining": "Restante",
+    "goal": "Meta",
+    "macros": "Macros",
+    "protein": "Proteína",
+    "carbs": "Carboidratos",
+    "fats": "Gorduras"
+  },
+  "database": {
+    "title": "Banco de Dados de Alimentos",
+    "search": "Pesquisar mais de 10.000 alimentos",
+    "recent": "Alimentos Recentes",
+    "favorites": "Favoritos",
+    "brazilian": "Alimentos Brasileiros",
+    "restaurant": "Itens de Restaurantes",
+    "addToMeal": "Adicionar à Refeição"
+  }
+}

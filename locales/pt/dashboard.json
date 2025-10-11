@@ -1,0 +1,45 @@
+{
+  "title": "Painel",
+  "welcome": "Bem-vindo de volta, {name}!",
+  "overview": {
+    "title": "Resumo de Hoje",
+    "caloriesConsumed": "Calorias Consumidas",
+    "caloriesRemaining": "Restantes",
+    "proteinConsumed": "Proteína",
+    "workoutsCompleted": "Treinos Concluídos",
+    "activeDays": "Dias Ativos",
+    "currentStreak": "Sequência Atual"
+  },
+  "quickActions": {
+    "title": "Ações Rápidas",
+    "logMeal": "Registrar Refeição",
+    "logWorkout": "Registrar Treino",
+    "chatWithCoach": "Conversar com Treinador",
+    "viewProgram": "Ver Programa"
+  },
+  "recentActivity": {
+    "title": "Atividade Recente",
+    "noActivity": "Nenhuma atividade recente",
+    "viewAll": "Ver Tudo"
+  },
+  "upcomingWorkouts": {
+    "title": "Próximos Treinos",
+    "today": "Treino de Hoje",
+    "noWorkouts": "Nenhum treino agendado para hoje",
+    "viewProgram": "Ver Programa Completo"
+  },
+  "progressSummary": {
+    "title": "Progresso Desta Semana",
+    "mealsLogged": "Refeições Registradas",
+    "workoutsCompleted": "Treinos Concluídos",
+    "avgCalories": "Média de Calorias",
+    "avgProtein": "Média de Proteína"
+  },
+  "goals": {
+    "title": "Suas Metas",
+    "dailyCalories": "Meta Diária de Calorias",
+    "dailyProtein": "Meta Diária de Proteína",
+    "weeklyWorkouts": "Meta Semanal de Treinos",
+    "edit": "Editar Metas"
+  }
+}

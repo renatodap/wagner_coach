@@ -1,0 +1,72 @@
+{
+  "title": "Profile",
+  "subtitle": "Manage your account and preferences",
+  "personalInfo": {
+    "title": "Personal Information",
+    "name": "Name",
+    "email": "Email",
+    "age": "Age",
+    "gender": "Gender",
+    "height": "Height",
+    "weight": "Weight",
+    "edit": "Edit Profile",
+    "save": "Save Changes"
+  },
+  "stats": {
+    "title": "Your Stats",
+    "memberSince": "Member Since",
+    "totalWorkouts": "Total Workouts",
+    "totalMeals": "Meals Logged",
+    "currentStreak": "Current Streak",
+    "longestStreak": "Longest Streak"
+  },
+  "goals": {
+    "title": "Goals & Targets",
+    "primaryGoal": "Primary Goal",
+    "targetWeight": "Target Weight",
+    "dailyCalories": "Daily Calorie Target",
+    "dailyProtein": "Daily Protein Target",
+    "weeklyWorkouts": "Weekly Workout Target",
+    "edit": "Edit Goals"
+  },
+  "preferences": {
+    "title": "Preferences",
+    "language": "Language",
+    "units": "Units",
+    "imperial": "Imperial (lbs, in)",
+    "metric": "Metric (kg, cm)",
+    "theme": "Theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System",
+    "notifications": "Notifications",
+    "emailNotifications": "Email Notifications",
+    "pushNotifications": "Push Notifications"
+  },
+  "integrations": {
+    "title": "Integrations",
+    "strava": "Strava",
+    "garmin": "Garmin",
+    "connect": "Connect",
+    "connected": "Connected",
+    "disconnect": "Disconnect",
+    "sync": "Sync Now"
+  },
+  "subscription": {
+    "title": "Subscription",
+    "currentPlan": "Current Plan",
+    "free": "Free",
+    "pro": "Pro",
+    "upgrade": "Upgrade to Pro",
+    "manage": "Manage Subscription",
+    "billingDate": "Next Billing Date",
+    "cancelSubscription": "Cancel Subscription"
+  },
+  "account": {
+    "title": "Account",
+    "changePassword": "Change Password",
+    "deleteAccount": "Delete Account",
+    "confirmDelete": "Are you sure you want to delete your account? This action cannot be undone.",
+    "signOut": "Sign Out"
+  }
+}
