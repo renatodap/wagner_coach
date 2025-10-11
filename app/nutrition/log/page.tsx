@@ -55,6 +55,9 @@ function LogMealForm() {
   const [templates, setTemplates] = useState<MealTemplate[]>([])
   const [loadingTemplates, setLoadingTemplates] = useState(false)
 
+  // Daily nutrition context (for review mode insights)
+  const [dailyTotals, setDailyTotals] = useState<{ calories: number; protein_g: number; carbs_g: number; fat_g: number } | null>(null)
+
   // Fetch user's timezone from profile and initialize meal time
   useEffect(() => {
     async function fetchUserTimezone() {
@@ -211,6 +214,53 @@ function LogMealForm() {
     window.addEventListener('beforeunload', handleBeforeUnload)
     return () => window.removeEventListener('beforeunload', handleBeforeUnload)
   }, [hasUnsavedChanges, success])
+
+  // Fetch daily totals for context (only in review mode)
+  useEffect(() => {
+    if (!isReviewMode) return
+
+    async function fetchDailyTotals() {
+      try {
+        const supabase = createClient()
+        const { data: { session } } = await supabase.auth.getSession()
+
+        if (!session?.access_token) return
+
+        // Get today's meals
+        const today = new Date()
+        const startOfDay = new Date(today)
+        startOfDay.setHours(0, 0, 0, 0)
+        const endOfDay = new Date(today)
+        endOfDay.setHours(23, 59, 59, 999)
+
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/nutrition/meals?start_date=${startOfDay.toISOString()}&end_date=${endOfDay.toISOString()}`, {
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`
+          }
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          const meals = data.meals || []
+
+          // Calculate totals
+          const totals = meals.reduce((acc: any, meal: any) => ({
+            calories: acc.calories + (meal.total_calories || 0),
+            protein_g: acc.protein_g + (meal.total_protein_g || 0),
+            carbs_g: acc.carbs_g + (meal.total_carbs_g || 0),
+            fat_g: acc.fat_g + (meal.total_fat_g || 0),
+          }), { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 })
+
+          setDailyTotals(totals)
+        }
+      } catch (err) {
+        console.error('Failed to fetch daily totals:', err)
+        // Silently fail - this is optional context
+      }
+    }
+
+    fetchDailyTotals()
+  }, [isReviewMode])
 
   function handleSelectFood(food: Food) {
     // CRITICAL: Default portion logic (priority order)
@@ -504,7 +554,7 @@ function LogMealForm() {
             {/* Nutrition Totals - Prominent at Top */}
             {foods.length > 0 && (
               <div className="bg-iron-orange/10 backdrop-blur-sm border-2 border-iron-orange rounded-lg p-4 sm:p-6">
-                <h2 className="text-lg font-bold text-iron-orange mb-3">Total Nutrition</h2>
+                <h2 className="text-lg font-bold text-iron-orange mb-3">This Meal's Nutrition</h2>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
                   <div className="text-center">
                     <p className="text-xs text-iron-gray uppercase">Calories</p>
@@ -523,6 +573,35 @@ function LogMealForm() {
                     <p className="text-2xl sm:text-3xl font-bold text-iron-orange">{totals.fat_g.toFixed(1)}g</p>
                   </div>
                 </div>
+
+                {/* Daily Context */}
+                {dailyTotals && (
+                  <div className="mt-4 pt-4 border-t border-iron-orange/30">
+                    <p className="text-xs text-iron-gray mb-2">Today's total (so far):</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      <div className="text-center">
+                        <p className="text-xs text-iron-gray">
+                          <span className="text-white font-semibold">{Math.round(dailyTotals.calories + totals.calories)}</span> cal
+                        </p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-xs text-iron-gray">
+                          <span className="text-white font-semibold">{(dailyTotals.protein_g + totals.protein_g).toFixed(1)}g</span> protein
+                        </p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-xs text-iron-gray">
+                          <span className="text-white font-semibold">{(dailyTotals.carbs_g + totals.carbs_g).toFixed(1)}g</span> carbs
+                        </p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-xs text-iron-gray">
+                          <span className="text-white font-semibold">{(dailyTotals.fat_g + totals.fat_g).toFixed(1)}g</span> fat
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
