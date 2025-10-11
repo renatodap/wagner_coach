@@ -1,13 +1,27 @@
+/**
+ * Dashboard Page - Adaptive Dashboard Phase 4
+ *
+ * This page now uses the DashboardEngine component which orchestrates
+ * the adaptive dashboard based on user persona (simple/balanced/detailed).
+ *
+ * The dashboard adapts to:
+ * - User's explicit preference (from consultation or settings)
+ * - User's behavior patterns (tracked by behavior-tracker)
+ * - Current context (time, program day, events, etc.)
+ */
+
 'use client'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import DashboardClient from './DashboardClient'
+import { DashboardEngine } from '@/components/dashboard/DashboardEngine'
+import type { DashboardVariant } from '@/lib/types/dashboard'
 
 export default function DashboardPage() {
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
+  const [variant, setVariant] = useState<DashboardVariant>('balanced')
   const [loading, setLoading] = useState(true)
   const router = useRouter()
   const supabase = createClient()
@@ -25,14 +39,19 @@ export default function DashboardPage() {
 
         setUser(user)
 
-        // Get user profile
+        // Get user profile with dashboard preference
         const { data: profileData } = await supabase
           .from('profiles')
-          .select('*')
+          .select('id, name, dashboard_preference, shows_weight_card, shows_recovery_card, shows_workout_card')
           .eq('id', user.id)
           .single()
 
         setProfile(profileData)
+
+        // Set dashboard variant from profile or default to balanced
+        if (profileData?.dashboard_preference) {
+          setVariant(profileData.dashboard_preference as DashboardVariant)
+        }
 
       } catch (err) {
         console.error('Dashboard error:', err)
@@ -49,7 +68,10 @@ export default function DashboardPage() {
     return (
       <div className="min-h-screen bg-iron-black text-iron-white flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-4xl font-heading text-iron-orange">LOADING...</h1>
+          <div className="animate-pulse">
+            <h1 className="text-4xl font-heading text-iron-orange mb-2">WAGNER COACH</h1>
+            <p className="text-sm text-gray-400">Loading your personalized dashboard...</p>
+          </div>
         </div>
       </div>
     )
@@ -66,14 +88,28 @@ export default function DashboardPage() {
   }
 
   return (
-    <DashboardClient
-      profile={profile}
-      stats={{
-        activitiesToday: 0,
-        mealsToday: 0,
-        activePrograms: 0
-      }}
-      upcomingWorkouts={[]}
-    />
+    <div className="min-h-screen bg-iron-black">
+      {/* Header */}
+      <div className="bg-gradient-to-b from-iron-gray to-iron-black p-6 sticky top-0 z-10 border-b border-iron-gray">
+        <div className="max-w-4xl mx-auto">
+          <h1 className="text-2xl font-bold text-white mb-1">
+            Welcome back{profile?.name ? `, ${profile.name}` : ''}
+          </h1>
+          <p className="text-sm text-gray-400">
+            {variant === 'simple' && 'Your next action awaits'}
+            {variant === 'balanced' && 'Here\'s your day at a glance'}
+            {variant === 'detailed' && 'Your complete performance dashboard'}
+          </p>
+        </div>
+      </div>
+
+      {/* Dashboard Content */}
+      <div className="max-w-4xl mx-auto p-6">
+        <DashboardEngine
+          userId={user.id}
+          variant={variant}
+        />
+      </div>
+    </div>
   )
 }
