@@ -14,6 +14,8 @@ import { FloatingQuickActions } from '@/components/Coach/FloatingQuickActions'
 import { MessageActions } from '@/components/Coach/MessageActions'
 import { getTimeBasedGreeting } from '@/lib/utils/smartSuggestions'
 import type { FoodDetected as FoodDetectedType, SuggestedAction as SuggestedActionType } from '@/lib/types'
+import { analyzeImage, formatAnalysisAsText, convertToFoodDetected, matchFoodsToDatabase, buildFoodDetectedFromDatabase } from '@/lib/services/client-image-analysis'
+import { createClient } from '@/lib/supabase/client'
 
 interface Message {
   id: string
@@ -84,6 +86,35 @@ export function SimpleChatClient() {
       })
     }
   }, [messages])
+
+  // Check for pending image upload from dashboard on mount
+  useEffect(() => {
+    const pendingImage = sessionStorage.getItem('pendingImageUpload')
+    const pendingName = sessionStorage.getItem('pendingImageName')
+
+    if (pendingImage && pendingName) {
+      console.log('[SimpleChatClient] Found pending image upload, processing...')
+      // Clear from sessionStorage immediately
+      sessionStorage.removeItem('pendingImageUpload')
+      sessionStorage.removeItem('pendingImageName')
+
+      // Convert base64 back to File
+      fetch(pendingImage)
+        .then(res => res.blob())
+        .then(blob => {
+          const file = new File([blob], pendingName, { type: blob.type })
+          handleImageSelected(file)
+        })
+        .catch(error => {
+          console.error('[SimpleChatClient] Failed to process pending image:', error)
+          toast({
+            title: 'Failed to process image',
+            description: 'Unable to load the image. Please try again.',
+            variant: 'destructive'
+          })
+        })
+    }
+  }, []) // Only run on mount
 
   async function loadConversations() {
     try {
@@ -376,7 +407,218 @@ export function SimpleChatClient() {
     }
   }
 
+  async function handleImageSelected(file: File) {
+    if (isLoading) return
 
+    // Create blob URL for image display
+    const imageUrl = URL.createObjectURL(file)
+
+    // Capture user text before clearing
+    const userText = text.trim()
+
+    // Add user message with image (with or without text)
+    const userMessageContent = userText || ''
+    const userMessage: Message = {
+      id: `user-${Date.now()}`,
+      role: 'user',
+      content: userMessageContent,
+      timestamp: new Date(),
+      image_url: imageUrl
+    }
+
+    setMessages(prev => [...prev, userMessage])
+    setText('') // Clear input
+    setIsLoading(true)
+
+    // Show analysis in progress toast
+    toast({
+      title: 'Analyzing image...',
+      description: 'This may take a few seconds'
+    })
+
+    try {
+      // Analyze image client-side with AI vision
+      const analysis = await analyzeImage(file, userText)
+
+      // Get user's auth token for database matching
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      const authToken = session?.access_token
+
+      // Declare food detected variable
+      let clientFoodDetected = convertToFoodDetected(analysis)
+
+      // If food detected and we have auth token, match to database
+      if (analysis.is_food && analysis.food_items && analysis.food_items.length > 0 && authToken) {
+        console.log('[SimpleChatClient] Matching detected foods to database...')
+
+        // Call backend to match foods
+        const matchResult = await matchFoodsToDatabase(analysis.food_items, authToken)
+
+        // If we got matches, use database nutrition instead of AI estimates
+        if (matchResult.matched_foods.length > 0) {
+          console.log('[SimpleChatClient] Found database matches, using accurate nutrition')
+          clientFoodDetected = buildFoodDetectedFromDatabase(matchResult, {
+            meal_type: analysis.meal_type,
+            description: analysis.description,
+            confidence: analysis.confidence
+          })
+        } else {
+          console.log('[SimpleChatClient] No database matches found, using AI estimates')
+        }
+      }
+
+      // Format analysis as system context for backend
+      const formattedAnalysis = formatAnalysisAsText(analysis)
+
+      // Combine with user message (if they wrote something)
+      const messageToSend = userText
+        ? `${userText}\n\n${formattedAnalysis}`
+        : formattedAnalysis
+
+      // Create AI message with client-side food detection data immediately
+      const aiMessageId = `ai-${Date.now()}`
+      const aiMessage: Message = {
+        id: aiMessageId,
+        role: 'assistant',
+        content: '',
+        timestamp: new Date(),
+        isStreaming: true,
+        // Use client analysis data immediately - don't wait for backend
+        food_detected: clientFoodDetected || undefined,
+        originatingUserMessageId: userMessage.id
+      }
+      setMessages(prev => [...prev, aiMessage])
+
+      // Send to backend via streaming API
+      const stream = sendMessageStreaming({
+        message: messageToSend,
+        conversation_id: conversationId,
+      })
+
+      let fullResponse = ''
+      let newConversationId = conversationId
+      let receivedPendingLogs: PendingLog[] = []
+      let receivedAutoLogged: AutoLoggedItem[] = []
+      let receivedFoodDetected: FoodDetectedType | undefined = undefined
+      let receivedActions: SuggestedActionType[] = []
+
+      for await (const chunk of stream) {
+        if (chunk.conversation_id && !newConversationId) {
+          newConversationId = chunk.conversation_id
+          setConversationId(chunk.conversation_id)
+          loadConversations()
+        }
+
+        if (chunk.message) {
+          fullResponse += chunk.message
+
+          setMessages(prev =>
+            prev.map(msg =>
+              msg.id === aiMessageId
+                ? { ...msg, content: fullResponse }
+                : msg
+            )
+          )
+        }
+
+        // Check for food detection data
+        if (chunk.food_detected && chunk.food_detected.is_food) {
+          receivedFoodDetected = chunk.food_detected as FoodDetectedType
+
+          setMessages(prev =>
+            prev.map(msg =>
+              msg.id === aiMessageId
+                ? { ...msg, food_detected: receivedFoodDetected }
+                : msg
+            )
+          )
+        }
+
+        // Check for suggested actions
+        if (chunk.suggested_actions && chunk.suggested_actions.length > 0) {
+          receivedActions = chunk.suggested_actions as SuggestedActionType[]
+
+          setMessages(prev =>
+            prev.map(msg =>
+              msg.id === aiMessageId
+                ? { ...msg, suggested_actions: receivedActions }
+                : msg
+            )
+          )
+        }
+
+        // Check for pending logs
+        if (chunk.pending_logs && chunk.pending_logs.length > 0) {
+          receivedPendingLogs = chunk.pending_logs
+        }
+
+        // Check for auto-logged items
+        if (chunk.auto_logged && chunk.auto_logged.length > 0) {
+          receivedAutoLogged = chunk.auto_logged
+        }
+      }
+
+      // Handle logs after streaming completes
+      if (receivedPendingLogs.length > 0) {
+        setPendingLogs(receivedPendingLogs)
+        setCurrentUserMessageId(userMessage.id)
+        setShowLogModal(true)
+      }
+
+      if (receivedAutoLogged.length > 0) {
+        const mealCount = receivedAutoLogged.filter(item => item.log_type === 'meal').length
+        const workoutCount = receivedAutoLogged.filter(item => item.log_type === 'workout').length
+        const activityCount = receivedAutoLogged.filter(item => item.log_type === 'activity').length
+
+        toast({
+          title: 'Logged successfully!',
+          description: `${mealCount > 0 ? `${mealCount} meal(s)` : ''} ${workoutCount > 0 ? `${workoutCount} workout(s)` : ''} ${activityCount > 0 ? `${activityCount} activity(s)` : ''}`.trim()
+        })
+
+        // Redirect after 1 second
+        setTimeout(() => {
+          router.refresh()
+          router.push('/nutrition/log')
+        }, 1000)
+      }
+
+      // Mark streaming as complete
+      setMessages(prev =>
+        prev.map(msg =>
+          msg.id === aiMessageId
+            ? { ...msg, isStreaming: false }
+            : msg
+        )
+      )
+
+    } catch (error) {
+      console.error('[SimpleChatClient] Failed to analyze image:', error)
+
+      // Detect specific error types for better user guidance
+      const isNetworkError = error instanceof TypeError && error.message.includes('fetch')
+      const isCORSError = error instanceof TypeError && (
+        error.message.includes('CORS') ||
+        error.message.includes('Network request failed')
+      )
+
+      let errorTitle = 'Failed to analyze image'
+      let errorDescription = 'Unable to process the image. Please try again.'
+
+      if (isNetworkError || isCORSError) {
+        errorTitle = 'Network Error'
+        errorDescription = 'Unable to connect. Please check your internet connection and try again.'
+      }
+
+      toast({
+        title: errorTitle,
+        description: errorDescription,
+        variant: 'destructive'
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const handleSubmit = async () => {
     if (!text.trim() || isLoading) {
