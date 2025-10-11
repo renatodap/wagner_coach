@@ -4,12 +4,13 @@ import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Send, Loader2, MessageSquare, Plus, Zap } from 'lucide-react'
 import { sendMessageStreaming, getConversations, getConversationMessages, confirmLog, cancelLog } from '@/lib/api/unified-coach'
-import type { SendMessageResponse, ConversationSummary, UnifiedMessage, LogType, FoodDetected } from '@/lib/api/unified-coach'
+import type { SendMessageResponse, ConversationSummary, UnifiedMessage, LogType, FoodDetected, SuggestedAction } from '@/lib/api/unified-coach'
 import { getAutoLogPreference, updateAutoLogPreference } from '@/lib/api/profile'
 import BottomNavigation from '@/app/components/BottomNavigation'
 import { useToast } from '@/hooks/use-toast'
 import { InlineMealCard } from '@/components/Coach/InlineMealCard'
-import type { FoodDetected as FoodDetectedType } from '@/lib/types'
+import { ActionButtons } from '@/components/Coach/ActionButtons'
+import type { FoodDetected as FoodDetectedType, SuggestedAction as SuggestedActionType } from '@/lib/types'
 
 interface Message {
   id: string
@@ -19,6 +20,7 @@ interface Message {
   isStreaming?: boolean
   food_detected?: FoodDetectedType
   food_logged?: boolean
+  suggested_actions?: SuggestedActionType[]
 }
 
 interface PendingLog {
@@ -314,6 +316,31 @@ export function SimpleChatClient() {
     }
   }
 
+  function handleAction(action: SuggestedActionType) {
+    switch (action.action) {
+      case 'log_meal':
+        router.push('/nutrition/log')
+        break
+      case 'log_workout':
+        router.push('/activities/log')
+        break
+      case 'scan_photo':
+        router.push('/meal-scan')
+        break
+      case 'set_reminder':
+        toast({
+          title: 'Coming soon!',
+          description: 'Reminder feature will be available in a future update.'
+        })
+        break
+      case 'view_progress':
+        router.push('/analytics')
+        break
+      default:
+        console.warn('[SimpleChatClient] Unknown action:', action.action)
+    }
+  }
+
   const handleSubmit = async () => {
     if (!text.trim() || isLoading) {
       return
@@ -358,6 +385,7 @@ export function SimpleChatClient() {
       let receivedPendingLogs: PendingLog[] = []
       let receivedAutoLogged: AutoLoggedItem[] = []
       let receivedFoodDetected: FoodDetectedType | undefined = undefined
+      let receivedActions: SuggestedActionType[] = []
 
       for await (const chunk of stream) {
         if (chunk.conversation_id && !newConversationId) {
@@ -389,6 +417,20 @@ export function SimpleChatClient() {
             prev.map(msg =>
               msg.id === aiMessageId
                 ? { ...msg, food_detected: receivedFoodDetected }
+                : msg
+            )
+          )
+        }
+
+        // Check for suggested actions
+        if (chunk.suggested_actions && chunk.suggested_actions.length > 0) {
+          receivedActions = chunk.suggested_actions as SuggestedActionType[]
+
+          // Update message with suggested_actions
+          setMessages(prev =>
+            prev.map(msg =>
+              msg.id === aiMessageId
+                ? { ...msg, suggested_actions: receivedActions }
                 : msg
             )
           )
@@ -726,6 +768,15 @@ export function SimpleChatClient() {
                       foodDetected={message.food_detected}
                       onLogMeal={(foodData) => handleLogMeal(message.id, foodData)}
                       isLogged={message.food_logged}
+                    />
+                  )}
+
+                  {/* Action Buttons - Render if suggested actions exist */}
+                  {message.suggested_actions && message.role === 'assistant' && (
+                    <ActionButtons
+                      actions={message.suggested_actions}
+                      onAction={handleAction}
+                      isLoading={isLoading}
                     />
                   )}
                 </div>

@@ -74,6 +74,14 @@ export interface SendMessageRequest {
   image_urls?: string[]
 }
 
+export interface SuggestedAction {
+  id: string
+  icon: string
+  label: string
+  action: 'log_meal' | 'log_workout' | 'scan_photo' | 'set_reminder' | 'view_progress'
+  params?: Record<string, any>
+}
+
 export interface SendMessageResponse {
   success: boolean
   conversation_id: string
@@ -81,7 +89,8 @@ export interface SendMessageResponse {
   is_log_preview: boolean
   message?: string
   log_preview?: LogPreview
-  food_detected?: FoodDetected  // NEW: Food vision analysis result
+  food_detected?: FoodDetected
+  suggested_actions?: SuggestedAction[]
   rag_context?: RAGContext
   tokens_used?: number
   cost_usd?: number
