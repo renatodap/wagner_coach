@@ -48,6 +48,9 @@ function LogMealForm() {
   const [recentMeals, setRecentMeals] = useState<Meal[]>([])
   const [loadingRecentMeals, setLoadingRecentMeals] = useState(false)
 
+  // Track if form has unsaved changes
+  const hasUnsavedChanges = foods.length > 0
+
   // Meal templates for quick-select
   const [templates, setTemplates] = useState<MealTemplate[]>([])
   const [loadingTemplates, setLoadingTemplates] = useState(false)
@@ -69,6 +72,20 @@ function LogMealForm() {
         const now = new Date()
         const formattedTime = formatInTimeZone(now, timezone, "yyyy-MM-dd'T'HH:mm")
         setMealTime(formattedTime)
+
+        // Smart meal type detection based on time (only if not already set by preview data)
+        if (!previewDataStr) {
+          const hour = now.getHours()
+          if (hour >= 6 && hour < 10) {
+            setMealType('breakfast')
+          } else if (hour >= 11 && hour < 14) {
+            setMealType('lunch')
+          } else if (hour >= 17 && hour < 21) {
+            setMealType('dinner')
+          } else {
+            setMealType('snack')
+          }
+        }
       } catch (err) {
         console.error('Failed to fetch user timezone:', err)
         // Fallback to UTC
@@ -154,19 +171,19 @@ function LogMealForm() {
             food_id: food.food_id || `temp-${Date.now()}-${Math.random()}`,
             name: food.name,
             brand: food.brand || null,
-            
+
             // NEW: Dual quantity tracking
             serving_quantity: food.serving_quantity || food.quantity || 1,
             serving_unit: food.serving_unit || (food.unit !== 'g' && food.unit !== 'oz' ? food.unit : null) || null,
             gram_quantity: food.gram_quantity || food.serving_size || 100,
             last_edited_field: food.last_edited_field || 'serving',
-            
+
             // Food serving info
             serving_size: food.serving_size || 100,
             food_serving_unit: food.food_serving_unit || food.serving_unit || 'g',
             household_serving_size: food.household_serving_size,
             household_serving_unit: food.household_serving_unit,
-            
+
             // Calculated nutrition
             calories: food.calories || 0,
             protein_g: food.protein_g || 0,
@@ -181,6 +198,19 @@ function LogMealForm() {
       }
     }
   }, [previewDataStr])
+
+  // Prevent accidental navigation away with unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges && !success) {
+        e.preventDefault()
+        e.returnValue = '' // Chrome requires returnValue to be set
+      }
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [hasUnsavedChanges, success])
 
   function handleSelectFood(food: Food) {
     // CRITICAL: Default portion logic (priority order)
@@ -362,6 +392,14 @@ function LogMealForm() {
   }
 
   async function handleCancel() {
+    // Confirm if there are unsaved changes
+    if (hasUnsavedChanges) {
+      const confirmed = window.confirm(
+        'You have unsaved changes. Are you sure you want to cancel?\n\nThis will discard your meal log.'
+      )
+      if (!confirmed) return
+    }
+
     // If coming from coach, call cancel API to add acknowledgment message
     if (conversationId && userMessageId) {
       try {
@@ -383,6 +421,20 @@ function LogMealForm() {
       redirectUrl.searchParams.set('status', 'cancelled')
     }
     router.push(redirectUrl.pathname + redirectUrl.search)
+  }
+
+  // Retry failed save
+  function handleRetry() {
+    setError(null)
+    handleSubmit(new Event('submit') as any)
+  }
+
+  // Quick time adjustment
+  function setQuickTime(hoursAgo: number) {
+    const now = new Date()
+    const adjustedTime = new Date(now.getTime() - (hoursAgo * 60 * 60 * 1000))
+    const formattedTime = formatInTimeZone(adjustedTime, userTimezone, "yyyy-MM-dd'T'HH:mm")
+    setMealTime(formattedTime)
   }
 
   // Calculate nutrition totals
@@ -557,8 +609,16 @@ function LogMealForm() {
             {/* Error Message */}
             {error && (
               <div className="bg-red-900/20 border border-red-500/50 text-red-400 p-4 rounded-lg">
-                <p className="font-medium">Error</p>
-                <p className="text-sm">{error}</p>
+                <p className="font-medium mb-2">Error</p>
+                <p className="text-sm mb-3">{error}</p>
+                <Button
+                  type="button"
+                  onClick={handleRetry}
+                  disabled={loading}
+                  className="bg-red-600 hover:bg-red-700 text-white"
+                >
+                  Try Again
+                </Button>
               </div>
             )}
 
@@ -619,12 +679,35 @@ function LogMealForm() {
 
               <div>
                 <Label htmlFor="mealTime" className="text-base font-semibold text-white">Time</Label>
+                <div className="flex gap-2 mt-2 mb-2">
+                  <button
+                    type="button"
+                    onClick={() => setQuickTime(0)}
+                    className="text-xs px-3 py-1 bg-iron-gray/20 hover:bg-iron-gray/30 text-iron-gray hover:text-white rounded transition-colors"
+                  >
+                    Now
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setQuickTime(1)}
+                    className="text-xs px-3 py-1 bg-iron-gray/20 hover:bg-iron-gray/30 text-iron-gray hover:text-white rounded transition-colors"
+                  >
+                    1h ago
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setQuickTime(2)}
+                    className="text-xs px-3 py-1 bg-iron-gray/20 hover:bg-iron-gray/30 text-iron-gray hover:text-white rounded transition-colors"
+                  >
+                    2h ago
+                  </button>
+                </div>
                 <input
                   type="datetime-local"
                   id="mealTime"
                   value={mealTime}
                   onChange={(e) => setMealTime(e.target.value)}
-                  className="w-full bg-neutral-800 border border-iron-gray/30 text-white rounded-lg px-4 py-2 mt-2 focus:outline-none focus:ring-2 focus:ring-iron-orange"
+                  className="w-full bg-neutral-800 border border-iron-gray/30 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-iron-orange"
                 />
               </div>
             </div>
@@ -836,8 +919,16 @@ function LogMealForm() {
             {/* Error Message */}
             {error && (
               <div className="bg-red-900/20 border border-red-500/50 text-red-400 p-4 rounded-lg">
-                <p className="font-medium">Error</p>
-                <p className="text-sm">{error}</p>
+                <p className="font-medium mb-2">Error</p>
+                <p className="text-sm mb-3">{error}</p>
+                <Button
+                  type="button"
+                  onClick={handleRetry}
+                  disabled={loading}
+                  className="bg-red-600 hover:bg-red-700 text-white"
+                >
+                  Try Again
+                </Button>
               </div>
             )}
 
