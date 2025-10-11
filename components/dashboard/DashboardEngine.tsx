@@ -14,6 +14,7 @@
 
 import { useEffect, useState } from 'react'
 import type { DashboardVariant } from '@/lib/types/dashboard'
+import { fetchDashboardContext, logBehaviorSignal, type DashboardContext } from '@/lib/api/dashboard'
 
 // Import all card components
 import { ConsultationBannerCard } from './cards/ConsultationBannerCard'
@@ -37,7 +38,7 @@ interface DashboardEngineProps {
 
 export function DashboardEngine({ userId, variant = 'balanced' }: DashboardEngineProps) {
   const [isLoading, setIsLoading] = useState(true)
-  const [context, setContext] = useState<any>(null)
+  const [context, setContext] = useState<DashboardContext | null>(null)
 
   useEffect(() => {
     loadDashboardContext()
@@ -46,35 +47,18 @@ export function DashboardEngine({ userId, variant = 'balanced' }: DashboardEngin
   async function loadDashboardContext() {
     try {
       setIsLoading(true)
-      // TODO: Fetch dashboard context from API
-      // const response = await fetch(`/api/dashboard/context?user_id=${userId}`)
-      // const data = await response.json()
-      // setContext(data)
 
-      // For now, use mock data
-      setContext({
-        user: {
-          hasCompletedConsultation: false,
-          hasActiveProgram: true,
-          streakDays: 5,
-          tracksWeight: true,
-          showsWeightCard: true,
-          showsRecoveryCard: false
-        },
-        program: {
-          dayNumber: 5,
-          adherenceLast3Days: 85
-        },
-        events: {
-          primaryEvent: {
-            name: 'Half Marathon',
-            date: '2025-11-15',
-            daysUntil: 21
-          }
-        }
-      })
+      // Fetch dashboard context from backend API
+      const data = await fetchDashboardContext()
+      setContext(data)
+
+      // Log dashboard open behavior signal (non-blocking)
+      logBehaviorSignal('dashboard_open', variant, {
+        timestamp: new Date().toISOString(),
+      }).catch((err) => console.error('Failed to log dashboard open:', err))
     } catch (error) {
       console.error('Failed to load dashboard context:', error)
+      setContext(null) // Set to null to trigger error state
     } finally {
       setIsLoading(false)
     }
