@@ -47,6 +47,7 @@ export function MealScanClient() {
       const stream = sendMessageStreaming({
         message: analysisText,
         conversation_id: null, // Creates new conversation
+        has_image: true, // Force food detection mode
       })
 
       // Step 4: Listen for food_detected chunk
