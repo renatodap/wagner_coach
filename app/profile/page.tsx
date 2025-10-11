@@ -5,9 +5,6 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Profile, UserGoal } from '@/types/profile';
 import BottomNavigation from '@/app/components/BottomNavigation';
-import IntegrationsSection from '@/components/IntegrationsSection';
-import UnitSystemToggle from '@/components/UnitSystemToggle';
-import { DashboardSettingsCard } from '@/components/profile/DashboardSettingsCard';
 import {
   Loader2,
   User,
@@ -236,9 +233,6 @@ export default function ProfilePage() {
           </div>
         )}
 
-        {/* Dashboard Settings */}
-        <DashboardSettingsCard />
-
         {/* Program Preferences */}
         <div className="border border-iron-gray p-4 sm:p-6">
           <h3 className="font-heading text-lg sm:text-xl text-iron-white mb-3 sm:mb-4 flex items-center gap-2">
@@ -256,12 +250,6 @@ export default function ProfilePage() {
             <ChevronRight className="w-5 h-5 text-iron-gray flex-shrink-0" />
           </button>
         </div>
-
-        {/* Integrations */}
-        <IntegrationsSection />
-
-        {/* Unit System Preferences */}
-        <UnitSystemToggle />
 
         {/* Sign Out */}
         <button

@@ -47,11 +47,23 @@ export async function middleware(request: NextRequest) {
                         request.nextUrl.pathname.startsWith('/_next') ||
                         request.nextUrl.pathname.startsWith('/api')
 
-  // Note: /consultation is a protected route (requires authentication)
+  // MVP allowed routes (only coach-v3 and profile for authenticated users)
+  const isMvpAllowedRoute = request.nextUrl.pathname === '/coach-v3' ||
+                            request.nextUrl.pathname.startsWith('/profile')
+
+  // If authenticated user lands on root, redirect to coach
+  if (user && request.nextUrl.pathname === '/') {
+    return NextResponse.redirect(new URL('/coach-v3', request.url))
+  }
 
   // If no user and trying to access protected route, redirect to auth
   if (!user && !isPublicRoute) {
     return NextResponse.redirect(new URL('/auth', request.url))
+  }
+
+  // If user is authenticated but accessing non-MVP route (except onboarding), redirect to coach
+  if (user && !isPublicRoute && !isMvpAllowedRoute && request.nextUrl.pathname !== '/auth/onboarding') {
+    return NextResponse.redirect(new URL('/coach-v3', request.url))
   }
 
   // If user exists, check onboarding status (except for auth routes)
@@ -77,7 +89,7 @@ export async function middleware(request: NextRequest) {
       .single()
 
     if (onboarding?.completed) {
-      return NextResponse.redirect(new URL('/dashboard', request.url))
+      return NextResponse.redirect(new URL('/coach-v3', request.url))
     }
   }
 

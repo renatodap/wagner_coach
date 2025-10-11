@@ -10,37 +10,23 @@ import {
 } from 'lucide-react'
 
 /**
- * Bottom Navigation - Adaptive Dashboard Phase 2
+ * Bottom Navigation - MVP Version
  *
- * Simplified to 4 essential tabs:
- * - Dashboard: Personalized home with adaptive cards
- * - Plan: 14-day program view (placeholder for now)
- * - Coach: AI chat interface
- * - Profile: User settings + links to all other pages (meals, activities, analytics, etc.)
+ * Minimal viable product with 2 essential tabs:
+ * - Coach: AI chat interface (can log meals/workouts, provide advice)
+ * - Profile: User settings and program preferences
  *
- * Removed tabs:
- * - Meals → Accessible from Profile or Quick Actions on Dashboard
- * - Recovery → Accessible from Profile
- * - Quick Entry → Accessible from Quick Actions card on Dashboard
+ * Coming soon features (accessible via Coach for now):
+ * - Dashboard with adaptive cards
+ * - Meal history UI
+ * - Workout log UI
+ * - Consultation booking
+ * - Program builder UI
  */
 export default function BottomNavigation() {
   const pathname = usePathname()
 
   const navigation = [
-    {
-      name: 'Dashboard',
-      href: '/dashboard',
-      icon: LayoutDashboard,
-      current: pathname === '/dashboard',
-      ariaLabel: 'Go to Dashboard'
-    },
-    {
-      name: 'Plan',
-      href: '/plan',
-      icon: Calendar,
-      current: pathname === '/plan' || pathname.startsWith('/plan/'),
-      ariaLabel: 'View your 14-day program plan'
-    },
     {
       name: 'Coach',
       href: '/coach-v3',
@@ -52,7 +38,7 @@ export default function BottomNavigation() {
       name: 'Profile',
       href: '/profile',
       icon: User,
-      current: pathname === '/profile' || pathname.startsWith('/profile/') || pathname === '/nutrition' || pathname.startsWith('/nutrition/') || pathname === '/activities' || pathname.startsWith('/activities/') || pathname === '/recovery' || pathname.startsWith('/recovery/') || pathname === '/analytics' || pathname.startsWith('/analytics/'),
+      current: pathname === '/profile' || pathname.startsWith('/profile/'),
       ariaLabel: 'View profile and settings'
     }
   ]
@@ -63,7 +49,7 @@ export default function BottomNavigation() {
       aria-label="Main navigation"
     >
       <div className="max-w-4xl mx-auto px-2">
-        <div className="grid grid-cols-4 py-2">
+        <div className="grid grid-cols-2 py-2">
           {navigation.map((item) => {
             const Icon = item.icon
             return (
