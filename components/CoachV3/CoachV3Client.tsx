@@ -83,7 +83,7 @@ export function CoachV3Client() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gradient-to-br from-neutral-950 via-zinc-950 to-neutral-950">
+    <div className="flex flex-col h-screen bg-gradient-to-br from-neutral-950 via-zinc-950 to-neutral-950 pb-16">
       {/* Header */}
       <header className="flex-shrink-0 border-b border-zinc-800 bg-zinc-900/80 backdrop-blur-sm px-4 py-3 flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-3">
