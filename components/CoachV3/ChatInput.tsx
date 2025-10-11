@@ -21,21 +21,12 @@ interface ChatInputProps {
   placeholder?: string
 }
 
-const QUICK_SUGGESTIONS = [
-  'I ate chicken and rice for lunch',
-  'Log my breakfast',
-  'What should I eat today?',
-  'How am I doing on my goals?',
-  'I just finished a workout'
-]
-
 export function ChatInput({
   onSend,
   isLoading,
   placeholder = 'Ask your coach anything...'
 }: ChatInputProps) {
   const [input, setInput] = useState('')
-  const [showSuggestions, setShowSuggestions] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   // Auto-focus on mount
@@ -58,7 +49,6 @@ export function ChatInput({
 
     onSend(trimmed)
     setInput('')
-    setShowSuggestions(false)
 
     // Reset textarea height
     if (textareaRef.current) {
@@ -73,32 +63,11 @@ export function ChatInput({
     }
   }
 
-  const handleSuggestionClick = (suggestion: string) => {
-    setInput(suggestion)
-    setShowSuggestions(false)
-    textareaRef.current?.focus()
-  }
-
   const charCount = input.length
   const maxChars = 1000
 
   return (
     <div className="space-y-2">
-      {/* Quick Suggestions */}
-      {showSuggestions && input.length === 0 && (
-        <div className="flex flex-wrap gap-2 pb-2">
-          {QUICK_SUGGESTIONS.map((suggestion, idx) => (
-            <button
-              key={idx}
-              onClick={() => handleSuggestionClick(suggestion)}
-              className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-white text-sm rounded-lg transition-colors"
-            >
-              {suggestion}
-            </button>
-          ))}
-        </div>
-      )}
-
       {/* Input Container */}
       <div className="relative flex items-end gap-2 bg-zinc-900/50 border border-zinc-800 rounded-2xl p-2 backdrop-blur-sm focus-within:border-iron-orange transition-colors">
         {/* Textarea */}
@@ -107,7 +76,6 @@ export function ChatInput({
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          onFocus={() => setShowSuggestions(true)}
           placeholder={placeholder}
           disabled={isLoading}
           rows={1}

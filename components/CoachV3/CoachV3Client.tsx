@@ -21,6 +21,7 @@ import { useCoachV3Store } from '@/lib/stores/coach-v3-store'
 import { ChatMessage } from './ChatMessage'
 import { ChatInput } from './ChatInput'
 import { ConversationSidebar } from './ConversationSidebar'
+import { LoadingIndicator } from './LoadingIndicator'
 import { useToast } from '@/hooks/use-toast'
 import BottomNavigation from '@/app/components/BottomNavigation'
 
@@ -83,7 +84,7 @@ export function CoachV3Client() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gradient-to-br from-neutral-950 via-zinc-950 to-neutral-950 pb-16">
+    <div className="flex flex-col h-screen bg-gradient-to-br from-neutral-950 via-zinc-950 to-neutral-950 pb-20">
       {/* Header */}
       <header className="flex-shrink-0 border-b border-zinc-800 bg-zinc-900/80 backdrop-blur-sm px-4 py-3 flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-3">
@@ -158,6 +159,11 @@ export function CoachV3Client() {
                 onLogMeal={handleLogMeal}
               />
             ))}
+
+            {/* Loading Indicator */}
+            {isLoading && messages.length > 0 && !messages[messages.length - 1].isStreaming && (
+              <LoadingIndicator phase="thinking" />
+            )}
 
             {/* Auto-scroll anchor */}
             <div ref={messagesEndRef} />

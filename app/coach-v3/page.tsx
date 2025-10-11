@@ -10,8 +10,8 @@ import { createClient } from '@/lib/supabase/server'
 import { CoachV3Client } from '@/components/CoachV3/CoachV3Client'
 
 export const metadata = {
-  title: 'Coach V3 | Wagner Coach',
-  description: 'AI-powered fitness and nutrition coaching interface'
+  title: 'Coach',
+  description: 'AI-powered fitness and nutrition coaching'
 }
 
 export default async function CoachV3Page() {
