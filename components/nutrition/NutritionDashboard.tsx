@@ -9,6 +9,7 @@ import { Plus, Apple, Trash2, Edit2, Copy, Clock, ChevronLeft, ChevronRight, Boo
 import Link from 'next/link';
 import BottomNavigation from '@/app/components/BottomNavigation';
 import { useToast } from '@/hooks/use-toast';
+import { calculateDailyTotals, calculateMealTotals, isMealMissingTotals } from '@/lib/utils/nutrition-calculations';
 
 export function NutritionDashboard() {
   const router = useRouter();
@@ -20,6 +21,7 @@ export function NutritionDashboard() {
   const [error, setError] = useState<string>('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [savingTemplateId, setSavingTemplateId] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const supabase = createClient();
 
   useEffect(() => {
@@ -79,6 +81,38 @@ export function NutritionDashboard() {
 
     loadMeals();
   }, [selectedDate]);
+
+  // Auto-refresh when page gains visibility (user returns from logging meal)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && !loading) {
+        console.log('🔄 [Nutrition Dashboard] Page visible, auto-refreshing...')
+        fetchMeals()
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [selectedDate, loading])
+
+  const handleManualRefresh = async () => {
+    setRefreshing(true)
+    try {
+      await fetchMeals()
+      toast({
+        title: 'Refreshed!',
+        description: 'Nutrition data updated'
+      })
+    } catch (err) {
+      toast({
+        title: 'Refresh failed',
+        description: 'Could not update nutrition data',
+        variant: 'destructive'
+      })
+    } finally {
+      setRefreshing(false)
+    }
+  }
 
   const fetchMeals = async () => {
     try {
@@ -303,14 +337,8 @@ export function NutritionDashboard() {
     }
   };
 
-  // Calculate today's totals
-  const totals = todaysMeals.reduce((acc, meal) => ({
-    calories: acc.calories + (meal.total_calories || 0),
-    protein: acc.protein + (meal.total_protein_g || 0),
-    carbs: acc.carbs + (meal.total_carbs_g || 0),
-    fat: acc.fat + (meal.total_fat_g || 0),
-    fiber: acc.fiber + (meal.total_fiber_g || 0)
-  }), { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 });
+  // Calculate today's totals (with client-side fallback for missing backend totals)
+  const totals = calculateDailyTotals(todaysMeals);
 
   // Group meals by category
   const mealsByCategory = todaysMeals.reduce((acc, meal) => {
@@ -364,6 +392,15 @@ export function NutritionDashboard() {
           <div className="flex items-center justify-between mb-3 sm:mb-4">
             <h1 className="font-heading text-2xl sm:text-3xl lg:text-4xl text-iron-orange">NUTRITION</h1>
             <div className="flex gap-1 sm:gap-2">
+              <button
+                onClick={handleManualRefresh}
+                disabled={refreshing || loading}
+                className="text-iron-gray hover:text-iron-orange transition-colors p-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Refresh nutrition data"
+                aria-label="Refresh"
+              >
+                <RotateCw className={`w-5 h-5 sm:w-6 sm:h-6 ${refreshing ? 'animate-spin' : ''}`} />
+              </button>
               <Link
                 href="/nutrition/history"
                 className="text-iron-gray hover:text-iron-orange transition-colors p-2 sm:p-1"
@@ -434,19 +471,19 @@ export function NutritionDashboard() {
             </div>
             <div>
               <p className="text-iron-gray text-xs uppercase">Protein</p>
-              <p className="text-xl sm:text-2xl font-bold text-iron-white">{Math.round(totals.protein)}g</p>
+              <p className="text-xl sm:text-2xl font-bold text-iron-white">{Math.round(totals.protein_g)}g</p>
             </div>
             <div>
               <p className="text-iron-gray text-xs uppercase">Carbs</p>
-              <p className="text-xl sm:text-2xl font-bold text-iron-white">{Math.round(totals.carbs)}g</p>
+              <p className="text-xl sm:text-2xl font-bold text-iron-white">{Math.round(totals.carbs_g)}g</p>
             </div>
             <div>
               <p className="text-iron-gray text-xs uppercase">Fat</p>
-              <p className="text-xl sm:text-2xl font-bold text-iron-white">{Math.round(totals.fat)}g</p>
+              <p className="text-xl sm:text-2xl font-bold text-iron-white">{Math.round(totals.fat_g)}g</p>
             </div>
             <div className="col-span-2 sm:col-span-1">
               <p className="text-iron-gray text-xs uppercase">Fiber</p>
-              <p className="text-xl sm:text-2xl font-bold text-iron-white">{Math.round(totals.fiber)}g</p>
+              <p className="text-xl sm:text-2xl font-bold text-iron-white">{Math.round(totals.fiber_g)}g</p>
             </div>
           </div>
         </div>
@@ -505,17 +542,23 @@ export function NutritionDashboard() {
                       {category.replace('_', ' ')}
                     </h3>
                     <div className="space-y-3">
-                      {meals.map((meal) => (
-                        <div key={meal.id} className="border border-iron-gray p-3 sm:p-4 hover:border-iron-orange/50 transition-colors">
-                          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-start justify-between sm:block">
-                                <div className="flex-1 min-w-0">
-                                  <h4 className="text-iron-white font-medium text-sm sm:text-base truncate pr-2 sm:pr-0">{meal.name || 'Meal'}</h4>
-                                  <p className="text-iron-gray text-xs sm:text-sm mt-0.5">
-                                    {new Date(meal.logged_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                  </p>
-                                </div>
+                      {meals.map((meal) => {
+                        // Calculate nutrition with client-side fallback
+                        const mealTotals = calculateMealTotals(meal)
+                        const hasNutrition = mealTotals.calories > 0 || mealTotals.protein_g > 0
+                        const isMissingData = isMealMissingTotals(meal)
+
+                        return (
+                          <div key={meal.id} className="border border-iron-gray p-3 sm:p-4 hover:border-iron-orange/50 transition-colors">
+                            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-start justify-between sm:block">
+                                  <div className="flex-1 min-w-0">
+                                    <h4 className="text-iron-white font-medium text-sm sm:text-base truncate pr-2 sm:pr-0">{meal.name || 'Meal'}</h4>
+                                    <p className="text-iron-gray text-xs sm:text-sm mt-0.5">
+                                      {new Date(meal.logged_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    </p>
+                                  </div>
                                 {/* Mobile Action Buttons */}
                                 <div className="flex gap-1 sm:hidden">
                                   <button
@@ -555,27 +598,39 @@ export function NutritionDashboard() {
                                 </div>
                               </div>
 
-                              {(meal.total_calories || meal.total_protein_g || meal.total_carbs_g || meal.total_fat_g) && (
+                              {hasNutrition ? (
                                 <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs sm:text-sm mt-2">
-                                  {meal.total_calories > 0 && (
+                                  {mealTotals.calories > 0 && (
                                     <span className="text-iron-gray whitespace-nowrap">
-                                      <span className="text-iron-white">{Math.round(meal.total_calories)}</span> cal
+                                      <span className="text-iron-white">{Math.round(mealTotals.calories)}</span> cal
                                     </span>
                                   )}
-                                  {meal.total_protein_g > 0 && (
+                                  {mealTotals.protein_g > 0 && (
                                     <span className="text-iron-gray whitespace-nowrap">
-                                      <span className="text-iron-white">{Math.round(meal.total_protein_g)}g</span> protein
+                                      <span className="text-iron-white">{Math.round(mealTotals.protein_g)}g</span> protein
                                     </span>
                                   )}
-                                  {meal.total_carbs_g > 0 && (
+                                  {mealTotals.carbs_g > 0 && (
                                     <span className="text-iron-gray whitespace-nowrap">
-                                      <span className="text-iron-white">{Math.round(meal.total_carbs_g)}g</span> carbs
+                                      <span className="text-iron-white">{Math.round(mealTotals.carbs_g)}g</span> carbs
                                     </span>
                                   )}
-                                  {meal.total_fat_g > 0 && (
+                                  {mealTotals.fat_g > 0 && (
                                     <span className="text-iron-gray whitespace-nowrap">
-                                      <span className="text-iron-white">{Math.round(meal.total_fat_g)}g</span> fat
+                                      <span className="text-iron-white">{Math.round(mealTotals.fat_g)}g</span> fat
                                     </span>
+                                  )}
+                                  {isMissingData && (
+                                    <span className="text-yellow-500 text-xs italic">
+                                      ⚠️ Calculated client-side
+                                    </span>
+                                  )}
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-2 text-xs sm:text-sm mt-2 text-yellow-500">
+                                  <span>⏳ Nutrition data unavailable</span>
+                                  {meal.foods && meal.foods.length > 0 && (
+                                    <span className="text-iron-gray">({meal.foods.length} food{meal.foods.length !== 1 ? 's' : ''})</span>
                                   )}
                                 </div>
                               )}
@@ -624,7 +679,8 @@ export function NutritionDashboard() {
                             </div>
                           </div>
                         </div>
-                      ))}
+                        )
+                      })}
                     </div>
                   </div>
                 );

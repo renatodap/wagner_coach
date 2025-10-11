@@ -416,8 +416,9 @@ function LogMealForm() {
       console.log('🎉 [Meal Log] Setting success state')
       setSuccess(true)
 
-      // Redirect after 1.5 seconds to returnTo URL with query params
-      // This allows the coach page to detect return and reload conversation
+      // Redirect after 2.5 seconds to returnTo URL with query params
+      // This gives backend time to calculate nutrition totals
+      // The dashboard has auto-refresh and client-side fallback for immediate display
       setTimeout(() => {
         console.log('🔀 [Meal Log] Redirecting to:', returnTo)
         const redirectUrl = new URL(returnTo, window.location.origin)
@@ -427,7 +428,7 @@ function LogMealForm() {
           redirectUrl.searchParams.set('status', 'submitted')
         }
         router.push(redirectUrl.pathname + redirectUrl.search)
-      }, 1500)
+      }, 2500)
     } catch (err) {
       console.error('❌ [Meal Log] Error saving meal:', err)
       console.error('❌ [Meal Log] Error details:', {
@@ -514,9 +515,15 @@ function LogMealForm() {
         <div className="bg-iron-black/50 backdrop-blur-sm border-2 border-iron-orange p-8 rounded-lg text-center w-full max-w-md">
           <CheckCircle className="mx-auto h-16 w-16 text-iron-orange mb-4" />
           <p className="text-2xl font-bold text-white mb-2">Meal Logged Successfully!</p>
-          <p className="text-iron-gray">
-            {conversationId ? 'Returning to coach...' : 'Redirecting to nutrition page...'}
-          </p>
+          <div className="space-y-2 mt-4">
+            <div className="flex items-center justify-center gap-2">
+              <div className="animate-spin inline-block w-4 h-4 border-2 border-iron-orange border-t-transparent rounded-full" />
+              <p className="text-sm text-iron-gray">Calculating nutrition...</p>
+            </div>
+            <p className="text-xs text-iron-gray/70">
+              {conversationId ? 'Returning to coach...' : 'Redirecting to nutrition page...'}
+            </p>
+          </div>
         </div>
       </div>
     )

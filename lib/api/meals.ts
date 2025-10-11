@@ -121,6 +121,12 @@ export async function getMeals(
   if (options.limit) params.set('limit', options.limit.toString())
   if (options.offset) params.set('offset', options.offset.toString())
 
+  console.log('🔍 [getMeals] Fetching meals:', {
+    url: `${API_BASE_URL}/api/v1/meals?${params}`,
+    startDate: options.startDate,
+    endDate: options.endDate
+  })
+
   const response = await fetch(`${API_BASE_URL}/api/v1/meals?${params}`, {
     method: 'GET',
     headers: {
@@ -130,10 +136,28 @@ export async function getMeals(
   })
 
   if (!response.ok) {
+    console.error('❌ [getMeals] Failed:', response.status, response.statusText)
     throw new Error(`Failed to fetch meals: ${response.statusText}`)
   }
 
-  return response.json()
+  const data = await response.json()
+
+  console.log('✅ [getMeals] Response:', {
+    totalMeals: data.meals?.length || 0,
+    meals: data.meals?.map((m: any) => ({
+      id: m.id,
+      category: m.category,
+      logged_at: m.logged_at,
+      total_calories: m.total_calories,
+      total_protein_g: m.total_protein_g,
+      total_carbs_g: m.total_carbs_g,
+      total_fat_g: m.total_fat_g,
+      foods_count: m.foods?.length || 0,
+      has_foods_nutrition: m.foods?.[0]?.calories ? true : false
+    })) || []
+  })
+
+  return data
 }
 
 /**
