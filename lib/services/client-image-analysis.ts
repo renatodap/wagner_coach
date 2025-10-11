@@ -82,13 +82,18 @@ export async function analyzeImage(
       dangerouslyAllowBrowser: true // Required for client-side usage
     })
 
-    // EXACT SAME PROMPT as backend food_vision_service.py
-    const systemPrompt = `You are a food recognition AI for a fitness app.
+    const systemPrompt = `You are a food recognition AI for a fitness app. Analyze images to identify food and estimate nutrition.
+
+CRITICAL RULES:
+1. Use GENERIC food names by default (e.g., "Grilled Chicken" NOT "Chick-fil-A Grilled Chicken Sandwich")
+2. ONLY mention brands/restaurants if their packaging, logo, or branding is CLEARLY visible
+3. Be conservative with portion estimates - better to underestimate than overestimate
+4. If uncertain about a food item, use the most common/generic version
 
 Analyze the image and determine:
 1. Is this image showing food/meals? (yes/no)
-2. If yes, identify all food items visible
-3. Estimate portion sizes
+2. If yes, identify all food items visible using GENERIC names
+3. Estimate portion sizes conservatively
 4. Calculate approximate nutritional content (calories, protein, carbs, fats)
 5. Determine meal type (breakfast, lunch, dinner, snack)
 
@@ -96,7 +101,7 @@ Return ONLY valid JSON (no markdown, no explanation):
 {
     "is_food": true/false,
     "food_items": [
-        {"name": "food name", "quantity": "amount", "unit": "g/oz/cups"}
+        {"name": "generic food name", "quantity": "amount", "unit": "g/oz/cups"}
     ],
     "nutrition": {
         "calories": estimated_total_calories,
@@ -105,9 +110,9 @@ Return ONLY valid JSON (no markdown, no explanation):
         "fats_g": estimated_fats_grams
     },
     "meal_type": "breakfast/lunch/dinner/snack",
-    "description": "Natural language description of the meal for coach context",
+    "description": "Natural language description of the meal",
     "confidence": 0.0-1.0,
-    "reasoning": "Brief explanation of analysis"
+    "reasoning": "Brief explanation of identification and estimates"
 }
 
 If NOT food, return:
@@ -115,7 +120,13 @@ If NOT food, return:
     "is_food": false,
     "description": "Brief description of what the image shows",
     "confidence": 1.0
-}`
+}
+
+EXAMPLES:
+✅ GOOD: "Grilled Chicken Breast", "White Rice", "Steamed Broccoli"
+❌ BAD: "Chick-fil-A Grilled Chicken", "Uncle Ben's Rice", "Birds Eye Broccoli"
+
+Only use brand names if you can SEE the packaging/logo in the image.`
 
     let userPrompt = 'Analyze this food image.'
     if (userMessage) {
@@ -179,6 +190,67 @@ If NOT food, return:
       api_used: 'none',
       error: error instanceof Error ? error.message : 'Unknown error'
     }
+  }
+}
+
+/**
+ * Convert ImageAnalysisResult to FoodDetected type for UI display
+ *
+ * This allows us to use the client-side analysis data directly in InlineMealCard
+ * without waiting for the backend to return potentially incomplete data.
+ */
+export function convertToFoodDetected(analysis: ImageAnalysisResult): {
+  is_food: boolean
+  nutrition: {
+    calories: number
+    protein_g: number
+    carbs_g: number
+    fats_g: number
+    fiber_g?: number
+    sugar_g?: number
+    sodium_mg?: number
+  }
+  food_items: Array<{
+    name: string
+    quantity?: string | number
+    portion?: string
+    calories?: number
+    protein_g?: number
+    carbs_g?: number
+    fats_g?: number
+  }>
+  meal_type: 'breakfast' | 'lunch' | 'dinner' | 'snack' | null
+  confidence: number
+  description: string
+} | null {
+  if (!analysis.success || !analysis.is_food) {
+    return null
+  }
+
+  const { food_items = [], nutrition, meal_type, description, confidence } = analysis
+
+  return {
+    is_food: true,
+    nutrition: {
+      calories: nutrition?.calories || 0,
+      protein_g: nutrition?.protein_g || 0,
+      carbs_g: nutrition?.carbs_g || 0,
+      fats_g: nutrition?.fats_g || 0
+    },
+    food_items: food_items.map(item => ({
+      name: item.name,
+      quantity: item.quantity,
+      portion: `${item.quantity} ${item.unit}`,
+      // For individual items, we don't have per-item macros from the analysis
+      // The total nutrition is in the nutrition object above
+      calories: undefined,
+      protein_g: undefined,
+      carbs_g: undefined,
+      fats_g: undefined
+    })),
+    meal_type: meal_type as 'breakfast' | 'lunch' | 'dinner' | 'snack' | null,
+    confidence: confidence || 0,
+    description: description || 'Food detected from image'
   }
 }
 

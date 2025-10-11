@@ -16,7 +16,7 @@ import { VoiceRecorder } from '@/components/Coach/VoiceRecorder'
 import { CameraButton } from '@/components/Coach/CameraButton'
 import { generateSmartSuggestions, getTimeBasedGreeting } from '@/lib/utils/smartSuggestions'
 import type { FoodDetected as FoodDetectedType, SuggestedAction as SuggestedActionType } from '@/lib/types'
-import { analyzeImage, formatAnalysisAsText } from '@/lib/services/client-image-analysis'
+import { analyzeImage, formatAnalysisAsText, convertToFoodDetected } from '@/lib/services/client-image-analysis'
 
 interface Message {
   id: string
@@ -370,7 +370,8 @@ export function SimpleChatClient() {
     const userText = text.trim()
 
     // Add user message with image (with or without text)
-    const userMessageContent = userText || 'What\'s in this image?'
+    // If no text, show just the image without placeholder text
+    const userMessageContent = userText || ''
     const userMessage: Message = {
       id: `user-${Date.now()}`,
       role: 'user',
@@ -393,22 +394,28 @@ export function SimpleChatClient() {
       // Analyze image client-side with AI vision
       const analysis = await analyzeImage(file, userText)
 
-      // Format analysis as system context
+      // Convert analysis to FoodDetected type for UI display
+      const clientFoodDetected = convertToFoodDetected(analysis)
+
+      // Format analysis as system context for backend
       const formattedAnalysis = formatAnalysisAsText(analysis)
 
       // Combine with user message (if they wrote something)
+      // Always include the formatted analysis for backend context
       const messageToSend = userText
         ? `${userText}\n\n${formattedAnalysis}`
         : formattedAnalysis
 
-      // Create placeholder AI message for streaming
+      // Create AI message with client-side food detection data immediately
       const aiMessageId = `ai-${Date.now()}`
       const aiMessage: Message = {
         id: aiMessageId,
         role: 'assistant',
         content: '',
         timestamp: new Date(),
-        isStreaming: true
+        isStreaming: true,
+        // Use client analysis data immediately - don't wait for backend
+        food_detected: clientFoodDetected || undefined
       }
       setMessages(prev => [...prev, aiMessage])
 
@@ -517,9 +524,27 @@ export function SimpleChatClient() {
     } catch (error) {
       console.error('[SimpleChatClient] Failed to analyze image:', error)
 
+      // Detect specific error types for better user guidance
+      const isNetworkError = error instanceof TypeError && error.message.includes('fetch')
+      const isCORSError = error instanceof TypeError && (
+        error.message.includes('CORS') ||
+        error.message.includes('Network request failed')
+      )
+
+      let errorTitle = 'Failed to analyze image'
+      let errorDescription = 'Unable to process the image. Please try again.'
+
+      if (isNetworkError || isCORSError) {
+        errorTitle = 'Network Error'
+        errorDescription = 'Unable to reach the server. Please check your internet connection and try again.'
+      } else if (error instanceof Error && error.message.includes('API key')) {
+        errorTitle = 'Configuration Error'
+        errorDescription = 'Image analysis is not configured. Please contact support.'
+      }
+
       toast({
-        title: 'Failed to analyze image',
-        description: 'Unable to process the image. Please try again.',
+        title: errorTitle,
+        description: errorDescription,
         variant: 'destructive'
       })
 
@@ -973,16 +998,19 @@ export function SimpleChatClient() {
                       <>
                         {/* Image preview (if present) */}
                         {message.image_url && (
-                          <div className="mb-3">
+                          <div className={message.content ? "mb-3" : ""}>
                             <img
                               src={message.image_url}
-                              alt="Uploaded image"
+                              alt="Uploaded food image"
                               className="rounded-lg max-w-full h-auto max-h-80 object-contain"
                             />
                           </div>
                         )}
 
-                        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                        {/* Only show text if present */}
+                        {message.content && (
+                          <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                        )}
                         <div className="flex items-center justify-between gap-2 mt-1">
                           <p className="text-xs opacity-70">
                             {message.timestamp.toLocaleTimeString()}
