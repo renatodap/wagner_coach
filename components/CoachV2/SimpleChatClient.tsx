@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast'
 import { InlineMealCard } from '@/components/Coach/InlineMealCard'
 import { ActionButtons } from '@/components/Coach/ActionButtons'
 import { FloatingQuickActions } from '@/components/Coach/FloatingQuickActions'
+import { MessageActions } from '@/components/Coach/MessageActions'
 import { generateSmartSuggestions, getTimeBasedGreeting } from '@/lib/utils/smartSuggestions'
 import type { FoodDetected as FoodDetectedType, SuggestedAction as SuggestedActionType } from '@/lib/types'
 
@@ -760,7 +761,7 @@ export function SimpleChatClient() {
             {messages.map(message => (
               <div
                 key={message.id}
-                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} group`}
                 role="article"
                 aria-label={`${message.role === 'user' ? 'Your message' : 'Coach response'} at ${message.timestamp.toLocaleTimeString()}`}
               >
@@ -781,13 +782,24 @@ export function SimpleChatClient() {
                     ) : (
                       <>
                         <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                        <div className="flex items-center gap-2 mt-1">
+                        <div className="flex items-center justify-between gap-2 mt-1">
                           <p className="text-xs opacity-70">
                             {message.timestamp.toLocaleTimeString()}
                           </p>
-                          {message.isStreaming && (
-                            <Loader2 className="w-3 h-3 animate-spin" />
-                          )}
+                          <div className="flex items-center gap-2">
+                            {message.isStreaming && (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            )}
+                            <MessageActions
+                              messageContent={message.content}
+                              onCopy={() => {
+                                toast({
+                                  title: 'Copied to clipboard',
+                                  description: 'Message copied successfully'
+                                })
+                              }}
+                            />
+                          </div>
                         </div>
                       </>
                     )}
