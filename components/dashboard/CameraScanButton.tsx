@@ -11,7 +11,7 @@ import { useState, useRef } from 'react'
 import { Camera, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { InlineMealCard } from '@/components/Coach/InlineMealCard'
-import { analyzeImage, convertToFoodDetected } from '@/lib/services/client-image-analysis'
+import { analyzeImage, convertToFoodDetected, matchFoodsToDatabase } from '@/lib/services/client-image-analysis'
 import { useToast } from '@/hooks/use-toast'
 import { createClient } from '@/lib/supabase/client'
 import type { FoodDetected } from '@/lib/types'
@@ -90,20 +90,31 @@ export function CameraScanButton() {
 
       const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
 
-      // Build meal log request in the format the backend expects
+      // Match foods to database to get food_ids
+      console.log('[CameraScanButton] Matching foods to database...')
+      const detectedFoods = foodData.food_items.map(item => ({
+        name: item.name,
+        quantity: String(item.quantity || '1'),
+        unit: item.portion || 'serving'
+      }))
+
+      const matchResult = await matchFoodsToDatabase(detectedFoods, session.access_token)
+      console.log('[CameraScanButton] Food matching result:', matchResult)
+
+      if (matchResult.matched_foods.length === 0) {
+        throw new Error('Could not match any foods to database. Please try manual entry.')
+      }
+
+      // Build meal log request with food_ids
       const mealLogRequest = {
-        meal_type: foodData.meal_type || 'snack',
+        category: foodData.meal_type || 'snack',  // Required field
         logged_at: new Date().toISOString(),
-        calories: Math.round(foodData.nutrition.calories),
-        protein_g: Math.round(foodData.nutrition.protein_g * 10) / 10,
-        carbs_g: Math.round(foodData.nutrition.carbs_g * 10) / 10,
-        fats_g: Math.round(foodData.nutrition.fats_g * 10) / 10,
-        fiber_g: foodData.nutrition.fiber_g,
-        sugar_g: foodData.nutrition.sugar_g,
-        sodium_mg: foodData.nutrition.sodium_mg,
-        foods: foodData.food_items.map(item => item.name),
         notes: `Camera scan: ${foodData.description}`,
-        source: 'camera_scan' as const
+        foods: matchResult.matched_foods.map(food => ({
+          food_id: food.id,
+          quantity: food.detected_quantity,
+          unit: food.detected_unit
+        }))
       }
 
       console.log('[CameraScanButton] Meal log request:', mealLogRequest)
@@ -175,17 +186,24 @@ export function CameraScanButton() {
         )}
       </button>
 
-      {/* Inline Meal Card - Floating at top of screen */}
+      {/* Inline Meal Card - Modal Overlay with Dark Backdrop */}
       {foodDetected && (
-        <div className="fixed top-20 left-4 right-4 z-40 animate-in slide-in-from-top duration-300">
-          <div className="relative max-w-md mx-auto">
+        <div
+          className="fixed inset-0 z-40 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-300"
+          onClick={handleDismiss}
+          aria-label="Meal card overlay"
+        >
+          <div
+            className="relative max-w-md w-full animate-in zoom-in-95 duration-300"
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* Close button */}
             <button
               onClick={handleDismiss}
-              className="absolute -top-2 -right-2 z-50 w-8 h-8 bg-iron-black border border-iron-gray rounded-full flex items-center justify-center hover:bg-iron-gray transition-colors"
+              className="absolute -top-2 -right-2 z-50 w-10 h-10 bg-iron-orange border-2 border-iron-white rounded-full flex items-center justify-center hover:bg-orange-600 transition-colors shadow-lg"
               aria-label="Dismiss meal card"
             >
-              <X className="h-4 w-4 text-white" />
+              <X className="h-5 w-5 text-white" />
             </button>
 
             {/* Meal card */}
