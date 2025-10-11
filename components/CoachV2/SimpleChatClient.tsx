@@ -317,21 +317,17 @@ export function SimpleChatClient() {
         const workoutCount = receivedAutoLogged.filter(item => item.log_type === 'workout').length
         const activityCount = receivedAutoLogged.filter(item => item.log_type === 'activity').length
 
+        // Show toast notification
         toast({
           title: 'Logged successfully!',
-          description: `${mealCount > 0 ? `${mealCount} meal(s)` : ''} ${workoutCount > 0 ? `${workoutCount} workout(s)` : ''} ${activityCount > 0 ? `${activityCount} activity(s)` : ''}`.trim(),
-          action: (
-            <button
-              onClick={() => {
-                router.refresh()
-                router.push('/nutrition')
-              }}
-              className="px-3 py-1 bg-iron-orange text-white text-sm rounded hover:bg-orange-600 transition-colors"
-            >
-              View
-            </button>
-          ),
+          description: `${mealCount > 0 ? `${mealCount} meal(s)` : ''} ${workoutCount > 0 ? `${workoutCount} workout(s)` : ''} ${activityCount > 0 ? `${activityCount} activity(s)` : ''}`.trim() + ' - Redirecting to nutrition page...',
         })
+
+        // AUTOMATIC REDIRECT after 1 second
+        setTimeout(() => {
+          router.refresh()
+          router.push('/nutrition/log')
+        }, 1000)
       }
 
       // Mark streaming as complete
