@@ -38,6 +38,7 @@ export interface UserContext {
   showsWeightCard: boolean
   showsRecoveryCard: boolean
   showsWorkoutCard: boolean
+  hasMinimumDataForInsights: boolean  // True if >= 5 meals OR >= 2 workouts logged
 }
 
 export interface ProgramContext {

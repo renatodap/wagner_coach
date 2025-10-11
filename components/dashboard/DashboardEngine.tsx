@@ -14,7 +14,13 @@
 
 import { useEffect, useState } from 'react'
 import type { DashboardVariant } from '@/lib/types/dashboard'
-import { fetchDashboardContext, logBehaviorSignal, type DashboardContext } from '@/lib/api/dashboard'
+import {
+  fetchDashboardContext,
+  fetchWeeklyAnalytics,
+  logBehaviorSignal,
+  type DashboardContext,
+  type WeeklyAnalytics
+} from '@/lib/api/dashboard'
 
 // Import all card components
 import { ConsultationBannerCard } from './cards/ConsultationBannerCard'
@@ -39,6 +45,7 @@ interface DashboardEngineProps {
 export function DashboardEngine({ userId, variant = 'balanced' }: DashboardEngineProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [context, setContext] = useState<DashboardContext | null>(null)
+  const [weeklyAnalytics, setWeeklyAnalytics] = useState<WeeklyAnalytics | null>(null)
 
   useEffect(() => {
     loadDashboardContext()
@@ -48,9 +55,17 @@ export function DashboardEngine({ userId, variant = 'balanced' }: DashboardEngin
     try {
       setIsLoading(true)
 
-      // Fetch dashboard context from backend API
-      const data = await fetchDashboardContext()
-      setContext(data)
+      // Fetch dashboard context and weekly analytics in parallel
+      const [contextData, analyticsData] = await Promise.all([
+        fetchDashboardContext(),
+        fetchWeeklyAnalytics().catch(err => {
+          console.error('Failed to load weekly analytics:', err)
+          return null
+        })
+      ])
+
+      setContext(contextData)
+      setWeeklyAnalytics(analyticsData)
 
       // Behavior signal logging disabled (backend table not yet implemented)
       // logBehaviorSignal('dashboard_open', variant, {
@@ -105,9 +120,10 @@ export function DashboardEngine({ userId, variant = 'balanced' }: DashboardEngin
         <EventCountdownCard event={context.events.primaryEvent} />
       )}
 
-      {/* Priority 5: Coach Insight - Disabled until we have minimum data threshold logic */}
-      {/* Only show if user has logged >= 5 meals OR >= 2 workouts */}
-      {/* {context.program && context.program.adherenceLast3Days < 60 && (
+      {/* Priority 5: Coach Insight (only if minimum data threshold met AND low adherence) */}
+      {context.user.hasMinimumDataForInsights &&
+       context.program &&
+       context.program.adherenceLast3Days < 60 && (
         <CoachInsightCard
           insight={{
             type: 'warning',
@@ -119,7 +135,7 @@ export function DashboardEngine({ userId, variant = 'balanced' }: DashboardEngin
             }
           }}
         />
-      )} */}
+      )}
 
       {/* Priority 7-8: Nutrition (All personas with variants) */}
       <NutritionCard variant={variant} />
@@ -149,11 +165,10 @@ export function DashboardEngine({ userId, variant = 'balanced' }: DashboardEngin
         <RecoveryMetricsCard />
       )}
 
-      {/* Priority 21-24: Weekly Trends (Balanced/Detailed) - Disabled until we pass real data */}
-      {/* Need to fetch weekly analytics and pass to card */}
-      {/* {(variant === 'balanced' || variant === 'detailed') && (
-        <WeeklyTrendsCard variant={variant} />
-      )} */}
+      {/* Priority 21-24: Weekly Trends (Balanced/Detailed with real analytics data) */}
+      {(variant === 'balanced' || variant === 'detailed') && weeklyAnalytics && (
+        <WeeklyTrendsCard variant={variant} analytics={weeklyAnalytics} />
+      )}
     </div>
   )
 }

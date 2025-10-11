@@ -27,27 +27,10 @@ interface WeeklyData {
 
 interface WeeklyTrendsCardProps {
   variant: 'balanced' | 'detailed'
-  data?: WeeklyData
+  analytics: WeeklyData  // Required - must pass real data from API
 }
 
-const DEFAULT_DATA: WeeklyData = {
-  adherencePercent: 82,
-  averageCalories: 2150,
-  targetCalories: 2200,
-  mealsLogged: 18,
-  workoutsCompleted: 4,
-  dailyAdherence: [
-    { day: 'Mon', percent: 95 },
-    { day: 'Tue', percent: 88 },
-    { day: 'Wed', percent: 75 },
-    { day: 'Thu', percent: 92 },
-    { day: 'Fri', percent: 68 },
-    { day: 'Sat', percent: 85 },
-    { day: 'Sun', percent: 80 }
-  ]
-}
-
-export function WeeklyTrendsCard({ variant, data = DEFAULT_DATA }: WeeklyTrendsCardProps) {
+export function WeeklyTrendsCard({ variant, analytics: data }: WeeklyTrendsCardProps) {
   const getAdherenceColor = (percent: number): string => {
     if (percent >= 90) return 'text-green-500'
     if (percent >= 75) return 'text-yellow-500'
