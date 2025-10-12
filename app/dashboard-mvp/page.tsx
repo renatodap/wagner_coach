@@ -14,6 +14,8 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import BottomNavigationMVP from '@/app/components/BottomNavigationMVP'
+import { CameraButton } from '@/components/meal-logging/flows/photo-scan/CameraButton'
+import { useToast } from '@/hooks/use-toast'
 import {
   Calendar,
   Activity,
@@ -22,7 +24,9 @@ import {
   Camera,
   Apple,
   Dumbbell,
-  Heart
+  Heart,
+  Plus,
+  Utensils
 } from 'lucide-react'
 
 interface UserProfile {
@@ -43,8 +47,10 @@ export default function DashboardMVPPage() {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [greeting, setGreeting] = useState('Welcome back')
+  const [isProcessingImage, setIsProcessingImage] = useState(false)
   const router = useRouter()
   const supabase = createClient()
+  const { toast } = useToast()
 
   useEffect(() => {
     // Set greeting based on time of day
@@ -89,14 +95,46 @@ export default function DashboardMVPPage() {
     loadUserData()
   }, [router, supabase])
 
+  // Handle manual meal logging
+  function handleManualMealLog() {
+    router.push('/nutrition/log')
+  }
+
+  // Handle photo meal logging
+  async function handlePhotoMealLog(file: File) {
+    setIsProcessingImage(true)
+    try {
+      // Convert file to base64
+      const reader = new FileReader()
+      const base64Image = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => resolve(reader.result as string)
+        reader.onerror = reject
+        reader.readAsDataURL(file)
+      })
+
+      // Store image in session storage for the meal logging page
+      sessionStorage.setItem('pendingMealImage', base64Image)
+
+      // Navigate to nutrition log page which will handle the image analysis
+      router.push('/nutrition/log?mode=photo')
+
+      toast({
+        title: 'Processing photo',
+        description: 'Analyzing your meal...',
+      })
+    } catch (error) {
+      console.error('Failed to process image:', error)
+      toast({
+        title: 'Failed to process photo',
+        description: 'Please try again',
+        variant: 'destructive'
+      })
+    } finally {
+      setIsProcessingImage(false)
+    }
+  }
+
   const quickActions: QuickActionCard[] = [
-    {
-      title: 'Log Meal',
-      description: 'Quick photo or text entry',
-      icon: Camera,
-      href: '/coach-v3-mvp',
-      color: 'from-orange-500 to-orange-600'
-    },
     {
       title: 'Log Workout',
       description: 'Record your training',
@@ -117,6 +155,13 @@ export default function DashboardMVPPage() {
       icon: MessageSquare,
       href: '/coach-v3-mvp',
       color: 'from-green-500 to-green-600'
+    },
+    {
+      title: 'View Progress',
+      description: 'Check your stats',
+      icon: TrendingUp,
+      href: '/analytics',
+      color: 'from-indigo-500 to-indigo-600'
     }
   ]
 
@@ -161,6 +206,50 @@ export default function DashboardMVPPage() {
 
       {/* Dashboard Content */}
       <div className="max-w-4xl mx-auto p-6 space-y-6">
+
+        {/* Meal Logging Actions */}
+        <section>
+          <h2 className="text-xl font-bold text-white mb-4">Log Your Meals</h2>
+          <div className="grid grid-cols-2 gap-4">
+
+            {/* Manual Meal Logging Button */}
+            <button
+              onClick={handleManualMealLog}
+              className="relative overflow-hidden rounded-xl p-6 text-left transition-transform hover:scale-105 active:scale-95"
+              aria-label="Manual meal entry"
+            >
+              {/* Gradient Background */}
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-blue-600 opacity-90" />
+
+              {/* Content */}
+              <div className="relative z-10">
+                <Plus className="w-8 h-8 text-white mb-3" aria-hidden="true" />
+                <h3 className="text-lg font-bold text-white mb-1">Manual Entry</h3>
+                <p className="text-sm text-white/80">Type what you ate</p>
+              </div>
+            </button>
+
+            {/* Photo Meal Logging Button */}
+            <div className="relative overflow-hidden rounded-xl p-6 bg-gradient-to-br from-orange-500 to-orange-600 opacity-90">
+              <div className="relative z-10">
+                <Camera className="w-8 h-8 text-white mb-3" aria-hidden="true" />
+                <h3 className="text-lg font-bold text-white mb-1">Photo Scan</h3>
+                <p className="text-sm text-white/80 mb-4">Take or upload photo</p>
+
+                {/* Camera Button */}
+                <div className="flex justify-center">
+                  <div className="bg-white/20 rounded-lg p-2 hover:bg-white/30 transition-colors">
+                    <CameraButton
+                      onImageSelected={handlePhotoMealLog}
+                      disabled={isProcessingImage}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </section>
 
         {/* Quick Actions Grid */}
         <section>
