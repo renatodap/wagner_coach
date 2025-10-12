@@ -29,9 +29,9 @@ export default function BottomNavigation() {
   const navigation = [
     {
       name: 'Dashboard',
-      href: '/dashboard',
+      href: '/dashboard-mvp',
       icon: LayoutDashboard,
-      current: pathname === '/dashboard',
+      current: pathname === '/dashboard-mvp',
       ariaLabel: 'Go to Dashboard'
     },
     {
@@ -43,9 +43,9 @@ export default function BottomNavigation() {
     },
     {
       name: 'Coach',
-      href: '/coach-v3',
+      href: '/coach-v3-mvp',
       icon: MessageSquare,
-      current: pathname === '/coach-v3' || pathname === '/coach-v2' || pathname === '/coach' || pathname === '/quick-entry' || pathname === '/quick-entry-optimized',
+      current: pathname === '/coach-v3-mvp' || pathname === '/coach-v2-mvp' || pathname === '/coach-mvp',
       ariaLabel: 'Chat with your AI coach'
     },
     {
