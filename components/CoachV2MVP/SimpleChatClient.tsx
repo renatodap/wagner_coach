@@ -6,7 +6,7 @@ import { Send, Loader2, MessageSquare, Plus, Zap } from 'lucide-react'
 import { sendMessageStreaming, getConversations, getConversationMessages, confirmLog, cancelLog } from '@/lib/api/unified-coach'
 import type { SendMessageResponse, ConversationSummary, UnifiedMessage, LogType, FoodDetected, SuggestedAction } from '@/lib/api/unified-coach'
 import { getAutoLogPreference, updateAutoLogPreference } from '@/lib/api/profile'
-import BottomNavigation from '@/app/components/BottomNavigation'
+import BottomNavigationMVP from '@/app/components/BottomNavigationMVP'
 import { useToast } from '@/hooks/use-toast'
 import { InlineMealCard } from '@/components/meal-logging/flows/coach-detection/InlineMealCard'
 import { ActionButtons } from '@/components/Coach/ActionButtons'
@@ -1208,7 +1208,7 @@ export function SimpleChatClient() {
         </div>
       )}
 
-      <BottomNavigation />
+      <BottomNavigationMVP />
     </div>
   )
 }

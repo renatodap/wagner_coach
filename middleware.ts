@@ -47,13 +47,17 @@ export async function middleware(request: NextRequest) {
                         request.nextUrl.pathname.startsWith('/_next') ||
                         request.nextUrl.pathname.startsWith('/api')
 
-  // MVP allowed routes (only coach-v3 and profile for authenticated users)
-  const isMvpAllowedRoute = request.nextUrl.pathname === '/coach-v3' ||
-                            request.nextUrl.pathname.startsWith('/profile')
+  // MVP allowed routes (dashboard, coach, profile, and nutrition for authenticated users)
+  const isMvpAllowedRoute = request.nextUrl.pathname === '/dashboard-mvp' ||
+                            request.nextUrl.pathname === '/coach-v3-mvp' ||
+                            request.nextUrl.pathname === '/coach-v2-mvp' ||
+                            request.nextUrl.pathname === '/coach-v3' ||
+                            request.nextUrl.pathname.startsWith('/profile') ||
+                            request.nextUrl.pathname.startsWith('/nutrition')
 
-  // If authenticated user lands on root, redirect to coach
+  // If authenticated user lands on root, redirect to dashboard
   if (user && request.nextUrl.pathname === '/') {
-    return NextResponse.redirect(new URL('/coach-v3', request.url))
+    return NextResponse.redirect(new URL('/dashboard-mvp', request.url))
   }
 
   // If no user and trying to access protected route, redirect to auth
@@ -61,9 +65,9 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/auth', request.url))
   }
 
-  // If user is authenticated but accessing non-MVP route (except onboarding), redirect to coach
+  // If user is authenticated but accessing non-MVP route (except onboarding), redirect to dashboard
   if (user && !isPublicRoute && !isMvpAllowedRoute && request.nextUrl.pathname !== '/auth/onboarding') {
-    return NextResponse.redirect(new URL('/coach-v3', request.url))
+    return NextResponse.redirect(new URL('/dashboard-mvp', request.url))
   }
 
   // If user exists, check onboarding status (except for auth routes)
@@ -89,7 +93,7 @@ export async function middleware(request: NextRequest) {
       .single()
 
     if (onboarding?.completed) {
-      return NextResponse.redirect(new URL('/coach-v3', request.url))
+      return NextResponse.redirect(new URL('/dashboard-mvp', request.url))
     }
   }
 

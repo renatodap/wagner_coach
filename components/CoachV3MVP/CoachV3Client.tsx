@@ -22,7 +22,7 @@ import { ChatMessage } from './ChatMessage'
 import { ChatInput } from './ChatInput'
 import { ConversationSidebar } from './ConversationSidebar'
 import { useToast } from '@/hooks/use-toast'
-import BottomNavigation from '@/app/components/BottomNavigation'
+import BottomNavigationMVP from '@/app/components/BottomNavigationMVP'
 
 export function CoachV3Client() {
   const { messages, sendMessage, logMeal, startNewConversation } = useCoachV3()
@@ -177,7 +177,7 @@ export function CoachV3Client() {
       </div>
 
       {/* Bottom Navigation */}
-      <BottomNavigation />
+      <BottomNavigationMVP />
     </div>
   )
 }
